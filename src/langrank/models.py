@@ -33,6 +33,16 @@ class MetricDefinition:
 
 
 @dataclass(frozen=True)
+class MethodologyNote:
+    rating_id: str
+    methodology_version: str
+    valid_from: date | None
+    valid_to: date | None
+    description: str
+    source_url: str | None = None
+
+
+@dataclass(frozen=True)
 class ProviderMetadata:
     provider_id: str
     display_name: str
@@ -43,6 +53,7 @@ class ProviderMetadata:
     caveats: list[str]
     metrics: list[MetricDefinition]
     parser_version: str
+    methodology_notes: list[MethodologyNote] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -56,6 +67,7 @@ class FetchRequest:
     no_cache: bool = False
     dry_run: bool = False
     verbose: int = 0
+    source: str | None = None
 
 
 @dataclass(frozen=True)

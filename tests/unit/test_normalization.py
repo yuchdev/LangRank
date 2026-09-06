@@ -8,7 +8,13 @@ from langrank.normalization import LanguageNormalizer
 
 @pytest.mark.parametrize(
     ("alias", "canonical"),
-    [("cpp", "c++"), ("C++", "c++"), ("JS", "javascript"), ("Bash/Shell", "shell")],
+    [
+        ("cpp", "c++"),
+        ("C++", "c++"),
+        ("JS", "javascript"),
+        ("Bash/Shell", "shell"),
+        ("C/C++", "c-cpp"),
+    ],
 )
 def test_language_alias_resolution(alias: str, canonical: str) -> None:
     normalizer = LanguageNormalizer()

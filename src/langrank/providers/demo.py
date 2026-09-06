@@ -167,6 +167,9 @@ class DemoProvider:
                 )
         return report
 
+    def upstream_latest_period(self) -> str:
+        return "2026"
+
     def _build_dataset(self, request: FetchRequest) -> dict[str, object]:
         base = {
             "python": 18.0,

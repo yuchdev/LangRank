@@ -25,15 +25,21 @@ Future sources do **not** measure the same thing, so their scores should not be 
 uv sync
 ```
 
-## Demo
+## Providers
 
-The bundled `demo` provider uses deterministic synthetic data so the full application works without network access.
+The application now includes working providers for:
+
+- `tiobe`
+- `pypl`
+- `redmonk`
+- `stackoverflow-survey`
+- `demo` (synthetic offline dataset for development)
 
 ```bash
-uv run langrank fetch demo
-uv run langrank query --rating demo --language python --years 10
-uv run langrank plot --rating demo --languages python,c++,rust --years 10
-uv run langrank export csv --rating demo --output demo.csv
+uv run langrank fetch all --years 10
+uv run langrank query --rating tiobe --language python --years 10
+uv run langrank plot --rating redmonk --metric rank --languages python,c++,rust --years 10
+uv run langrank export csv --ratings tiobe,pypl,redmonk,stackoverflow-survey --since 2016 --output history.csv
 ```
 
 ## Development checks
