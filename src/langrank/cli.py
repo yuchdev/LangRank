@@ -23,9 +23,10 @@ from langrank.exports.json_export import (
     export_json_records,
     write_metadata_sidecar,
 )
-from langrank.models import FetchRequest, QueryFilters
+from langrank.models import FetchRequest, FetchRunStatus, QueryFilters
 from langrank.plotting.service import PlotService
 from langrank.providers import ProviderRegistry
+from langrank.providers.base import FetchPayload
 from langrank.services.fetch import FetchService
 from langrank.services.query import QueryService
 from langrank.services.status import StatusService
@@ -67,6 +68,10 @@ def _language_ids(state: AppState, names: str | None, rating_id: str | None) -> 
             name, rating_id
         ) or state.database.alias_to_language(name)
         if language_id is None:
+            if rating_id == "pypl" and name.lower() in {"c++", "c", "c/c++"}:
+                raise LangRankError(
+                    "PYPL reports C/C++ as a combined source category.\nUse canonical language: c-cpp"
+                )
             suggestions = state.database.language_suggestions(name)
             message = f"Unknown language '{name}'."
             if suggestions:
@@ -91,8 +96,20 @@ def _build_filters(
     top_current: int | None = None,
 ) -> QueryFilters:
     selected_names = ",".join(filter(None, [language, languages])) or None
-    if metric is None and rating is not None:
-        metric = state.providers.get(rating).metadata().default_metric
+    if rating is not None:
+        provider_metrics = state.providers.get(rating).metadata().metrics
+        available_ids = [definition.id for definition in provider_metrics]
+        if metric is None:
+            metric = state.providers.get(rating).metadata().default_metric
+        elif metric not in available_ids:
+            mapped = [item for item in available_ids if item.endswith(f"-{metric}")]
+            if len(mapped) == 1:
+                metric = mapped[0]
+            else:
+                available = "\n  ".join(sorted(available_ids))
+                raise LangRankError(
+                    f"Metric '{metric}' is not available for {rating}.\n\nAvailable metrics:\n  {available}"
+                )
     return QueryFilters(
         rating_id=rating,
         metric_id=metric,
@@ -305,33 +322,81 @@ def fetch(
     offline: bool = False,
     no_cache: bool = False,
     dry_run: bool = False,
+    source: str | None = None,
 ) -> None:
     state: AppState = ctx.obj
-    providers = (
-        state.providers.all() if provider_id == "all" else [state.providers.get(provider_id)]
-    )
+    if provider_id == "all":
+        providers = state.providers.all()
+    else:
+        try:
+            providers = [state.providers.get(provider_id)]
+        except LangRankError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=2) from exc
     service = FetchService(state.database)
+    failed = False
     for provider in providers:
-        summary = service.fetch(
-            provider,
-            FetchRequest(
-                since=_parse_date(since),
-                until=_parse_date(until, is_end=True),
-                years=years,
-                force=force,
-                refresh=refresh,
-                offline=offline,
-                no_cache=no_cache,
-                dry_run=dry_run,
-                verbose=state.verbose,
-            ),
+        try:
+            summary = service.fetch(
+                provider,
+                FetchRequest(
+                    since=_parse_date(since),
+                    until=_parse_date(until, is_end=True),
+                    years=years,
+                    force=force,
+                    refresh=refresh,
+                    offline=offline,
+                    no_cache=no_cache,
+                    dry_run=dry_run,
+                    verbose=state.verbose,
+                    source=source,
+                ),
+            )
+            console.print(
+                f"SUCCESS {summary.provider_id} seen={summary.records_seen} inserted={summary.records_inserted} updated={summary.records_updated}"
+            )
+            if summary.validation_report.issues:
+                for issue in summary.validation_report.issues:
+                    console.print(f"[{issue.severity.value}] {issue.code}: {issue.message}")
+        except Exception as exc:
+            failed = True
+            console.print(f"FAILED  {provider.provider_id}: {exc}")
+    if failed:
+        raise typer.Exit(code=1)
+
+
+@app.command("import")
+def import_data(
+    ctx: typer.Context,
+    rating: str = typer.Option(..., "--rating"),
+    path: Path = typer.Argument(...),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+) -> None:
+    state: AppState = ctx.obj
+    provider = state.providers.get(rating)
+    metadata = provider.metadata()
+    state.database.upsert_provider_metadata(metadata)
+    payload = FetchPayload(artifact=None, content=path.read_bytes())
+    records = provider.parse(payload)
+    observations = provider.normalize(records)
+    report = provider.validate(observations)
+    if report.ok and not dry_run:
+        fetch_run_id = state.database.create_fetch_run(provider.provider_id)
+        inserted, updated = state.database.upsert_observations(observations, fetch_run_id)
+        state.database.finish_fetch_run(
+            fetch_run_id,
+            status=FetchRunStatus.SUCCESS,
+            records_seen=len(records),
+            records_inserted=inserted,
+            records_updated=updated,
+            warnings=[],
+            error=None,
         )
         console.print(
-            f"Fetched {summary.provider_id}: seen={summary.records_seen} inserted={summary.records_inserted} updated={summary.records_updated} status={summary.status.value}"
+            f"Imported {rating}: seen={len(records)} inserted={inserted} updated={updated}"
         )
-        if summary.validation_report.issues:
-            for issue in summary.validation_report.issues:
-                console.print(f"[{issue.severity.value}] {issue.code}: {issue.message}")
+    else:
+        console.print(f"Imported {rating}: seen={len(records)} dry_run={dry_run} ok={report.ok}")
 
 
 @app.command()
@@ -362,6 +427,7 @@ def export_csv_command(
     ctx: typer.Context,
     output: Path = typer.Option(..., "--output"),
     rating: str | None = typer.Option(None, "--rating"),
+    ratings: str | None = typer.Option(None, "--ratings"),
     metric: str | None = typer.Option(None, "--metric"),
     language: str | None = typer.Option(None, "--language"),
     languages: str | None = typer.Option(None, "--languages"),
@@ -373,17 +439,40 @@ def export_csv_command(
     metadata_sidecar: bool = typer.Option(True, "--metadata-sidecar/--no-metadata-sidecar"),
 ) -> None:
     state: AppState = ctx.obj
-    filters = _build_filters(
-        state, rating, metric, language, languages, all_languages, since, until, years, year
-    )
-    rows = QueryService(state.database).query(filters)
+    sidecar_filters: QueryFilters | None = None
+    provider_ids = [item.strip() for item in (ratings or "").split(",") if item.strip()]
+    if rating:
+        provider_ids.append(rating)
+    rows = []
+    if provider_ids:
+        for provider_id in sorted(set(provider_ids)):
+            filters = _build_filters(
+                state,
+                provider_id,
+                metric,
+                language,
+                languages,
+                all_languages,
+                since,
+                until,
+                years,
+                year,
+            )
+            sidecar_filters = filters
+            rows.extend(QueryService(state.database).query(filters))
+    else:
+        filters = _build_filters(
+            state, rating, metric, language, languages, all_languages, since, until, years, year
+        )
+        sidecar_filters = filters
+        rows = QueryService(state.database).query(filters)
     export_csv(rows, output)
     if metadata_sidecar:
         versions = {
             provider.provider_id: provider.metadata().parser_version
             for provider in state.providers.all()
         }
-        write_metadata_sidecar(output, asdict(filters), versions)
+        write_metadata_sidecar(output, asdict(sidecar_filters) if sidecar_filters else {}, versions)
     console.print(f"Wrote {output}")
 
 
@@ -392,6 +481,7 @@ def export_json_command(
     ctx: typer.Context,
     output: Path = typer.Option(..., "--output"),
     rating: str | None = typer.Option(None, "--rating"),
+    ratings: str | None = typer.Option(None, "--ratings"),
     metric: str | None = typer.Option(None, "--metric"),
     language: str | None = typer.Option(None, "--language"),
     languages: str | None = typer.Option(None, "--languages"),
@@ -404,10 +494,33 @@ def export_json_command(
     metadata_sidecar: bool = typer.Option(True, "--metadata-sidecar/--no-metadata-sidecar"),
 ) -> None:
     state: AppState = ctx.obj
-    filters = _build_filters(
-        state, rating, metric, language, languages, all_languages, since, until, years, year
-    )
-    rows = QueryService(state.database).query(filters)
+    sidecar_filters: QueryFilters | None = None
+    provider_ids = [item.strip() for item in (ratings or "").split(",") if item.strip()]
+    if rating:
+        provider_ids.append(rating)
+    rows = []
+    if provider_ids:
+        for provider_id in sorted(set(provider_ids)):
+            filters = _build_filters(
+                state,
+                provider_id,
+                metric,
+                language,
+                languages,
+                all_languages,
+                since,
+                until,
+                years,
+                year,
+            )
+            sidecar_filters = filters
+            rows.extend(QueryService(state.database).query(filters))
+    else:
+        filters = _build_filters(
+            state, rating, metric, language, languages, all_languages, since, until, years, year
+        )
+        sidecar_filters = filters
+        rows = QueryService(state.database).query(filters)
     if layout == "nested":
         export_json_nested(rows, output)
     else:
@@ -417,7 +530,7 @@ def export_json_command(
             provider.provider_id: provider.metadata().parser_version
             for provider in state.providers.all()
         }
-        write_metadata_sidecar(output, asdict(filters), versions)
+        write_metadata_sidecar(output, asdict(sidecar_filters) if sidecar_filters else {}, versions)
     console.print(f"Wrote {output}")
 
 
@@ -524,14 +637,18 @@ def status(ctx: typer.Context) -> None:
     table.add_column("Provider")
     table.add_column("Latest local observation")
     table.add_column("Last fetch run")
+    table.add_column("Last failed fetch")
     table.add_column("Records")
+    table.add_column("Upstream latest")
     table.add_column("State")
     for item in service.statuses():
         table.add_row(
             item.provider_id,
             item.latest_local_observation or "-",
             item.last_fetch_status or "-",
+            item.last_failed_fetch_at or "-",
             str(item.record_count),
+            item.upstream_latest_period or "-",
             item.provider_state,
         )
     console.print(table)

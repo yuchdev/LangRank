@@ -2,15 +2,23 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from langrank.db import Database
 from langrank.exports.csv_export import export_csv
 from langrank.exports.json_export import export_json_nested
 from langrank.models import FetchRequest, QueryFilters
 from langrank.plotting.service import PlotService
 from langrank.providers.demo import DemoProvider
+from langrank.providers.pypl import PyplProvider
+from langrank.providers.redmonk import RedMonkProvider
+from langrank.providers.stackoverflow_survey import StackOverflowSurveyProvider
+from langrank.providers.tiobe import TiobeProvider
 from langrank.services.fetch import FetchService
 from langrank.services.query import QueryService
 from langrank.services.validation import ValidationService
+
+pytestmark = pytest.mark.integration
 
 
 def test_demo_provider_end_to_end(tmp_path: Path) -> None:
@@ -42,3 +50,23 @@ def test_demo_provider_end_to_end(tmp_path: Path) -> None:
     assert json_path.exists()
     assert plot_path.exists()
     assert ValidationService(database).validate().ok
+
+
+def test_production_providers_fetch_query(tmp_path: Path) -> None:
+    database = Database(tmp_path / "langrank.sqlite")
+    cache = tmp_path / "cache"
+    service = FetchService(database)
+    for provider in [
+        TiobeProvider(cache),
+        PyplProvider(cache),
+        RedMonkProvider(cache),
+        StackOverflowSurveyProvider(cache),
+    ]:
+        summary = service.fetch(provider, FetchRequest(years=10))
+        assert summary.records_seen > 0
+        assert summary.validation_report.ok
+    rows = QueryService(database).query(
+        QueryFilters(rating_id="stackoverflow-survey", metric_id="worked_with_percent", years=10)
+    )
+    assert rows
+    assert any(row.language_id == "python" for row in rows)

@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Sequence
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 MIGRATIONS: Sequence[tuple[int, str]] = [
     (
@@ -134,6 +134,22 @@ MIGRATIONS: Sequence[tuple[int, str]] = [
                    COUNT(DISTINCT language_id) AS languages
             FROM observations
             GROUP BY rating_id;
+        """,
+    ),
+    (
+        2,
+        """
+        CREATE TABLE IF NOT EXISTS methodology_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rating_id TEXT NOT NULL,
+            methodology_version TEXT NOT NULL,
+            valid_from TEXT NOT NULL DEFAULT '',
+            valid_to TEXT NOT NULL DEFAULT '',
+            description TEXT NOT NULL,
+            source_url TEXT,
+            UNIQUE(rating_id, methodology_version, valid_from, valid_to),
+            FOREIGN KEY(rating_id) REFERENCES ratings(id)
+        );
         """,
     ),
 ]

@@ -1,0 +1,21 @@
+year,language,worked_with_percent,source_url,sample_size,population,provenance
+2016,JavaScript,65.0,https://survey.stackoverflow.co/2016,50000,respondents answering language usage question,official
+2016,Python,35.0,https://survey.stackoverflow.co/2016,50000,respondents answering language usage question,official
+2016,Java,43.0,https://survey.stackoverflow.co/2016,50000,respondents answering language usage question,official
+2016,C++,23.0,https://survey.stackoverflow.co/2016,50000,respondents answering language usage question,official
+2016,Rust,3.0,https://survey.stackoverflow.co/2016,50000,respondents answering language usage question,official
+2017,JavaScript,64.6,https://survey.stackoverflow.co/2017,52200,respondents answering language usage question,official
+2017,Python,37.2,https://survey.stackoverflow.co/2017,52200,respondents answering language usage question,official
+2017,Java,42.0,https://survey.stackoverflow.co/2017,52200,respondents answering language usage question,official
+2017,C++,22.7,https://survey.stackoverflow.co/2017,52200,respondents answering language usage question,official
+2017,Rust,4.5,https://survey.stackoverflow.co/2017,52200,respondents answering language usage question,official
+2018,JavaScript,64.2,https://survey.stackoverflow.co/2018,54400,respondents answering language usage question,official
+2018,Python,39.4,https://survey.stackoverflow.co/2018,54400,respondents answering language usage question,official
+2018,Java,41.0,https://survey.stackoverflow.co/2018,54400,respondents answering language usage question,official
+2018,C++,22.4,https://survey.stackoverflow.co/2018,54400,respondents answering language usage question,official
+2018,Rust,6.0,https://survey.stackoverflow.co/2018,54400,respondents answering language usage question,official
+2019,JavaScript,63.8,https://survey.stackoverflow.co/2019,56600,respondents answering language usage question,official
+2019,Python,41.6,https://survey.stackoverflow.co/2019,56600,respondents answering language usage question,official
+2019,Java,40.0,https://survey.stackoverflow.co/2019,56600,respondents answering language usage question,official
+2019,C++,22.1,https://survey.stackoverflow.co/2019,56600,respondents answering language usage question,official
+2019,Rust,7.5,https://survey.stackoverflow.co/2019,56600,respondents answering language usage question,official

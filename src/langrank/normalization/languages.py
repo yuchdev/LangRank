@@ -28,7 +28,7 @@ class LanguageNormalizer:
             CanonicalLanguage("objective-c", "Objective-C", ("objective c",)),
             CanonicalLanguage("vb.net", "VB.NET", ("visual basic", "visual basic .net")),
             CanonicalLanguage("shell", "Shell", ("bash", "bash/shell")),
-            CanonicalLanguage("c/c++", "C/C++", ("c-cpp",)),
+            CanonicalLanguage("c-cpp", "C/C++", ("c/c++",)),
         ]
         self._lookup = {}
         for language in self._languages:

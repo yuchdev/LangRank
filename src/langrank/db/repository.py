@@ -15,6 +15,7 @@ from langrank.db.migrations import migrate
 from langrank.models import (
     FetchRunStatus,
     LanguageAlias,
+    MethodologyNote,
     MetricDefinition,
     Observation,
     ProviderMetadata,
@@ -145,6 +146,24 @@ class Database:
                         metric.unit,
                         int(metric.higher_is_better),
                         metric.description,
+                    ),
+                )
+            for note in metadata.methodology_notes:
+                connection.execute(
+                    """
+                    INSERT INTO methodology_notes(rating_id, methodology_version, valid_from, valid_to, description, source_url)
+                    VALUES(?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(rating_id, methodology_version, valid_from, valid_to) DO UPDATE SET
+                        description = excluded.description,
+                        source_url = excluded.source_url
+                    """,
+                    (
+                        note.rating_id,
+                        note.methodology_version,
+                        note.valid_from.isoformat() if note.valid_from else "",
+                        note.valid_to.isoformat() if note.valid_to else "",
+                        note.description,
+                        note.source_url,
                     ),
                 )
 
@@ -353,6 +372,29 @@ class Database:
             for row in rows
         ]
 
+    def list_methodology_notes(self, rating_id: str) -> list[MethodologyNote]:
+        with self.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT rating_id, methodology_version, valid_from, valid_to, description, source_url
+                FROM methodology_notes
+                WHERE rating_id = ?
+                ORDER BY valid_from, methodology_version
+                """,
+                (rating_id,),
+            ).fetchall()
+        return [
+            MethodologyNote(
+                rating_id=row["rating_id"],
+                methodology_version=row["methodology_version"],
+                valid_from=date.fromisoformat(row["valid_from"]) if row["valid_from"] else None,
+                valid_to=date.fromisoformat(row["valid_to"]) if row["valid_to"] else None,
+                description=row["description"],
+                source_url=row["source_url"],
+            )
+            for row in rows
+        ]
+
     def list_languages(self) -> list[sqlite3.Row]:
         with self.connect() as connection:
             return connection.execute("SELECT * FROM languages ORDER BY canonical_name").fetchall()
@@ -433,6 +475,18 @@ class Database:
             return connection.execute(
                 "SELECT * FROM fetch_runs WHERE rating_id = ? ORDER BY started_at DESC LIMIT 1",
                 (rating_id,),
+            ).fetchone()
+
+    def last_failed_fetch_run(self, rating_id: str) -> sqlite3.Row | None:
+        with self.connect() as connection:
+            return connection.execute(
+                """
+                SELECT * FROM fetch_runs
+                WHERE rating_id = ? AND status = ?
+                ORDER BY started_at DESC
+                LIMIT 1
+                """,
+                (rating_id, FetchRunStatus.FAILED.value),
             ).fetchone()
 
     def count_observations(self, rating_id: str) -> int:
