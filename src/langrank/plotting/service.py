@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 
@@ -30,8 +32,9 @@ class PlotService:
             points = [(row.period_start, row.value) for row in values if row.value is not None]
             if not points:
                 continue
+            x_values: Any = [date.fromisoformat(point[0]) for point in points]
             ax.plot(
-                [point[0] for point in points],
+                x_values,
                 [point[1] for point in points],
                 marker="o" if markers else None,
                 label=language_id,

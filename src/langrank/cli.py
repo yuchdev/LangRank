@@ -150,7 +150,15 @@ def main_callback(
     verbose: Annotated[int, typer.Option("-v", count=True, help="Increase verbosity")] = 0,
     quiet: Annotated[bool, typer.Option("--quiet", help="Suppress non-essential output")] = False,
 ) -> None:
-    level = logging.WARNING if quiet else logging.INFO if verbose == 0 else logging.DEBUG
+    level = (
+        logging.ERROR
+        if quiet
+        else logging.DEBUG
+        if verbose >= 2
+        else logging.INFO
+        if verbose == 1
+        else logging.WARNING
+    )
     logging.basicConfig(level=level)
     ctx.obj = AppState(
         resolve_config(cli_db=db, cli_cache=cache, cli_config=config), verbose, quiet

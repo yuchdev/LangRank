@@ -13,23 +13,31 @@ class AppConfig:
     config_path: Path
 
 
-def _xdg_path(env_name: str, default_suffix: str) -> Path:
-    base = os.environ.get(env_name)
-    if base:
-        return Path(base) / default_suffix
-    return Path.home() / default_suffix
-
-
 def default_config_path() -> Path:
-    return _xdg_path("XDG_CONFIG_HOME", ".config") / "langrank" / "config.toml"
+    base = (
+        Path(os.environ["XDG_CONFIG_HOME"])
+        if os.environ.get("XDG_CONFIG_HOME")
+        else Path.home() / ".config"
+    )
+    return base / "langrank" / "config.toml"
 
 
 def default_db_path() -> Path:
-    return _xdg_path("XDG_DATA_HOME", ".local/share") / "langrank" / "langrank.sqlite"
+    base = (
+        Path(os.environ["XDG_DATA_HOME"])
+        if os.environ.get("XDG_DATA_HOME")
+        else Path.home() / ".local" / "share"
+    )
+    return base / "langrank" / "langrank.sqlite"
 
 
 def default_cache_path() -> Path:
-    return _xdg_path("XDG_CACHE_HOME", ".cache") / "langrank"
+    base = (
+        Path(os.environ["XDG_CACHE_HOME"])
+        if os.environ.get("XDG_CACHE_HOME")
+        else Path.home() / ".cache"
+    )
+    return base / "langrank"
 
 
 def load_file_config(config_path: Path) -> dict[str, str]:
