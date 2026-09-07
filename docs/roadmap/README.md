@@ -44,7 +44,7 @@ When a document references another **specific** document, use an
 absolute-from-repo-root Markdown link:
 
 ```
-[docs/roadmap/0001-generic-implementation/plan.md](/docs/roadmap/0001-generic-implementation/plan.md)
+[docs/roadmap/0001-new-rating-providers/plan.md](/docs/roadmap/0001-new-rating-providers/plan.md)
 ```
 
 - Always a leading `/` (repo root), never relative `../../` chains.
@@ -55,6 +55,17 @@ absolute-from-repo-root Markdown link:
 
 ## Milestones
 
-| #    | Milestone                                           | Spec                                                          | Status                                                               |
-|------|-----------------------------------------------------|---------------------------------------------------------------|----------------------------------------------------------------------|
-| 0001 | Generic implementation (backends, storages, analysis)      | [plan.md](/docs/roadmap/0001-generic-implementation/plan.md)  | [status.md](/docs/roadmap/0001-generic-implementation/status.md)     |
+These six milestones were split out of an earlier single
+`0001-generic-implementation` umbrella document once it grew several
+distinct development directions. 0001 is the foundation the other five build
+on to varying degrees (see each milestone's own "Depends on" line); 0002-0006
+are mostly independent of each other, with the soft dependencies noted below.
+
+| #    | Milestone                   | Depends on                  | Spec                                                                       | Status                                                                       |
+|------|------------------------------|------------------------------|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| 0001 | New rating providers         | -                            | [plan.md](/docs/roadmap/0001-new-rating-providers/plan.md)                  | [status.md](/docs/roadmap/0001-new-rating-providers/status.md)                |
+| 0002 | Cross-rating analysis        | 0001 (soft)                  | [plan.md](/docs/roadmap/0002-cross-rating-analysis/plan.md)                 | [status.md](/docs/roadmap/0002-cross-rating-analysis/status.md)               |
+| 0003 | Historical data quality      | -                            | [plan.md](/docs/roadmap/0003-historical-data-quality/plan.md)               | [status.md](/docs/roadmap/0003-historical-data-quality/status.md)             |
+| 0004 | Freshness & releases         | 0001, 0003 (soft)            | [plan.md](/docs/roadmap/0004-freshness-and-releases/plan.md)                | [status.md](/docs/roadmap/0004-freshness-and-releases/status.md)              |
+| 0005 | CLI & storage enhancements   | 0001 (soft, Task 03.0 only)  | [plan.md](/docs/roadmap/0005-cli-and-storage-enhancements/plan.md)          | [status.md](/docs/roadmap/0005-cli-and-storage-enhancements/status.md)        |
+| 0006 | Provider extensibility       | -                            | [plan.md](/docs/roadmap/0006-provider-extensibility/plan.md)                | [status.md](/docs/roadmap/0006-provider-extensibility/status.md)              |
