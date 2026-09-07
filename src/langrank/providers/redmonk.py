@@ -107,9 +107,7 @@ class RedMonkProvider:
         for record in records:
             publication_date = record.metadata.get("publication_date")
             published_at = (
-                datetime.combine(
-                    date.fromisoformat(str(publication_date)), datetime.min.time(), UTC
-                )
+                datetime.combine(date.fromisoformat(str(publication_date)), datetime.min.time(), UTC)
                 if publication_date
                 else None
             )
@@ -121,8 +119,7 @@ class RedMonkProvider:
                     retrieved_at=self._retrieved_at,
                     is_derived=False,
                     derivation_method=None,
-                    source_document_id=record.metadata.get("publication_date")
-                    or record.period_label,
+                    source_document_id=record.metadata.get("publication_date") or record.period_label,
                     source_published_at=published_at,
                 )
             )
@@ -133,9 +130,7 @@ class RedMonkProvider:
         seen: set[tuple[str, date, str]] = set()
         for item in observations:
             if item.rank is not None and item.rank <= 0:
-                report.add(
-                    Severity.ERROR, "rank_positive", f"{item.language_id} rank must be positive"
-                )
+                report.add(Severity.ERROR, "rank_positive", f"{item.language_id} rank must be positive")
             key = (item.language_id, item.period_start, item.metric_id)
             if key in seen:
                 report.add(

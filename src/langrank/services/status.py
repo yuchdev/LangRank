@@ -29,16 +29,12 @@ class StatusService:
             last_run = self._database.last_fetch_run(provider.provider_id)
             last_failed = self._database.last_failed_fetch_run(provider.provider_id)
             upstream_latest_period = (
-                provider.upstream_latest_period()
-                if hasattr(provider, "upstream_latest_period")
-                else None
+                provider.upstream_latest_period() if hasattr(provider, "upstream_latest_period") else None
             )
             latest_local = self._database.latest_observation_for_provider(provider.provider_id)
             provider_state = "unknown"
             if latest_local and upstream_latest_period:
-                provider_state = (
-                    "current" if str(latest_local).startswith(upstream_latest_period) else "stale"
-                )
+                provider_state = "current" if str(latest_local).startswith(upstream_latest_period) else "stale"
             elif latest_local:
                 provider_state = "ready"
             items.append(

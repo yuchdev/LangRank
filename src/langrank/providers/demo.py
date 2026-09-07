@@ -155,11 +155,7 @@ class DemoProvider:
                     "percentage_range",
                     f"{observation.language_id} rating is outside 0..100",
                 )
-            if (
-                observation.metric_id == "rank"
-                and observation.rank is not None
-                and observation.rank <= 0
-            ):
+            if observation.metric_id == "rank" and observation.rank is not None and observation.rank <= 0:
                 report.add(
                     Severity.ERROR,
                     "rank_positive",
@@ -202,9 +198,7 @@ class DemoProvider:
             ratings: dict[str, float] = {}
             for language, seed in base.items():
                 years_since = year - 2016
-                rating = round(
-                    seed + years_since * deltas[language] + ((year + len(language)) % 3) * 0.2, 2
-                )
+                rating = round(seed + years_since * deltas[language] + ((year + len(language)) % 3) * 0.2, 2)
                 ratings[language] = max(rating, 0.5)
             ranked = sorted(ratings.items(), key=lambda item: (-item[1], item[0]))
             rank_map = {language: index for index, (language, _) in enumerate(ranked, start=1)}

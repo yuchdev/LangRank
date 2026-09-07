@@ -154,14 +154,8 @@ class PyplProvider:
         seen: set[tuple[str, date, str]] = set()
         for item in observations:
             if item.metric_id == "pypl-rank" and item.rank is not None and item.rank <= 0:
-                report.add(
-                    Severity.ERROR, "rank_positive", f"{item.language_id} rank must be positive"
-                )
-            if (
-                item.metric_id == "pypl-share"
-                and item.value is not None
-                and not 0 <= item.value <= 100
-            ):
+                report.add(Severity.ERROR, "rank_positive", f"{item.language_id} rank must be positive")
+            if item.metric_id == "pypl-share" and item.value is not None and not 0 <= item.value <= 100:
                 report.add(
                     Severity.ERROR,
                     "share_range",

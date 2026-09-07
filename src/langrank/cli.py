@@ -64,14 +64,10 @@ def _language_ids(state: AppState, names: str | None, rating_id: str | None) -> 
         return []
     resolved: list[str] = []
     for name in [item.strip() for item in names.split(",") if item.strip()]:
-        language_id = state.database.alias_to_language(
-            name, rating_id
-        ) or state.database.alias_to_language(name)
+        language_id = state.database.alias_to_language(name, rating_id) or state.database.alias_to_language(name)
         if language_id is None:
             if rating_id == "pypl" and name.lower() in {"c++", "c", "c/c++"}:
-                raise LangRankError(
-                    "PYPL reports C/C++ as a combined source category.\nUse canonical language: c-cpp"
-                )
+                raise LangRankError("PYPL reports C/C++ as a combined source category.\nUse canonical language: c-cpp")
             suggestions = state.database.language_suggestions(name)
             message = f"Unknown language '{name}'."
             if suggestions:
@@ -168,26 +164,16 @@ def main_callback(
     quiet: Annotated[bool, typer.Option("--quiet", help="Suppress non-essential output")] = False,
 ) -> None:
     level = (
-        logging.ERROR
-        if quiet
-        else logging.DEBUG
-        if verbose >= 2
-        else logging.INFO
-        if verbose == 1
-        else logging.WARNING
+        logging.ERROR if quiet else logging.DEBUG if verbose >= 2 else logging.INFO if verbose == 1 else logging.WARNING
     )
     logging.basicConfig(level=level)
-    ctx.obj = AppState(
-        resolve_config(cli_db=db, cli_cache=cache, cli_config=config), verbose, quiet
-    )
+    ctx.obj = AppState(resolve_config(cli_db=db, cli_cache=cache, cli_config=config), verbose, quiet)
 
 
 @app.command()
 def doctor(ctx: typer.Context) -> None:
     state: AppState = ctx.obj
-    versions = {
-        row["rating_id"]: row["parser_version"] for row in state.database.provider_versions()
-    }
+    versions = {row["rating_id"]: row["parser_version"] for row in state.database.provider_versions()}
     table = Table(title="Doctor")
     table.add_column("Item")
     table.add_column("Value")
@@ -201,11 +187,7 @@ def doctor(ctx: typer.Context) -> None:
         "expected schema version": str(SCHEMA_VERSION),
         "enabled providers": ", ".join(provider.provider_id for provider in state.providers.all()),
         "provider/parser versions": json.dumps(
-            versions
-            or {
-                provider.provider_id: provider.metadata().parser_version
-                for provider in state.providers.all()
-            }
+            versions or {provider.provider_id: provider.metadata().parser_version for provider in state.providers.all()}
         ),
     }
     for key, value in rows.items():
@@ -222,9 +204,7 @@ def _render_ratings_table(state: AppState) -> None:
     table.add_column("Granularity")
     table.add_column("Default metric")
     for row in state.database.list_ratings():
-        table.add_row(
-            row["id"], row["display_name"], row["native_granularity"], row["default_metric"]
-        )
+        table.add_row(row["id"], row["display_name"], row["native_granularity"], row["default_metric"])
     console.print(table)
 
 
@@ -392,9 +372,7 @@ def import_data(
             warnings=[],
             error=None,
         )
-        console.print(
-            f"Imported {rating}: seen={len(records)} inserted={inserted} updated={updated}"
-        )
+        console.print(f"Imported {rating}: seen={len(records)} inserted={inserted} updated={updated}")
     else:
         console.print(f"Imported {rating}: seen={len(records)} dry_run={dry_run} ok={report.ok}")
 
@@ -415,9 +393,7 @@ def query(
 ) -> None:
     state: AppState = ctx.obj
     service = QueryService(state.database)
-    filters = _build_filters(
-        state, rating, metric, language, languages, all_languages, since, until, years, year
-    )
+    filters = _build_filters(state, rating, metric, language, languages, all_languages, since, until, years, year)
     rows = service.query(filters)
     _render_rows(rows, format_name)
 
@@ -461,17 +437,12 @@ def export_csv_command(
             sidecar_filters = filters
             rows.extend(QueryService(state.database).query(filters))
     else:
-        filters = _build_filters(
-            state, rating, metric, language, languages, all_languages, since, until, years, year
-        )
+        filters = _build_filters(state, rating, metric, language, languages, all_languages, since, until, years, year)
         sidecar_filters = filters
         rows = QueryService(state.database).query(filters)
     export_csv(rows, output)
     if metadata_sidecar:
-        versions = {
-            provider.provider_id: provider.metadata().parser_version
-            for provider in state.providers.all()
-        }
+        versions = {provider.provider_id: provider.metadata().parser_version for provider in state.providers.all()}
         write_metadata_sidecar(output, asdict(sidecar_filters) if sidecar_filters else {}, versions)
     console.print(f"Wrote {output}")
 
@@ -516,9 +487,7 @@ def export_json_command(
             sidecar_filters = filters
             rows.extend(QueryService(state.database).query(filters))
     else:
-        filters = _build_filters(
-            state, rating, metric, language, languages, all_languages, since, until, years, year
-        )
+        filters = _build_filters(state, rating, metric, language, languages, all_languages, since, until, years, year)
         sidecar_filters = filters
         rows = QueryService(state.database).query(filters)
     if layout == "nested":
@@ -526,10 +495,7 @@ def export_json_command(
     else:
         export_json_records(rows, output)
     if metadata_sidecar:
-        versions = {
-            provider.provider_id: provider.metadata().parser_version
-            for provider in state.providers.all()
-        }
+        versions = {provider.provider_id: provider.metadata().parser_version for provider in state.providers.all()}
         write_metadata_sidecar(output, asdict(sidecar_filters) if sidecar_filters else {}, versions)
     console.print(f"Wrote {output}")
 
@@ -587,9 +553,7 @@ def plot(
 
 
 @app.command()
-def validate(
-    ctx: typer.Context, rating: str | None = typer.Option(None, "--rating"), strict: bool = False
-) -> None:
+def validate(ctx: typer.Context, rating: str | None = typer.Option(None, "--rating"), strict: bool = False) -> None:
     state: AppState = ctx.obj
     report = ValidationService(state.database).validate()
     if rating is not None:

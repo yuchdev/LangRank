@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from difflib import get_close_matches
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from langrank.db.migrations import migrate
@@ -60,9 +60,7 @@ class Database:
 
     def schema_version(self) -> int:
         with self.connect() as connection:
-            row = connection.execute(
-                "SELECT MAX(version) AS version FROM schema_migrations"
-            ).fetchone()
+            row = connection.execute("SELECT MAX(version) AS version FROM schema_migrations").fetchone()
         return int(row["version"] or 0)
 
     def seed_languages(self, normalizer: LanguageNormalizer) -> None:
@@ -230,9 +228,7 @@ class Database:
                 ),
             )
 
-    def upsert_observations(
-        self, observations: list[Observation], fetch_run_id: str
-    ) -> tuple[int, int]:
+    def upsert_observations(self, observations: list[Observation], fetch_run_id: str) -> tuple[int, int]:
         inserted = 0
         updated = 0
         with self.connect() as connection, connection:
@@ -302,9 +298,7 @@ class Database:
                         int(observation.is_derived),
                         observation.derivation_method,
                         observation.retrieved_at.isoformat(),
-                        observation.source_published_at.isoformat()
-                        if observation.source_published_at
-                        else None,
+                        observation.source_published_at.isoformat() if observation.source_published_at else None,
                         observation.parser_version,
                         observation.raw_record_hash,
                         json.dumps(observation.metadata_json, sort_keys=True),
@@ -349,10 +343,11 @@ class Database:
 
     def get_rating(self, rating_id: str) -> sqlite3.Row | None:
         with self.connect() as connection:
-            return connection.execute(
+            row = connection.execute(
                 "SELECT * FROM ratings WHERE id = ?",
                 (rating_id,),
             ).fetchone()
+        return cast(sqlite3.Row | None, row)
 
     def list_metrics(self, rating_id: str) -> list[MetricDefinition]:
         with self.connect() as connection:
@@ -401,10 +396,11 @@ class Database:
 
     def find_language(self, canonical_name: str) -> sqlite3.Row | None:
         with self.connect() as connection:
-            return connection.execute(
+            row = connection.execute(
                 "SELECT * FROM languages WHERE canonical_name = ?",
                 (canonical_name,),
             ).fetchone()
+        return cast(sqlite3.Row | None, row)
 
     def list_aliases(self, rating_id: str | None = None) -> list[LanguageAlias]:
         sql = "SELECT rating_id, source_name, language_id, valid_from, valid_to, notes FROM language_aliases"
@@ -472,14 +468,15 @@ class Database:
 
     def last_fetch_run(self, rating_id: str) -> sqlite3.Row | None:
         with self.connect() as connection:
-            return connection.execute(
+            row = connection.execute(
                 "SELECT * FROM fetch_runs WHERE rating_id = ? ORDER BY started_at DESC LIMIT 1",
                 (rating_id,),
             ).fetchone()
+        return cast(sqlite3.Row | None, row)
 
     def last_failed_fetch_run(self, rating_id: str) -> sqlite3.Row | None:
         with self.connect() as connection:
-            return connection.execute(
+            row = connection.execute(
                 """
                 SELECT * FROM fetch_runs
                 WHERE rating_id = ? AND status = ?
@@ -488,6 +485,7 @@ class Database:
                 """,
                 (rating_id, FetchRunStatus.FAILED.value),
             ).fetchone()
+        return cast(sqlite3.Row | None, row)
 
     def count_observations(self, rating_id: str) -> int:
         with self.connect() as connection:

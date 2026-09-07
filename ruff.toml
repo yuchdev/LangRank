@@ -3,7 +3,10 @@ line-length = 120
 target-version = "py312"
 exclude = ["samples"]
 
-extend-exclude = []
+extend-exclude = [
+    "docs/dev/python_language_rules.md",
+    "docs/dev/python_style_rules.md",
+]
 
 [lint]
 # Fix specific types of warnings with `ruff check --select SIM102 --fix .`

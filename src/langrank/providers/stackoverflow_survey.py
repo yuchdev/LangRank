@@ -64,9 +64,7 @@ class StackOverflowSurveyProvider:
                     methodology_version="2026-v1",
                     valid_from=date(2016, 1, 1),
                     valid_to=None,
-                    description=(
-                        "Denominator is respondents answering the language usage question for each year."
-                    ),
+                    description=("Denominator is respondents answering the language usage question for each year."),
                     source_url="https://survey.stackoverflow.co/",
                 )
             ],
@@ -167,11 +165,7 @@ class StackOverflowSurveyProvider:
         report = ValidationReport()
         seen: set[tuple[str, date, str]] = set()
         for item in observations:
-            if (
-                item.metric_id == "worked_with_percent"
-                and item.value is not None
-                and not 0 <= item.value <= 100
-            ):
+            if item.metric_id == "worked_with_percent" and item.value is not None and not 0 <= item.value <= 100:
                 report.add(
                     Severity.ERROR,
                     "percentage_range",

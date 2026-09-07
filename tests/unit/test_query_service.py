@@ -7,9 +7,7 @@ from langrank.providers.demo import DemoProvider
 from langrank.services.query import QueryService
 
 
-def _observation(
-    language_id: str, metric_id: str, year: int, rank: int, value: float
-) -> Observation:
+def _observation(language_id: str, metric_id: str, year: int, rank: int, value: float) -> Observation:
     return Observation(
         rating_id="demo",
         metric_id=metric_id,
@@ -43,7 +41,5 @@ def test_top_current_filters_latest_snapshot(database) -> None:
         _observation("rust", "rank", 2025, 2, 2.0),
     ]
     database.upsert_observations(rows, fetch_run_id)
-    results = QueryService(database).query(
-        QueryFilters(rating_id="demo", metric_id="rank", top_current=1)
-    )
+    results = QueryService(database).query(QueryFilters(rating_id="demo", metric_id="rank", top_current=1))
     assert {row.language_id for row in results} == {"python"}
