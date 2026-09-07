@@ -44,9 +44,7 @@ class LanguageNormalizer:
         key = self._normalize_key(value)
         if key in self._lookup:
             return self._lookup[key]
-        suggestions = get_close_matches(
-            value.lower(), [lang.canonical_name for lang in self._languages], n=3
-        )
+        suggestions = get_close_matches(value.lower(), [lang.canonical_name for lang in self._languages], n=3)
         raise UnknownLanguageError(value, suggestions)
 
     def languages(self) -> list[Language]:
@@ -64,7 +62,5 @@ class LanguageNormalizer:
         for item in self._languages:
             names = {item.display_name, *item.aliases}
             for alias in sorted(names):
-                aliases.append(
-                    LanguageAlias(rating_id="", source_name=alias, language_id=item.canonical_name)
-                )
+                aliases.append(LanguageAlias(rating_id="", source_name=alias, language_id=item.canonical_name))
         return aliases

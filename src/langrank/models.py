@@ -130,9 +130,7 @@ class Observation:
         data["period_start"] = self.period_start.isoformat()
         data["period_end"] = self.period_end.isoformat()
         data["retrieved_at"] = self.retrieved_at.isoformat()
-        data["source_published_at"] = (
-            self.source_published_at.isoformat() if self.source_published_at else None
-        )
+        data["source_published_at"] = self.source_published_at.isoformat() if self.source_published_at else None
         data["granularity"] = self.granularity.value
         return data
 

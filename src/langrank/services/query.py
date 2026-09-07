@@ -42,9 +42,7 @@ class QueryService:
         )
         selector_filters = QueryFilters(
             rating_id=updated_filters.rating_id,
-            metric_id=None
-            if (updated_filters.top or updated_filters.top_current)
-            else updated_filters.metric_id,
+            metric_id=None if (updated_filters.top or updated_filters.top_current) else updated_filters.metric_id,
             language_ids=updated_filters.language_ids,
             all_languages=updated_filters.all_languages,
             since=updated_filters.since,
@@ -79,27 +77,17 @@ class QueryService:
         if filters.all_languages:
             return sorted({row.language_id for row in rows})
         if filters.top_current:
-            latest_period = max(
-                (row.period_start for row in rows if row.metric_id == "rank"), default=None
-            )
+            latest_period = max((row.period_start for row in rows if row.metric_id == "rank"), default=None)
             selected_languages = [
                 row.language_id
                 for row in sorted(
-                    [
-                        row
-                        for row in rows
-                        if row.metric_id == "rank" and row.period_start == latest_period
-                    ],
+                    [row for row in rows if row.metric_id == "rank" and row.period_start == latest_period],
                     key=lambda row: ((row.rank or 10**9), row.language_id),
                 )[: filters.top_current]
             ]
             return selected_languages
         if filters.top:
             return sorted(
-                {
-                    row.language_id
-                    for row in rows
-                    if row.metric_id == "rank" and (row.rank or 10**9) <= filters.top
-                }
+                {row.language_id for row in rows if row.metric_id == "rank" and (row.rank or 10**9) <= filters.top}
             )
         return filters.language_ids

@@ -12,9 +12,7 @@ from langrank.providers.base import FetchPayload
 
 
 def build_observation_hash(record: SourceRecord) -> str:
-    return hashlib.sha256(
-        json.dumps(asdict(record), sort_keys=True, default=str).encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(json.dumps(asdict(record), sort_keys=True, default=str).encode("utf-8")).hexdigest()
 
 
 def payload_from_content(
