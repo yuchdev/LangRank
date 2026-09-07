@@ -26,7 +26,9 @@ def test_demo_provider_end_to_end(tmp_path: Path) -> None:
     provider = DemoProvider(tmp_path / "cache")
     summary = FetchService(database).fetch(provider, FetchRequest())
     assert summary.records_seen > 0
-    rows = QueryService(database).query(QueryFilters(rating_id="demo", language_ids=["python"], years=5))
+    rows = QueryService(database).query(
+        QueryFilters(rating_id="demo", language_ids=["python"], years=5)
+    )
     assert rows
     csv_path = tmp_path / "demo.csv"
     json_path = tmp_path / "demo.json"

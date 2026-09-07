@@ -14,17 +14,29 @@ class AppConfig:
 
 
 def default_config_path() -> Path:
-    base = Path(os.environ["XDG_CONFIG_HOME"]) if os.environ.get("XDG_CONFIG_HOME") else Path.home() / ".config"
+    base = (
+        Path(os.environ["XDG_CONFIG_HOME"])
+        if os.environ.get("XDG_CONFIG_HOME")
+        else Path.home() / ".config"
+    )
     return base / "langrank" / "config.toml"
 
 
 def default_db_path() -> Path:
-    base = Path(os.environ["XDG_DATA_HOME"]) if os.environ.get("XDG_DATA_HOME") else Path.home() / ".local" / "share"
+    base = (
+        Path(os.environ["XDG_DATA_HOME"])
+        if os.environ.get("XDG_DATA_HOME")
+        else Path.home() / ".local" / "share"
+    )
     return base / "langrank" / "langrank.sqlite"
 
 
 def default_cache_path() -> Path:
-    base = Path(os.environ["XDG_CACHE_HOME"]) if os.environ.get("XDG_CACHE_HOME") else Path.home() / ".cache"
+    base = (
+        Path(os.environ["XDG_CACHE_HOME"])
+        if os.environ.get("XDG_CACHE_HOME")
+        else Path.home() / ".cache"
+    )
     return base / "langrank"
 
 
@@ -49,5 +61,9 @@ def resolve_config(
     env_cache = os.environ.get("LANGRANK_CACHE")
 
     db_path = Path(cli_db or env_db or file_config.get("db_path") or default_db_path())
-    cache_path = Path(cli_cache or env_cache or file_config.get("cache_path") or default_cache_path())
-    return AppConfig(db_path=db_path.expanduser(), cache_path=cache_path.expanduser(), config_path=config_path)
+    cache_path = Path(
+        cli_cache or env_cache or file_config.get("cache_path") or default_cache_path()
+    )
+    return AppConfig(
+        db_path=db_path.expanduser(), cache_path=cache_path.expanduser(), config_path=config_path
+    )

@@ -42,7 +42,11 @@ class HttpClientFactory:
                     if attempt < self._options.retries - 1:
                         sleep(self._options.backoff_seconds * (2**attempt))
             assert last_error is not None
-            raise (self.map_error(last_error) if isinstance(last_error, httpx.HTTPError) else last_error)
+            raise (
+                self.map_error(last_error)
+                if isinstance(last_error, httpx.HTTPError)
+                else last_error
+            )
 
     @staticmethod
     def map_error(error: httpx.HTTPError) -> FetchError:

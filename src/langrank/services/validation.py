@@ -13,5 +13,7 @@ class ValidationService:
         results = self._database.validation_queries()
         for key, rows in results.items():
             for row in rows:
-                report.add(Severity.ERROR, key, ", ".join(f"{name}={row[name]}" for name in row.keys()))
+                report.add(
+                    Severity.ERROR, key, ", ".join(f"{name}={row[name]}" for name in row.keys())
+                )
         return report

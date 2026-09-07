@@ -29,7 +29,9 @@ def _json_default(value: Any) -> str:
     raise TypeError(f"Object of type {type(value)!r} is not JSON serializable")
 
 
-def write_metadata_sidecar(output: Path, filters: dict[str, Any], providers: dict[str, str]) -> None:
+def write_metadata_sidecar(
+    output: Path, filters: dict[str, Any], providers: dict[str, str]
+) -> None:
     sidecar = {
         "version": __version__,
         "generated_at": __import__("datetime").datetime.now(__import__("datetime").UTC).isoformat(),

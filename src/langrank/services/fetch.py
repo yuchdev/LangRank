@@ -43,7 +43,9 @@ class FetchService:
                 records_seen=len(records),
                 records_inserted=inserted,
                 records_updated=updated,
-                warnings=[issue.message for issue in report.issues if issue.severity.value == "warning"],
+                warnings=[
+                    issue.message for issue in report.issues if issue.severity.value == "warning"
+                ],
                 error=None if report.ok else "; ".join(issue.message for issue in report.issues),
             )
             return FetchSummary(
