@@ -24,23 +24,13 @@ langrank = "langrank.cli:main"
 dev = [
   "mypy>=1.17.1",
   "pytest>=8.4.1",
+  "pytest-asyncio>=0.24,<0.25",
+  "pytest-cov>=6.0,<7",
   "ruff>=0.12.11",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/langrank"]
-
-[tool.ruff]
-line-length = 100
-src = ["src", "tests"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP"]
-ignore = ["B008", "E501"]
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
 
 [tool.mypy]
 python_version = "3.12"
