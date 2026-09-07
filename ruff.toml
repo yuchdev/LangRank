@@ -31,3 +31,6 @@ ignore = [
     "E402",
     "E501"
 ]
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
