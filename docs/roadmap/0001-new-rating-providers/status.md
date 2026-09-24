@@ -7,7 +7,7 @@ Updated as each task lands.
 
 | Task | Name                                    | Status         | Tests |
 |------|--------------------------------------------|----------------|-------|
-| 01.0 | Stack Overflow Tags Provider                | ⬜ Not started | -     |
+| 01.0 | Stack Overflow Tags Provider                | 🔶 In progress (2/8 subtasks) | -     |
 | 02.0 | GitHub Provider                             | ⬜ Not started | -     |
 | 03.0 | IEEE Spectrum Provider                      | ⬜ Not started | -     |
 | 04.0 | JetBrains Developer Ecosystem Provider      | ⬜ Not started | -     |
