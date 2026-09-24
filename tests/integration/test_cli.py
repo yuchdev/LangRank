@@ -61,8 +61,13 @@ def test_cli_fetch_all_independent_provider_execution(tmp_path: Path) -> None:
         app,
         ["--db", str(db_path), "--cache", str(cache_path), "fetch", "all", "--years", "10"],
     )
-    assert result.exit_code == 0, result.stdout
+    # The stackoverflow-tags provider is registered but its fetch is a stub until
+    # subtask 04, so `fetch all` reports it FAILED and exits non-zero. The point of
+    # this test is provider independence: one failing provider must not stop the
+    # others, so every fetchable bootstrap provider still reports SUCCESS.
+    assert result.exit_code == 1, result.stdout
     assert "success tiobe" in result.stdout.lower()
     assert "success pypl" in result.stdout.lower()
     assert "success redmonk" in result.stdout.lower()
     assert "success stackoverflow-survey" in result.stdout.lower()
+    assert "failed  stackoverflow-tags" in result.stdout.lower()

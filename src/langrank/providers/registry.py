@@ -8,6 +8,7 @@ from langrank.providers.demo import DemoProvider
 from langrank.providers.pypl import PyplProvider
 from langrank.providers.redmonk import RedMonkProvider
 from langrank.providers.stackoverflow_survey import StackOverflowSurveyProvider
+from langrank.providers.stackoverflow_tags import StackOverflowTagsProvider
 from langrank.providers.tiobe import TiobeProvider
 
 
@@ -19,6 +20,7 @@ class ProviderRegistry:
             "pypl": PyplProvider(cache_dir),
             "redmonk": RedMonkProvider(cache_dir),
             "stackoverflow-survey": StackOverflowSurveyProvider(cache_dir),
+            "stackoverflow-tags": StackOverflowTagsProvider(cache_dir),
         }
 
     def get(self, provider_id: str) -> RatingProvider:
