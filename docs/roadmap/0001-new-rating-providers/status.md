@@ -48,6 +48,12 @@ check, ruff format --check, mypy, pytest) is green on that baseline.
 - **2026-09-25 - Coverage floor:** repo-root `.coveragerc` repointed from the carried-over
   `src/aegis_swr` to `src/langrank`, `fail_under` set to the measured baseline (73%) as a
   regression guard; raising it to 85% remains Milestone 0005 Task 06.0.
+- **2026-09-25 - 01.0/02 deviation (verify-subtask PARTIAL):** `visual-basic` was not added to
+  the canonical catalog. `_normalize_key` strips hyphens/spaces, so `visual-basic` collides with
+  the pre-existing global alias `"visual basic" → vb.net` (the new collision guard raises).
+  Classic VB vs VB.NET separation is open: it needs either a distinct canonical key or an
+  explicit re-mapping of the bootstrap `"visual basic"` alias (a source-interpretation change for
+  TIOBE). Not needed by any 0001 task.
 
 ## Decomposition tree (as planned)
 
