@@ -1,5 +1,5 @@
 [run]
-source = src/aegis_swr
+source = src/langrank
 branch = True
 parallel = True
 omit =
@@ -23,7 +23,7 @@ exclude_lines =
 precision = 2
 show_missing = True
 skip_covered = False
-fail_under = 85
+fail_under = 73
 
 [html]
 directory = .htmlcov

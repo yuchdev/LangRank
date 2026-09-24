@@ -35,6 +35,19 @@ check, ruff format --check, mypy, pytest) is green on that baseline.
 - **Legal/source-policy review is a per-task closing gate,** not a standalone
   task — it must be documented before any task enables unattended scheduled
   fetching for its source.
+- **2026-09-25 - Phase R audit (implement-milestone run):** all 35 subtask specs present, no
+  decomposition gaps; as-built probe found all four tasks absent (no divergence); schema stays at
+  version 2, no migration required. Execution order 01.0 → 02.0 → 03.0 → 04.0 (01.0 lands the
+  shared helpers the others reuse).
+- **2026-09-25 - Ruling (user):** IEEE `HTML`, `Arduino`, `Verilog`, `VHDL` go into
+  `IEEE_UNTRACKED_LABELS` (not added to the canonical catalog) - resolves the open choice in
+  03.0/02.
+- **2026-09-25 - Ruling (user):** live network calls are allowed during development to capture
+  real fixtures (small, rate-limited, unauthenticated); live tests remain opt-in via the
+  `integration` marker.
+- **2026-09-25 - Coverage floor:** repo-root `.coveragerc` repointed from the carried-over
+  `src/aegis_swr` to `src/langrank`, `fail_under` set to the measured baseline (73%) as a
+  regression guard; raising it to 85% remains Milestone 0005 Task 06.0.
 
 ## Decomposition tree (as planned)
 
