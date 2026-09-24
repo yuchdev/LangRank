@@ -28,6 +28,46 @@ Updated as each task lands.
   automation — same gate as each provider task in
   [Milestone 0001](/docs/roadmap/0001-new-rating-providers/plan.md).
 
+## Decomposition tree
+
+All three tasks are decomposed into subtask specs (20 subtasks total, all ⬜ Not started).
+
+```
+docs/roadmap/0004-freshness-and-releases/
+├── plan.md
+├── status.md
+├── 01.0-source-freshness-and-updates/      (8 subtasks)
+│   ├── README.md
+│   ├── 01-freshness-model.md
+│   ├── 02-conditional-http-probe.md
+│   ├── 03-provider-freshness-probes.md
+│   ├── 04-status-json.md
+│   ├── 05-scheduled-fetch-policy.md
+│   ├── 06-update-service.md
+│   ├── 07-update-cli.md
+│   └── 08-scheduled-update-docs.md
+├── 02.0-dataset-release-workflow/          (6 subtasks)
+│   ├── README.md
+│   ├── 01-release-manifest-model.md
+│   ├── 02-release-data-queries.md
+│   ├── 03-bundle-writers.md
+│   ├── 04-release-service.md
+│   ├── 05-release-cli.md
+│   └── 06-release-docs.md
+└── 03.0-source-archival-strategy/          (6 subtasks)
+    ├── README.md
+    ├── 01-retention-policy-config.md
+    ├── 02-raw-artifact-retention-schema.md
+    ├── 03-retention-planner.md
+    ├── 04-archival-service.md
+    ├── 05-cache-cli-and-fetch-hook.md
+    └── 06-retention-docs-and-repo-guard.md
+```
+
+Task READMEs: [01.0](/docs/roadmap/0004-freshness-and-releases/01.0-source-freshness-and-updates/README.md) ·
+[02.0](/docs/roadmap/0004-freshness-and-releases/02.0-dataset-release-workflow/README.md) ·
+[03.0](/docs/roadmap/0004-freshness-and-releases/03.0-source-archival-strategy/README.md).
+
 ## Per-task detail
 
 _Empty until a task lands. Once a task starts, add a `### Task NN.0 - Name

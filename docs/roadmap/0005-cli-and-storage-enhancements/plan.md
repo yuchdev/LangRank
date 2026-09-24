@@ -30,11 +30,17 @@ existing pipeline easier to use and inspect.
 | 03.0 | Multi-Chart Report Generation                | cli      | `langrank report`; per-rating plots + coverage + Markdown summary   |
 | 04.0 | Alias Management Commands                    | cli      | `langrank languages aliases`, `languages resolve`, `alias add`      |
 | 05.0 | Historical Selection Semantics               | cli      | Precise `--years N` / `--until` endpoint rules across services      |
+| 06.0 | Test Coverage Baseline                       | quality  | Characterization tests to the 85% `fail_under` floor; CI coverage gate |
 
 These five tasks are independent of each other and may proceed in any order,
 with one exception: Task 03.0 depends on Task 02.0 landing first (the report
 command reuses the plotting flags) and on provider completeness (see
 Task 03.0's spec below).
+
+Each task is decomposed into subtask specs in its own folder: [01.0](/docs/roadmap/0005-cli-and-storage-enhancements/01.0-database-inspection-views/README.md), [02.0](/docs/roadmap/0005-cli-and-storage-enhancements/02.0-improved-plotting-options/README.md), [03.0](/docs/roadmap/0005-cli-and-storage-enhancements/03.0-multi-chart-report/README.md), [04.0](/docs/roadmap/0005-cli-and-storage-enhancements/04.0-alias-management-commands/README.md), [05.0](/docs/roadmap/0005-cli-and-storage-enhancements/05.0-historical-selection-semantics/README.md), [06.0](/docs/roadmap/0005-cli-and-storage-enhancements/06.0-test-coverage-baseline/README.md).
+
+Task 06.0 is independent and **recommended first**: it pins current behaviour (including known
+defects, as strict xfails) before Tasks 01.0-05.0 and other milestones change it.
 
 ---
 
@@ -158,6 +164,24 @@ year.
 **Success criteria:** `QueryService`/`export`/`plot` all resolve `--years N`
 identically per the documented rule; a regression test pins the endpoint
 behavior for a source with a stale current year.
+
+---
+
+### Task 06.0 - Test Coverage Baseline
+
+**Goal:** reach the 85% line+branch coverage floor already configured in `.coveragerc`
+(`fail_under = 85`) and enforced by the local `run_tests` Stop hook (73.27% on 2026-09-24),
+and make CI enforce the same gate.
+
+- Characterization tests only - no behaviour change in `src/`. Known defects are pinned with
+  `pytest.mark.xfail(strict=True)` linking the owning subtask (see the
+  [defect ledger](/docs/roadmap/README.md#cross-milestone-defect-ledger)).
+- Priorities by gap: `util/http.py` (0%), `cli.py` (44%), `services/status.py` (45%),
+  `exports/json_export.py` (68%), `db/repository.py` (77%).
+- Fix the template leftover `source = src/aegis_swr` in `.coveragerc`.
+
+**Success criteria:** `uv run pytest --cov` ≥ 85% with no extra flags; CI's pytest step fails
+below the floor.
 
 ---
 

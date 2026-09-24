@@ -35,6 +35,8 @@ histories exist to be meaningful.
 | 03.0 | IEEE Spectrum Provider                     | provider | `providers/ieee_spectrum.py`; annual rank/score, multi-profile support |
 | 04.0 | JetBrains Developer Ecosystem Provider     | provider | `providers/jetbrains.py`; annual usage-survey metric                 |
 
+Each task is decomposed into subtask specs in its own folder: [01.0](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/README.md), [02.0](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/README.md), [03.0](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/README.md), [04.0](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/README.md).
+
 Recommended order: Stack Overflow tags → GitHub → IEEE Spectrum → JetBrains —
 this progressively introduces monthly activity-derived metrics, then
 code-hosting/development activity, then composite-index ingestion, then

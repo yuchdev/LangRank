@@ -38,18 +38,62 @@ check, ruff format --check, mypy, pytest) is green on that baseline.
 
 ## Decomposition tree (as planned)
 
-This milestone's tasks are specified directly in `plan.md`'s "Per-task
-specifications" section rather than broken out into per-task subfolders — no
-`{TT.t}-{task-slug}/README.md` subtask breakdowns exist yet. A task graduates
-to its own subfolder (with a `README.md` and `{NN}-{subtask-slug}.md` files,
-per [docs/roadmap/README.md](/docs/roadmap/README.md)'s convention) when
-someone starts implementing it and the work needs subtask-level tracking.
+Every task is decomposed into a task `README.md` (with a `## Subtasks` table) and one spec
+file per subtask, per [docs/roadmap/README.md](/docs/roadmap/README.md)'s convention. All
+subtasks are ⬜ Not started.
 
 ```
 docs/roadmap/0001-new-rating-providers/
-├── plan.md      ← milestone spec (## Tasks table, per-task specs)
-└── status.md    ← this tracker
+├── plan.md
+├── status.md
+├── 01.0-stack-overflow-tags-provider/   (8 subtasks)
+│   ├── README.md
+│   ├── 01-source-note-and-policy-gate.md
+│   ├── 02-rating-scoped-aliases.md          ← shared: try_resolve / rating-scoped aliases
+│   ├── 03-metadata-and-registry.md
+│   ├── 04-fetch-api-and-offline-cache.md    ← shared: load_cached_payload, get_json
+│   ├── 05-parse-and-normalize.md
+│   ├── 06-validate.md
+│   ├── 07-fixtures-and-contract-tests.md    ← shared: tests/contract/_golden.py
+│   └── 08-docs.md
+├── 02.0-github-provider/                (10 subtasks)
+│   ├── README.md
+│   ├── 01-source-note-and-policy-gate.md
+│   ├── 02-quarterly-granularity.md          ← Granularity.QUARTER (no migration)
+│   ├── 03-linguist-aliases.md
+│   ├── 04-metadata-variants-and-registry.md
+│   ├── 05-innovation-graph-fetch-and-parse.md
+│   ├── 06-innovation-graph-normalize.md
+│   ├── 07-octoverse-annual-rankings.md
+│   ├── 08-validate.md
+│   ├── 09-fixtures-and-contract-tests.md
+│   └── 10-docs.md
+├── 03.0-ieee-spectrum-provider/         (8 subtasks)
+│   ├── README.md
+│   ├── 01-source-note-and-policy-gate.md
+│   ├── 02-ieee-aliases.md
+│   ├── 03-metadata-profiles-and-registry.md
+│   ├── 04-curated-dataset-and-fetch.md
+│   ├── 05-parse-and-normalize.md
+│   ├── 06-validate.md
+│   ├── 07-fixtures-and-contract-tests.md
+│   └── 08-docs.md
+└── 04.0-jetbrains-provider/             (9 subtasks)
+    ├── README.md
+    ├── 01-source-note-and-policy-gate.md
+    ├── 02-survey-question-registry.md
+    ├── 03-jetbrains-aliases.md
+    ├── 04-metadata-and-registry.md
+    ├── 05-published-percentages.md
+    ├── 06-raw-data-import.md
+    ├── 07-validate.md
+    ├── 08-fixtures-and-contract-tests.md
+    └── 09-docs.md
 ```
+
+**Cross-task subtask dependencies:** Tasks 02.0-04.0 reuse three helpers specified in Task
+01.0 (subtasks 02, 04, 07). Whichever task starts first lands them per the 01.0 spec; the
+tasks otherwise remain parallelizable.
 
 ## Per-task detail
 

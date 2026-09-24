@@ -33,6 +33,11 @@ Task 02.0 depends on Task 01.0 (a third-party provider needs the same
 capabilities metadata a built-in one exposes, and the contracts it stabilizes
 need to exist first). Task 03.0 is independent of 01.0/02.0.
 
+Each task is broken down into subtask specs in its own folder:
+[01.0](/docs/roadmap/0006-provider-extensibility/01.0-provider-capabilities-metadata/README.md) ·
+[02.0](/docs/roadmap/0006-provider-extensibility/02.0-external-provider-plugins/README.md) ·
+[03.0](/docs/roadmap/0006-provider-extensibility/03.0-large-source-performance/README.md).
+
 ---
 
 ## Shared conventions

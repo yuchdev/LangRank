@@ -36,6 +36,8 @@ data and checks for unmapped aliases from Task 02.0's alias-validity model, so
 it should land last. Tasks 01.0 and 02.0 are independent of each other and can
 proceed in parallel.
 
+Each task is decomposed into subtask specs in its own folder: [01.0](/docs/roadmap/0003-historical-data-quality/01.0-methodology-break-tracking/README.md), [02.0](/docs/roadmap/0003-historical-data-quality/02.0-language-lifecycle-and-alias-validity/README.md), [03.0](/docs/roadmap/0003-historical-data-quality/03.0-data-quality-dashboard/README.md).
+
 ---
 
 ## Shared conventions
@@ -66,7 +68,9 @@ rank, an unmapped alias) to assert each check fires. `uv run ruff check .`,
 **Goal:** record when a historical index's methodology changed, so later
 analysis doesn't silently span a break.
 
-- New/extended table `rating_methodologies`: `rating_id`, `version`,
+- New/extended table `rating_methodologies` (implemented by extending the existing
+  `methodology_notes` table rather than adding a new one — see
+  [subtask 01.0/01](/docs/roadmap/0003-historical-data-quality/01.0-methodology-break-tracking/01-adr-methodology-notes-canonical.md)): `rating_id`, `version`,
   `valid_from`, `valid_to`, `description`, `source_url`.
 - Later plotting (see
   [Milestone 0005 Task 02.0](/docs/roadmap/0005-cli-and-storage-enhancements/plan.md#task-020---improved-plotting-options))

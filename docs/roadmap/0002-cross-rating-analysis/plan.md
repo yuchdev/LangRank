@@ -36,6 +36,14 @@ normalization methods `plot compare` introduces). Task 03.0 is independent of
 01.0/02.0 — it compares raw per-source ranks side by side in a table rather
 than combining them onto one axis, so it needs no normalization step.
 
+Each task is decomposed into subtask specs in its own folder:
+[01.0 README](/docs/roadmap/0002-cross-rating-analysis/01.0-cross-rating-normalization/README.md),
+[02.0 README](/docs/roadmap/0002-cross-rating-analysis/02.0-composite-index/README.md),
+[03.0 README](/docs/roadmap/0002-cross-rating-analysis/03.0-snapshot-comparison/README.md).
+The decomposition refines two dependencies: Task 03.0 depends only on subtask 01.0/01 (shared
+analysis data access and rank-metric resolution), and Task 02.0's year alignment reuses Task
+03.0's selection rules (subtask 03.0/01).
+
 ---
 
 ## Shared conventions

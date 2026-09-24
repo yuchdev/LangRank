@@ -32,6 +32,11 @@ already produces.
 | 02.0 | Dataset Release Workflow                              | release  | `langrank release`; CSV/JSON/SQLite bundle + `metadata.json` + checksums |
 | 03.0 | Source Archival Strategy                              | governance | Configurable raw-artifact retention (`all/latest/yearly/none`)         |
 
+Each task is decomposed into subtask specs in its own folder:
+[01.0](/docs/roadmap/0004-freshness-and-releases/01.0-source-freshness-and-updates/README.md),
+[02.0](/docs/roadmap/0004-freshness-and-releases/02.0-dataset-release-workflow/README.md),
+[03.0](/docs/roadmap/0004-freshness-and-releases/03.0-source-archival-strategy/README.md).
+
 Task 02.0 (Dataset Release Workflow) benefits from Task 01.0's freshness data
 and Task 03.0's archival policy (which artifacts are actually available to
 bundle), but is independently buildable — a release can ship without
