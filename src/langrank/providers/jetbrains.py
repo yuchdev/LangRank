@@ -19,6 +19,7 @@ from langrank.models import (
     MetricDefinition,
     Observation,
     ProviderMetadata,
+    Severity,
     SourceRecord,
     ValidationReport,
 )
@@ -534,13 +535,115 @@ class JetBrainsProvider:
             raise ParseError("jetbrains raw import: file must be UTF-8 encoded.") from exc
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
-        """Validate observations against named codes (lands in subtask 07).
+        """Validate observations against named, family-aware codes.
+
+        Emits a :class:`~langrank.models.ValidationReport` without ever mutating or
+        dropping an observation. A report carrying only WARNINGs stays ``ok`` and its
+        observations persist; any ERROR blocks the upsert in
+        :class:`~langrank.services.fetch.FetchService`. Every message names the metric,
+        language and survey year so an operator can locate the row.
+
+        The published (weighted, ``is_derived=False``) and ``-raw`` (unweighted,
+        ``is_derived=True``) families own **distinct** metric IDs, and each survey
+        question (``used_last_12_months`` vs ``primary_language`` vs
+        ``planned_adoption``) is its own metric ID, so the two families - and the three
+        questions - are never merged into one series by construction; the per-metric
+        ``is_derived`` checks below make any stray mismatch an ERROR rather than a silent
+        merge. Multi-select shares legitimately sum to more than 100 % across languages,
+        so only each **individual** value is bounded to ``0..100`` - a cross-language
+        sum is never flagged.
+
+        Codes:
+
+        - ``percent_range`` (ERROR): a value outside ``0..100`` (per observation; a
+          multi-select sum over 100 % is never flagged).
+        - ``duplicate_language_period`` (ERROR): a repeated
+          ``(language_id, period_start, metric_id)`` triple - the same language, year
+          and metric twice.
+        - ``published_marked_derived`` (ERROR): a published metric observation flagged
+          ``is_derived`` (JetBrains' published percentages are raw, never derived).
+        - ``raw_not_derived`` (ERROR): a ``-raw`` metric observation not flagged
+          ``is_derived`` or whose ``derivation_method`` is not
+          :data:`RAW_DERIVATION` (unweighted respondent shares are always derived).
+        - ``metric_not_asked`` (ERROR): an observation whose ``(year, metric)`` the
+          question registry says was never asked (e.g. primary-language in 2018).
+        - ``missing_question_wording`` (ERROR): an observation carrying no
+          ``question_wording`` key in its metadata (the wording *value* may be ``None``
+          when unverified - that is allowed; the key must be present).
+        - ``missing_sample_size`` (WARNING): an observation whose ``sample_size`` is
+          ``None`` - notably a ``-raw`` share, whose denominator must travel with it.
+        - ``question_wording_change`` (WARNING): the verified question wording for a
+          metric differs between two survey years present in the batch; a
+          :class:`~langrank.models.MethodologyNote` records the change (informational,
+          never blocks the upsert).
+        - ``unmapped_language`` (WARNING): one per JetBrains label the last
+          :meth:`normalize` call could not resolve.
 
         :param observations: Observations to validate.
-        :returns: A validation report.
-        :raises NotImplementedError: Until subtask 07 lands validation.
+        :returns: A validation report; WARNING-only reports remain ``ok``.
         """
-        raise NotImplementedError("jetbrains validate lands in subtask 07.")
+        report = ValidationReport()
+        seen: set[tuple[str, date, str]] = set()
+        wordings_by_metric: dict[str, dict[int, str]] = {}
+        for item in observations:
+            year = item.period_start.year
+            is_raw = item.metric_id.endswith(RAW_METRIC_SUFFIX)
+            label = f"{item.metric_id} {item.language_id} at {item.period_label}"
+            if item.value is not None and not _PERCENT_MIN <= item.value <= _PERCENT_MAX:
+                report.add(Severity.ERROR, "percent_range", f"{label}: percent {item.value} is outside 0..100")
+            key = (item.language_id, item.period_start, item.metric_id)
+            if key in seen:
+                report.add(Severity.ERROR, "duplicate_language_period", f"duplicate {label}")
+            seen.add(key)
+            if is_raw:
+                if not item.is_derived or item.derivation_method != RAW_DERIVATION:
+                    report.add(
+                        Severity.ERROR,
+                        "raw_not_derived",
+                        f"{label}: -raw metric must set is_derived with derivation_method={RAW_DERIVATION!r}",
+                    )
+            elif item.is_derived:
+                report.add(
+                    Severity.ERROR,
+                    "published_marked_derived",
+                    f"{label}: published metric must not set is_derived",
+                )
+            if question_for(year, item.metric_id) is None:
+                report.add(
+                    Severity.ERROR,
+                    "metric_not_asked",
+                    f"{label}: metric {base_metric_id(item.metric_id)!r} was not asked in {year}",
+                )
+            if "question_wording" not in item.metadata_json:
+                report.add(
+                    Severity.ERROR,
+                    "missing_question_wording",
+                    f"{label}: observation carries no question_wording metadata",
+                )
+            if item.sample_size is None:
+                report.add(Severity.WARNING, "missing_sample_size", f"{label}: sample_size is missing")
+            wording = item.metadata_json.get("question_wording")
+            if item.metadata_json.get("wording_verified") and isinstance(wording, str):
+                wordings_by_metric.setdefault(base_metric_id(item.metric_id), {})[year] = wording
+        for metric_id, by_year in sorted(wordings_by_metric.items()):
+            previous: Optional[tuple[int, str]] = None
+            for change_year in sorted(by_year):
+                wording = by_year[change_year]
+                if previous is not None and wording != previous[1]:
+                    report.add(
+                        Severity.WARNING,
+                        "question_wording_change",
+                        f"{metric_id}: verified question wording changed in {change_year} "
+                        f"(differs from {previous[0]}); a methodology note records the change",
+                    )
+                previous = (change_year, wording)
+        for name in self.last_unmapped:
+            report.add(
+                Severity.WARNING,
+                "unmapped_language",
+                f"jetbrains label {name!r} did not map to a canonical language",
+            )
+        return report
 
 
 def _published_at(value: object) -> Optional[datetime]:
