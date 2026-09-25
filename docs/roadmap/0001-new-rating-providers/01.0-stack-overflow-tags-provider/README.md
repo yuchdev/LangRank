@@ -15,7 +15,7 @@
 | 05 | [Parse & normalize: counts, derived share and derived rank](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/05-parse-and-normalize.md) | Python Expert | 04 | ✅ Complete |
 | 06 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/06-validate.md) | Python Expert | 05 | ✅ Complete |
 | 07 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/07-fixtures-and-contract-tests.md) | Testing Expert | 06 | ✅ Complete |
-| 08 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/08-docs.md) | Docs Writer | 07 | ⬜ Not started |
+| 08 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/08-docs.md) | Docs Writer | 07 | ✅ Complete |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 

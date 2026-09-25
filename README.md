@@ -33,14 +33,24 @@ The application now includes working providers for:
 - `pypl`
 - `redmonk`
 - `stackoverflow-survey`
+- `stackoverflow-tags` - monthly question activity per language tag (see [docs/providers.md](/docs/providers.md))
 - `demo` (synthetic offline dataset for development)
 
 ```bash
 uv run langrank fetch all --years 10
 uv run langrank query --rating tiobe --language python --years 10
 uv run langrank plot --rating redmonk --metric rank --languages python,c++,rust --years 10
-uv run langrank export csv --ratings tiobe,pypl,redmonk,stackoverflow-survey --since 2016 --output history.csv
+uv run langrank plot --rating stackoverflow-tags --metric stackoverflow-tags-question-share \
+    --languages python,javascript,c++,rust --years 10
+uv run langrank export csv --ratings tiobe,pypl,redmonk,stackoverflow-survey,stackoverflow-tags \
+    --since 2016 --output history.csv
 ```
+
+> **Note:** `stackoverflow-tags` measures question-asking activity, not language usage - it is a
+> different signal from `stackoverflow-survey` (self-reported usage) and must not be treated as
+> equivalent. A full 10-year backfill requires `LANGRANK_STACKEXCHANGE_KEY`; use `--offline` to
+> replay a cached artifact without network access. See
+> [docs/providers.md](/docs/providers.md) for quota details.
 
 ## Development checks
 

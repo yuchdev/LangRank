@@ -16,5 +16,3 @@
 - Request budget: 5000 requests/day enforced ceiling for the `api` source (well under the 10,000/day keyed quota, with headroom for the per-IP throttle). Without `LANGRANK_STACKEXCHANGE_KEY` the effective ceiling drops to the 300/day anonymous quota, so an unattended full backfill requires a key; subtask [04](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/04-fetch-api-and-offline-cache.md) enforces this number and refuses to start when the planned request count would exceed the available budget.
 - Parser/version notes: `stackoverflow-tags-v1`.
 - Last verified date: 2026-09-25.
-</content>
-</invoke>
