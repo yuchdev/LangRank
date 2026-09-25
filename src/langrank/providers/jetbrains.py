@@ -37,9 +37,6 @@ from langrank.providers.jetbrains_questions import (
     raw_prefixes_for_year,
     wording_changes,
 )
-from langrank.providers.jetbrains_questions import (
-    question_for as _question_for,  # noqa: F401  (kept for clarity; see usage below)
-)
 
 #: Stable rating id, used across the pipeline and as every metric-id prefix.
 _RATING_ID = "jetbrains"
@@ -826,17 +823,21 @@ def _detect_survey_year(
 def _bounded_lines(stream: io.TextIOBase) -> Iterator[str]:
     """Yield physical lines from ``stream``, refusing any over :data:`_MAX_LINE_CHARS`.
 
+    The cap counts line content only, excluding the ``\n`` / ``\r\n`` terminator, so
+    a line of exactly :data:`_MAX_LINE_CHARS` characters is accepted. ``readline`` is
+    bounded at cap + 2 so an over-long line is never read past that point.
+
     :param stream: A text stream.
-    :returns: An iterator of lines, each at most :data:`_MAX_LINE_CHARS` characters.
+    :returns: An iterator of lines, each at most :data:`_MAX_LINE_CHARS` content characters.
     :raises ParseError: If a line exceeds the cap (its content is never echoed).
     """
     line_number = 0
     while True:
-        line = stream.readline(_MAX_LINE_CHARS + 1)
+        line = stream.readline(_MAX_LINE_CHARS + 2)
         if not line:
             return
         line_number += 1
-        if len(line) > _MAX_LINE_CHARS:
+        if len(line.rstrip("\r\n")) > _MAX_LINE_CHARS:
             raise ParseError(
                 f"jetbrains raw import: physical line {line_number} exceeds the {_MAX_LINE_CHARS}-character cap."
             )

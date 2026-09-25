@@ -358,3 +358,12 @@ def test_jb_sec_3_field_size_limit_restored_on_error_paths(tmp_path: Path, conte
     with pytest.raises(ParseError):
         JetBrainsProvider(tmp_path).import_path(_write(tmp_path, content))
     assert csv.field_size_limit() == before
+
+
+@pytest.mark.parametrize("terminator", ["\n", "\r\n"])
+def test_bounded_lines_accepts_line_exactly_at_cap(monkeypatch: pytest.MonkeyPatch, terminator: str) -> None:
+    monkeypatch.setattr(jetbrains, "_MAX_LINE_CHARS", 8)
+    at_cap = "a" * 8 + terminator
+    assert list(jetbrains._bounded_lines(io.StringIO(at_cap + "b" + terminator))) == [at_cap, "b" + terminator]
+    with pytest.raises(ParseError, match="character cap"):
+        list(jetbrains._bounded_lines(io.StringIO("a" * 9 + terminator)))

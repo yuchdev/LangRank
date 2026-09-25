@@ -195,3 +195,53 @@ No CRITICAL or HIGH remains: JB-SEC-1..5 HIGH requirements are implemented and t
 residual (single-line field-count amplification) is MEDIUM and bounded by the byte cap, so it does not
 BLOCK the merge gate; track it plus the LOW FIFO edge and the three missing tests as follow-ups. Hand
 the two fixes to `python-expert` and the three tests to `testing-expert`.
+
+---
+
+## Task-close review - subtask 04.0 (07 validate / 08 tests / 09 docs) - 2026-09-26
+
+Re-audited `git diff 396f2ae..HEAD`. Only product-code change since the re-audit is
+`JetBrainsProvider.validate` (subtask 07); the rest is tests (08), fixtures, and docs (09).
+`cli.py` unchanged in this range (dispatch still: `SupportsRawImport` -> streamed `import_path`,
+all other providers -> `read_bytes()`/`parse()`; upsert gated on `report.ok`).
+
+### Residuals from the re-audit - CLOSED
+
+- **MEDIUM JB-SEC-1 (single-huge-line / hyper-wide-row amplification) - CLOSED.** `_bounded_lines`
+  reads each physical line with `readline(_MAX_LINE_CHARS+1)` and rejects any over `_MAX_LINE_CHARS`
+  (16 MiB) before `csv` materialises it (`jetbrains.py:826-843`); header field count capped at
+  `_MAX_COLUMNS` (50k) (`jetbrains.py:870-871`). Per-line bytes and per-field bytes
+  (`field_size_limit`) and row count are now all independently bounded. Tests
+  `test_jb_sec_1_single_huge_line_rejected`, `test_jb_sec_1_hyper_wide_header_rejected`.
+- **LOW JB-SEC-1 (FIFO/char-device st_size==0 bypass) - CLOSED.** `stat.S_ISREG` required
+  (`jetbrains.py:522-523`); test `test_jb_sec_1_non_regular_file_rejected`.
+- **Missing tests - CLOSED.** `field_size_limit` restoration now proven on the decode and
+  year-detection error paths (`test_jb_sec_3_field_size_limit_restored_on_error_paths`, parametrized
+  non-utf8 + no-detectable-year); capability dispatch covered
+  (`test_capability_is_opt_in`, `test_jb_sec_7_raw_fetch_stays_network_free`).
+
+### New surface this range - clean
+
+- **validate() (07):** pure over its inputs, never mutates/drops observations; WARNING-only stays
+  `ok`, any ERROR blocks the upsert via `FetchService`. Messages cite metric/language/year indices,
+  never a raw cell (JB-SEC-9 preserved). Enforces published-vs-`-raw` `is_derived` disjointness as
+  ERRORs, so the two families cannot silently merge. No injection/parse surface added.
+- **JB-SEC-4/5 canary:** `tests/fixtures/jetbrains/raw_sample.csv:2` free-text cell holds a
+  **synthetic** PII/SQL-injection canary (obviously-fake email, all-zeros SSN, quoted DROP string).
+  Confirmed synthetic, not a real secret. Contract test `test_jetbrains_raw_never_stores_free_text`
+  and unit `test_jb_sec_4_freetext_never_stored` assert the needle reaches no record, value, or
+  serialized metadata. Only registry-prefix language columns enter `columns`
+  (`jetbrains.py:874-878`); DB writes stay parameterized (CWE-89 N/A).
+- **No real JetBrains raw rows / licence (JB-SEC-5):** no raw dump or `.zip` was ever committed in
+  `18d6b87..HEAD` (only the bundled `data/jetbrains.csv`, which is aggregate
+  `year,metric,language,percent,sample_size,population,source_url,published_at` - no respondent
+  rows, no `proglang::` layout); fixtures are tiny synthetic. `proglang::` appears only in docs and
+  this threat model. Licence obligations (CC BY-NC-SA 4.0 for 2024/2025, attribution-only for
+  2022/2023) documented for release metadata in `docs/providers.md:687-722` and
+  `docs/source-notes/jetbrains.md:89-147`.
+
+### Verdict: CLEAR (PASS)
+
+No CRITICAL/HIGH/MEDIUM open. JB-SEC-1..9 satisfied; all re-audit residuals and missing tests
+closed; no regressions (90 jetbrains/normalization unit tests pass); secrets scan of the diff clean
+(canary confirmed synthetic). Task 04.0 clears the merge gate.
