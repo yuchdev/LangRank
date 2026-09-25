@@ -16,6 +16,7 @@ from langrank.models import (
     MetricDefinition,
     Observation,
     ProviderMetadata,
+    Severity,
     SourceRecord,
     ValidationReport,
 )
@@ -210,6 +211,33 @@ IEEE_EDITIONS: tuple[_Edition, ...] = (
 )
 
 
+#: Profiles present in each edition's source-note table. IEEE presents the same three
+#: named profiles (:class:`IeeeProfile`) in every imported edition (2022-2025, plus the
+#: 2021 interactive presets mapped 1:1 in subtask 01), so each year maps to the full
+#: profile set. :meth:`IeeeSpectrumProvider.validate` reads this to flag an observation
+#: whose ``(year, profile)`` pair is absent from the source note (``profile_not_in_edition``).
+EDITION_PROFILES: dict[int, frozenset[IeeeProfile]] = {
+    edition.year: frozenset(IeeeProfile) for edition in IEEE_EDITIONS
+}
+
+#: Upper bound of each edition's published-score scale (:data:`SCORE_SCALE_BY_YEAR`).
+#: A ``0-100`` edition tops out at 100, a ``0-1`` edition at 1; :meth:`validate`
+#: range-checks each score against the bound named in its ``metadata_json['score_scale']``
+#: rather than a fixed 100, because the scale is edition-specific and never rescaled.
+_SCORE_SCALE_MAX: dict[str, float] = {"0-100": 100.0, "0-1": 1.0}
+
+
+def _score_scale_max(scale: str) -> float:
+    """Return the maximum published score for an edition's scale.
+
+    :param scale: The ``metadata_json['score_scale']`` label (``"0-100"`` / ``"0-1"``).
+    :returns: The scale's upper bound; ``100.0`` for any unrecognised label, matching
+        IEEE's historical default so an unlabelled score is never silently accepted
+        beyond a plausible bound.
+    """
+    return _SCORE_SCALE_MAX.get(scale, 100.0)
+
+
 class IeeeSpectrumProvider:
     """Records IEEE Spectrum *Top Programming Languages* rank and score per profile.
 
@@ -231,8 +259,8 @@ class IeeeSpectrumProvider:
     Acquisition is manual transcription only: there is no downloadable dataset and
     no network fetch (0 requests). :meth:`fetch` reads the curated bundled CSV
     (:data:`DATA_PATH`), :meth:`parse` and :meth:`normalize` turn it into per-profile
-    rank/score observations, and :meth:`validate` remains an honest stub until subtask
-    06. One data-integrity note: the 2025 ``trending`` edition's data file listed ABAP
+    rank/score observations, and :meth:`validate` checks them against named codes
+    (subtask 06). One data-integrity note: the 2025 ``trending`` edition's data file listed ABAP
     twice with different scores, so both ambiguous rows were dropped from the curated
     CSV (other ranks unchanged).
 
@@ -499,13 +527,134 @@ class IeeeSpectrumProvider:
         return observations
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
-        """Validate observations against named codes (lands in subtask 06).
+        """Validate observations against named, profile-aware codes.
+
+        Emits a :class:`~langrank.models.ValidationReport` without ever mutating or
+        dropping an observation. A report carrying only WARNINGs stays ``ok`` and its
+        observations persist; any ERROR blocks the upsert in
+        :class:`~langrank.services.fetch.FetchService`. Every message names the
+        profile, language and edition so an operator can locate the row.
+
+        Codes:
+
+        - ``rank_positive`` (ERROR): a rank observation whose ``rank`` is at or below
+          zero.
+        - ``score_range`` (ERROR): a score observation outside its edition's scale
+          (``0..100`` or ``0..1`` per :data:`SCORE_SCALE_BY_YEAR`), read from the
+          observation's ``metadata_json['score_scale']`` - never a fixed 0..100.
+        - ``derivation_flag`` (ERROR): a rank observation not flagged ``is_derived``
+          (ranks are computed by competition ranking) or a score observation flagged
+          ``is_derived`` (published scores are raw). This mirrors the as-built pairing
+          from subtask 05.
+        - ``duplicate_language_period`` (ERROR): a repeated
+          ``(language_id, period_start, metric_id)`` triple - the same language, year
+          and metric twice.
+        - ``duplicate_rank`` (ERROR): two languages sharing a rank within one
+          ``(year, profile)`` whose scores differ. A legitimate competition-ranking
+          tie shares a rank *and* an equal score, so only a score mismatch is flagged;
+          rank gaps from ties are never flagged.
+        - ``profile_not_in_edition`` (ERROR): an observation whose ``(year, profile)``
+          is absent from :data:`EDITION_PROFILES` (the source-note edition table).
+        - ``mixed_profile`` (ERROR): one metric id carrying more than one profile;
+          profiles are never merged into a single series.
+        - ``top_score_not_100`` (WARNING): the maximum score in a ``(year, profile)``
+          does not reach the edition scale's top value (100 for a 0-100 edition, 1 for
+          a 0-1 edition). WARNING-only, so it never blocks the upsert.
+        - ``unmapped_language`` (WARNING): one per IEEE label the last
+          :meth:`normalize` call could not resolve.
 
         :param observations: Observations to validate.
-        :returns: A validation report.
-        :raises NotImplementedError: Until subtask 06 lands validation.
+        :returns: A validation report; WARNING-only reports remain ``ok``.
         """
-        raise NotImplementedError("ieee-spectrum validate lands in subtask 06.")
+        report = ValidationReport()
+        seen: set[tuple[str, date, str]] = set()
+        profiles_by_metric: dict[str, set[str]] = {}
+        rank_groups: dict[tuple[int, str, int], set[str]] = {}
+        score_by_key: dict[tuple[int, str, str], float] = {}
+        score_groups: dict[tuple[int, str], list[float]] = {}
+        score_scale_of: dict[tuple[int, str], str] = {}
+        for item in observations:
+            year = item.period_start.year
+            profile = str(item.metadata_json.get("profile", ""))
+            is_rank = item.metric_id.endswith("-rank")
+            is_score = item.metric_id.endswith("-score")
+            label = f"{profile} {item.language_id} at {item.period_label}"
+            profiles_by_metric.setdefault(item.metric_id, set()).add(profile)
+            key = (item.language_id, item.period_start, item.metric_id)
+            if key in seen:
+                report.add(Severity.ERROR, "duplicate_language_period", f"duplicate {label} ({item.metric_id})")
+            seen.add(key)
+            allowed = EDITION_PROFILES.get(year)
+            if allowed is None or profile not in {member.value for member in allowed}:
+                report.add(
+                    Severity.ERROR,
+                    "profile_not_in_edition",
+                    f"{label}: profile {profile!r} is not in the {year} edition",
+                )
+            if is_rank:
+                if item.rank is not None and item.rank <= 0:
+                    report.add(Severity.ERROR, "rank_positive", f"{label}: rank {item.rank} must be positive")
+                if not item.is_derived:
+                    report.add(
+                        Severity.ERROR,
+                        "derivation_flag",
+                        f"{label}: rank is derived (competition ranking) and must set is_derived",
+                    )
+                if item.rank is not None:
+                    rank_groups.setdefault((year, profile, item.rank), set()).add(item.language_id)
+            if is_score:
+                if item.is_derived:
+                    report.add(
+                        Severity.ERROR,
+                        "derivation_flag",
+                        f"{label}: score is published raw and must not set is_derived",
+                    )
+                scale = str(item.metadata_json.get("score_scale", ""))
+                top = _score_scale_max(scale)
+                if item.value is not None and not 0 <= item.value <= top:
+                    report.add(
+                        Severity.ERROR,
+                        "score_range",
+                        f"{label}: score {item.value} is outside 0..{top} (scale {scale!r})",
+                    )
+                if item.value is not None:
+                    score_by_key[(year, profile, item.language_id)] = item.value
+                    score_groups.setdefault((year, profile), []).append(item.value)
+                    score_scale_of[(year, profile)] = scale
+        for metric_id, profiles in sorted(profiles_by_metric.items()):
+            if len(profiles) > 1:
+                report.add(
+                    Severity.ERROR,
+                    "mixed_profile",
+                    f"metric {metric_id} mixes profiles {sorted(profiles)}; profiles are never merged",
+                )
+        for (year, profile, rank), languages in sorted(rank_groups.items()):
+            if len(languages) < 2:
+                continue
+            scores = {
+                score_by_key[(year, profile, lang)] for lang in languages if (year, profile, lang) in score_by_key
+            }
+            if len(scores) > 1:
+                report.add(
+                    Severity.ERROR,
+                    "duplicate_rank",
+                    f"{profile} {year}: languages {sorted(languages)} share rank {rank} with differing scores",
+                )
+        for (year, profile), values in sorted(score_groups.items()):
+            top = _score_scale_max(score_scale_of[(year, profile)])
+            if max(values) != top:
+                report.add(
+                    Severity.WARNING,
+                    "top_score_not_100",
+                    f"{profile} {year}: top score {max(values)} does not reach the edition scale top {top}",
+                )
+        for name in self.last_unmapped:
+            report.add(
+                Severity.WARNING,
+                "unmapped_language",
+                f"ieee-spectrum label {name!r} did not map to a canonical language",
+            )
+        return report
 
 
 def _records_from_row(row: dict[str, Any]) -> list[SourceRecord]:

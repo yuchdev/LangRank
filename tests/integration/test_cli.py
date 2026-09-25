@@ -118,27 +118,24 @@ def test_cli_fetch_all_offline_all_providers_succeed(tmp_path: Path) -> None:
     # stackoverflow-tags; --source auto selects innovation-graph (octoverse needs
     # --source octoverse).
     #
-    # ieee-spectrum now reads its curated bundled CSV in fetch (subtask 03.0/04), but
-    # parse/normalize are still stubs until subtask 05, so the pipeline fails at parse.
-    # The run reports ieee-spectrum FAILED with a "lands in subtask" message (now
-    # "parse lands in subtask 05") and exits non-zero. Provider execution is
-    # independent, so every implemented provider still reports SUCCESS; this assertion
-    # flips back to all-SUCCESS once subtask 05 lands parse/normalize.
+    # ieee-spectrum reads its curated bundled CSV in fetch (subtask 03.0/04) and now
+    # completes parse/normalize/validate offline (subtasks 05/06), so the whole
+    # pipeline runs with zero network requests and reports SUCCESS like every other
+    # provider.
     _seed_stackoverflow_tags_cache(cache_path)
     _seed_github_innovation_graph_cache(cache_path)
     result = runner.invoke(
         app,
         ["--db", str(db_path), "--cache", str(cache_path), "fetch", "all", "--offline", "--years", "10"],
     )
-    assert result.exit_code == 1, result.stdout
+    assert result.exit_code == 0, result.stdout
     assert "success tiobe" in result.stdout.lower()
     assert "success pypl" in result.stdout.lower()
     assert "success redmonk" in result.stdout.lower()
     assert "success stackoverflow-survey" in result.stdout.lower()
     assert "success stackoverflow-tags" in result.stdout.lower()
     assert "success github" in result.stdout.lower()
-    # The ieee-spectrum stub is the only failure and it names the subtask that lands it.
-    assert "failed  ieee-spectrum" in result.stdout.lower()
-    assert "lands in subtask" in result.stdout.lower()
-    # A clean offline replay of the implemented providers emits no validation errors.
+    assert "success ieee-spectrum" in result.stdout.lower()
+    # A clean offline replay of every provider emits no validation errors and no failures.
+    assert "failed" not in result.stdout.lower()
     assert "[error]" not in result.stdout.lower()
