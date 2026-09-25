@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -54,23 +55,47 @@ def test_cli_ratings_and_languages_root_commands(tmp_path: Path) -> None:
     assert "c++" in languages.stdout.lower()
 
 
-def test_cli_fetch_all_independent_provider_execution(tmp_path: Path) -> None:
+def _seed_stackoverflow_tags_cache(cache_path: Path) -> None:
+    """Write a small offline API artifact so ``fetch --offline`` never hits the network.
+
+    The bytes match the ``api`` JSON shape :meth:`StackOverflowTagsProvider.parse`
+    expects; ``--offline`` replays the newest artifact in the provider's cache
+    subdirectory (see ``providers.common.load_cached_payload``).
+    """
+    provider_dir = cache_path / "stackoverflow-tags"
+    provider_dir.mkdir(parents=True, exist_ok=True)
+    document = {
+        "source": "api",
+        "denominator": "all_questions",
+        "months": [
+            {"month": "2020-01", "total": 1000, "tags": {"python": 250, "java": 200}},
+            {"month": "2020-02", "total": 1100, "tags": {"python": 260, "java": 190}},
+        ],
+    }
+    (provider_dir / "stackoverflow-tags-seed000000.json").write_bytes(
+        json.dumps(document, sort_keys=True).encode("utf-8")
+    )
+
+
+def test_cli_fetch_all_offline_all_providers_succeed(tmp_path: Path) -> None:
     db_path = tmp_path / "langrank.sqlite"
     cache_path = tmp_path / "cache"
+    # stackoverflow-tags is the only provider that performs a real network fetch;
+    # its default 10-year window also overruns the 300/day anonymous Stack Exchange
+    # budget. Pre-seed an offline cache artifact and run with --offline so the whole
+    # pipeline (fetch->parse->normalize->validate->upsert) stays offline. The
+    # bootstrap providers ignore --offline and read their bundled CSVs, so CI never
+    # touches the network and every provider reports SUCCESS.
+    _seed_stackoverflow_tags_cache(cache_path)
     result = runner.invoke(
         app,
-        ["--db", str(db_path), "--cache", str(cache_path), "fetch", "all", "--years", "10"],
+        ["--db", str(db_path), "--cache", str(cache_path), "fetch", "all", "--offline", "--years", "10"],
     )
-    # The stackoverflow-tags provider now has a real fetch/parse/normalize, but two
-    # things still make `fetch all` report it FAILED and exit non-zero, both without
-    # any network access: (1) the default 10-year window's request plan exceeds the
-    # 300/day anonymous Stack Exchange budget, so fetch() raises before issuing any
-    # HTTP request; and (2) validate() is still a stub (subtask 06). The point of
-    # this test is provider independence: one failing provider must not stop the
-    # others, so every fetchable bootstrap provider still reports SUCCESS.
-    assert result.exit_code == 1, result.stdout
+    assert result.exit_code == 0, result.stdout
     assert "success tiobe" in result.stdout.lower()
     assert "success pypl" in result.stdout.lower()
     assert "success redmonk" in result.stdout.lower()
     assert "success stackoverflow-survey" in result.stdout.lower()
-    assert "failed  stackoverflow-tags" in result.stdout.lower()
+    assert "success stackoverflow-tags" in result.stdout.lower()
+    # A clean offline replay emits no validation issues.
+    assert "error" not in result.stdout.lower()

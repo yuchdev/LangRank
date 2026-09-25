@@ -20,6 +20,7 @@ from langrank.models import (
     MetricDefinition,
     Observation,
     ProviderMetadata,
+    Severity,
     SourceRecord,
     ValidationReport,
 )
@@ -388,13 +389,66 @@ class StackOverflowTagsProvider:
         return observations
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
-        """Validate observations with named codes (implemented in subtask 06).
+        """Validate observations against named, tag-activity-specific codes.
+
+        Emits an :class:`~langrank.models.ValidationReport` without mutating or
+        dropping any observation. A report that carries only WARNINGs is still
+        ``ok`` and its observations persist; any ERROR blocks the upsert in
+        :class:`~langrank.services.fetch.FetchService`. Each message names the
+        language, period label and metric so an operator can locate the row.
+
+        Codes:
+
+        - ``count_non_negative`` (ERROR): a ``questions`` count below zero.
+        - ``share_range`` (ERROR): a ``question-share`` value outside 0..100.
+        - ``rank_positive`` (ERROR): a rank at or below zero.
+        - ``duplicate_language_period`` (ERROR): a repeated
+          ``(language_id, period_start, metric_id)`` triple.
+        - ``share_not_derived`` (ERROR): a share or rank observation whose
+          ``is_derived`` flag is not set.
+        - ``mixed_denominator`` (ERROR): share observations in the batch carry
+          more than one denominator (the two ``--source`` modes must not mix).
+        - ``incomplete_month`` (ERROR): a ``period_start`` inside the current,
+          still-incomplete calendar month.
+        - ``unmapped_language`` (WARNING): one per source tag the last
+          :meth:`normalize` call could not resolve.
 
         :param observations: Observations to validate.
-        :returns: A validation report.
-        :raises NotImplementedError: Always, until subtask 06 lands validation.
+        :returns: A validation report; WARNING-only reports remain ``ok``.
         """
-        raise NotImplementedError("stackoverflow-tags validate lands in subtask 06.")
+        report = ValidationReport()
+        seen: set[tuple[str, date, str]] = set()
+        share_denominators: set[str] = set()
+        current_month = datetime.now(UTC).date()
+        for item in observations:
+            label = f"{item.language_id} {item.metric_id} at {item.period_label}"
+            if item.metric_id == METRIC_QUESTIONS and item.value is not None and item.value < 0:
+                report.add(Severity.ERROR, "count_non_negative", f"{label}: question count must be non-negative")
+            if item.metric_id == METRIC_SHARE and item.value is not None and not 0 <= item.value <= 100:
+                report.add(Severity.ERROR, "share_range", f"{label}: share {item.value} is outside 0..100")
+            if item.rank is not None and item.rank <= 0:
+                report.add(Severity.ERROR, "rank_positive", f"{label}: rank must be positive")
+            if item.metric_id in (METRIC_SHARE, METRIC_RANK) and not item.is_derived:
+                report.add(Severity.ERROR, "share_not_derived", f"{label}: derived metric must set is_derived")
+            if item.metric_id == METRIC_SHARE:
+                share_denominators.add(str(item.metadata_json.get("denominator", "")))
+            if item.period_start.year == current_month.year and item.period_start.month == current_month.month:
+                report.add(Severity.ERROR, "incomplete_month", f"{label}: period lies in the current, incomplete month")
+            key = (item.language_id, item.period_start, item.metric_id)
+            if key in seen:
+                report.add(Severity.ERROR, "duplicate_language_period", f"duplicate {label}")
+            seen.add(key)
+        if len(share_denominators) > 1:
+            report.add(
+                Severity.ERROR,
+                "mixed_denominator",
+                f"question-share observations mix denominators {sorted(share_denominators)} in one batch",
+            )
+        for name in self.last_unmapped:
+            report.add(
+                Severity.WARNING, "unmapped_language", f"source tag {name!r} did not map to a canonical language"
+            )
+        return report
 
 
 def _next_month(day: date) -> date:
