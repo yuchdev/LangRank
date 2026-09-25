@@ -10,7 +10,7 @@ Updated as each task lands.
 | 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
 | 02.0 | GitHub Provider                             | ✅ Complete | `test_github_{metadata,innovation_graph,innovation_graph_normalize,octoverse,validate}.py`, `test_periods.py`, `contract/test_github_provider.py` |
 | 03.0 | IEEE Spectrum Provider                      | ✅ Complete | `test_ieee_spectrum_{metadata,fetch,normalize,validate}.py`, `contract/test_ieee_spectrum_provider.py`, `integration/test_ieee_spectrum_integration.py` |
-| 04.0 | JetBrains Developer Ecosystem Provider      | 🔶 In progress (7/9 subtasks) | -     |
+| 04.0 | JetBrains Developer Ecosystem Provider      | ✅ Complete | `test_jetbrains_{questions,metadata,published,raw,validate}.py`, `contract/test_jetbrains_provider.py`, `integration/test_jetbrains_integration.py` |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -285,4 +285,52 @@ tasks otherwise remain parallelizable.
   adding editions.
 - `duplicate_rank` cannot detect a shared rank when both rows lack a score (import path only).
 - No negative-path CLI test for malformed external `import` CSVs (parser-level tests exist).
+
+### Task 04.0 - JetBrains Developer Ecosystem Provider (✅ 2026-09-26)
+
+**Delivered**
+- `jetbrains` provider (`providers/jetbrains.py`) with two acquisition modes that never share a
+  series:
+  - **published** (default): bundled `providers/data/jetbrains.csv`, 723 rows 2017-2025
+    transcribed from JetBrains' shipped chart data (cross-checked against JetBrains' own
+    retrospective charts: 648 comparisons, 2 disagreements) → 643 weighted observations,
+    `is_derived=False`, `jetbrains-{used-last-12-months,primary-language,planned-adoption}`.
+    `used-last-12-months` has a validated 2017-2025 history (task exit criterion).
+  - **raw-data**: `langrank import --rating jetbrains <raw.csv>` over the operator-downloaded,
+    pre-extracted dump → unweighted respondent shares, `-raw` metric IDs, `is_derived=True`,
+    `derivation_method="unweighted_respondent_share"`, denominator = respondents with ≥1
+    selection. 2024 layout verified and registered.
+- Survey question registry (`jetbrains_questions.py`): per-year question availability, verified
+  verbatim wording only (6 year × metric entries), chart legends kept separately, MethodologyNotes
+  on verified wording changes; every observation carries `question_wording` + `wording_verified`.
+- New optional provider capability `SupportsRawImport` (`providers/base.py`); `langrank import`
+  streams through it when present, otherwise keeps the bytes path. `RatingProvider` unchanged.
+- JetBrains aliases (label drift), `JETBRAINS_NON_LANGUAGE_ANSWERS`, `crystal` canonical.
+- Source note (published-data origin, coverage caveats, raw licences: 2024/2025 CC BY-NC-SA 4.0,
+  2022/2023 attribution), threat model with re-audit and task-close review
+  ([docs/security/2026-09-26-jetbrains-import.md](/docs/security/2026-09-26-jetbrains-import.md)),
+  provider/architecture docs.
+
+**Tests / gate**
+- All four CI checks green; 345+ tests pass (2 live skipped). Coverage 84.8% → 86.6%
+  (informational). `fetch all --offline` succeeds for all eight providers.
+- Spec checks: all nine subtasks consumed; 06 verified PASS; security re-audit CLEAR with the
+  MEDIUM/LOW residuals fixed in `396f2ae` (line/column caps, regular-file check).
+- `/pr-review`: feature LGTM, security CLEAR; follow-ups fixed (line-cap off-by-one, dead import).
+
+**Reconciliation note**
+- Spec 04.0/02's `wording: str` → `Optional[str]` + `wording_verified` (never invent wording);
+  spec 04.0/03's `Visual Basic → visual-basic` *superseded* by the Visual Basic ruling. The
+  registry was corrected from chart evidence (2017 planned adoption asked; 2018 primary absent).
+  Raw import covers 2024 only: 2025 reuses identical column prefixes, so year detection refuses to
+  guess. The fetch-all CLI test went through the usual interim FAILED state (04) and is
+  all-SUCCESS again (07).
+
+**Follow-ups (not blocking)**
+- 2025 raw import needs a year-unique discriminator column; 2022/2023 raw layouts unverified.
+- Some 2024 raw answer labels are unmapped (e.g. `LabVIEW (G dataflow)`, a verbose SQL label,
+  adopt "not planning"/"please specify" options) - recorded in `last_unmapped`, never guessed.
+- 2018 "choose up to 3" primary JSON exists in the page bundle but is not bound to a rendered
+  chart - excluded; add only on an explicit ruling.
+- `csv.field_size_limit` is process-global - fine for the single-threaded CLI.
 
