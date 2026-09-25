@@ -30,6 +30,27 @@ metric pair and never merges profiles (or editions) into a single comparable ser
   scraping of the interactive app, no chart-pixel/geometry extraction. Only the bare ranks and scores
   IEEE prints (in article prose/tables or the rendered app) are transcribed, each row carrying its
   `source_url`; article prose, images, and charts are never copied.
+- Data origin (curated 2026-09-26; 9 user-directed requests in a first prose-only pass, then one
+  re-read per 2022-2025 edition article): each edition article
+  embeds a Flourish visualisation whose **published data file** carries, per profile
+  (`Spectrum`/`Jobs`/`Trending`), every language label and IEEE's `Score`. Reading that data file
+  counts as published text (ruling in
+  [status.md](/docs/roadmap/0001-new-rating-providers/status.md#notes--decisions)); the per-language
+  `Description` prose in the same file is IEEE copyright and is **not** stored. The 2023 and 2024
+  article URLs now redirect to the 2025 edition, so they were read from Wayback snapshots
+  (`web.archive.org/web/20231230112038id_/…/the-top-programming-languages-2023`,
+  `web.archive.org/web/20241025122520id_/…/top-programming-languages-2024`); `source_url` keeps
+  the canonical spectrum.ieee.org URL.
+- Score scale (**edition-specific, stored exactly as published, never rescaled**): 2022 data file
+  uses 0-100 (top = `100`); 2023-2025 use 0-1 (top = `1`). Scores are not comparable across editions
+  anyway (per-edition renormalization).
+- Ranks are **derived**: IEEE's data file has no rank column, so `rank` is computed from the
+  published scores within each edition × profile (competition ranking - ties share a rank, the next
+  rank is skipped). Rank observations are `is_derived=True`,
+  `derivation_method="rank_by_published_score"`; score observations are raw (`is_derived=False`).
+- Source data defect: the 2025 `Trending` list contains `ABAP` twice with different scores
+  (0.00943391 and 0.00942475). Both ABAP rows are dropped as ambiguous; other languages keep the
+  ranks computed over the list as published.
 - Imported metrics: `ieee-spectrum-{profile}-rank` and `ieee-spectrum-{profile}-score` for each
   published profile (`spectrum`, `jobs`, `trending`) - e.g. `ieee-spectrum-jobs-rank`,
   `ieee-spectrum-trending-score`. `spectrum` is IEEE's own label for the default (IEEE-member-weighted)
