@@ -8,7 +8,7 @@ Updated as each task lands.
 | Task | Name                                    | Status         | Tests |
 |------|--------------------------------------------|----------------|-------|
 | 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
-| 02.0 | GitHub Provider                             | 🔶 In progress (7/10 subtasks) | -     |
+| 02.0 | GitHub Provider                             | 🔶 In progress (8/10 subtasks) | -     |
 | 03.0 | IEEE Spectrum Provider                      | ⬜ Not started | -     |
 | 04.0 | JetBrains Developer Ecosystem Provider      | ⬜ Not started | -     |
 

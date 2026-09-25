@@ -20,6 +20,7 @@ from langrank.models import (
     MetricDefinition,
     Observation,
     ProviderMetadata,
+    Severity,
     SourceRecord,
     ValidationReport,
 )
@@ -131,6 +132,24 @@ IG_SUPPRESSION_THRESHOLD = 100
 #: Population string stamped on every derived Innovation Graph observation: the
 #: global aggregate sums only cells for economies with >=100 developers.
 IG_POPULATION = "global (economies ≥100 developers)"
+
+#: Metric IDs owned by the innovation-graph variant; every one is a derived global
+#: aggregate, so validation requires ``is_derived=True`` on each (GH-08).
+_IG_METRIC_IDS = frozenset({METRIC_IG_PUSHERS, METRIC_IG_SHARE, METRIC_IG_RANK})
+
+
+def _variant_of(metric_id: str) -> Optional[str]:
+    """Resolve which variant a metric ID belongs to for validation messages.
+
+    :param metric_id: The observation's metric ID.
+    :returns: :attr:`GitHubSource.OCTOVERSE` / :attr:`GitHubSource.INNOVATION_GRAPH`
+        value for a known metric, else ``None`` (an unrecognised metric).
+    """
+    if metric_id == METRIC_OCTOVERSE_RANK:
+        return GitHubSource.OCTOVERSE.value
+    if metric_id in _IG_METRIC_IDS:
+        return GitHubSource.INNOVATION_GRAPH.value
+    return None
 
 
 class OctoverseBasis(StrEnum):
@@ -743,13 +762,84 @@ class GitHubProvider:
         return observations
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
-        """Validate observations with named codes (implemented in subtask 08).
+        """Validate observations against named, variant-specific codes.
+
+        Covers both variants and never mutates or drops an observation. A report
+        that carries only WARNINGs stays ``ok`` and its observations persist; any
+        ERROR blocks the upsert in
+        :class:`~langrank.services.fetch.FetchService`. Every message names the
+        variant, language and period label so an operator can locate the row.
+
+        Codes:
+
+        - ``rank_positive`` (ERROR): any observation whose ``rank`` is at or below
+          zero (Octoverse or derived Innovation Graph rank).
+        - ``count_non_negative`` (ERROR): a ``github-innovation-graph-pushers``
+          value below zero.
+        - ``share_range`` (ERROR): a ``github-innovation-graph-share`` value
+          outside 0..100.
+        - ``duplicate_language_period`` (ERROR): a repeated
+          ``(language_id, period_start, metric_id)`` triple.
+        - ``aggregate_not_derived`` (ERROR): an Innovation Graph observation whose
+          ``is_derived`` flag is not set (every global aggregate is derived).
+        - ``mixed_variant`` (ERROR): a batch carrying both ``github-octoverse-*``
+          and ``github-innovation-graph-*`` metrics; the two variants are never
+          conflated.
+        - ``octoverse_rank_gap`` (WARNING): the Octoverse ranks within one edition
+          are not the contiguous run ``1..n``.
+        - ``unmapped_language`` (WARNING): one per source language the last
+          :meth:`normalize` call could not resolve.
 
         :param observations: Observations to validate.
-        :returns: A validation report.
-        :raises NotImplementedError: Always, until subtask 08 lands validation.
+        :returns: A validation report; WARNING-only reports remain ``ok``.
         """
-        raise NotImplementedError("github validate lands in subtask 08.")
+        report = ValidationReport()
+        seen: set[tuple[str, date, str]] = set()
+        variants: set[str] = set()
+        octoverse_ranks: dict[str, list[int]] = {}
+        for item in observations:
+            variant = _variant_of(item.metric_id) or self.provider_id
+            variants.add(variant)
+            label = f"{variant} {item.language_id} at {item.period_label}"
+            if item.rank is not None and item.rank <= 0:
+                report.add(Severity.ERROR, "rank_positive", f"{label}: rank {item.rank} must be positive")
+            if item.metric_id == METRIC_IG_PUSHERS and item.value is not None and item.value < 0:
+                report.add(
+                    Severity.ERROR, "count_non_negative", f"{label}: pusher count {item.value} must be non-negative"
+                )
+            if item.metric_id == METRIC_IG_SHARE and item.value is not None and not 0 <= item.value <= 100:
+                report.add(Severity.ERROR, "share_range", f"{label}: share {item.value} is outside 0..100")
+            if item.metric_id in _IG_METRIC_IDS and not item.is_derived:
+                report.add(
+                    Severity.ERROR,
+                    "aggregate_not_derived",
+                    f"{label}: innovation-graph aggregate must set is_derived",
+                )
+            key = (item.language_id, item.period_start, item.metric_id)
+            if key in seen:
+                report.add(Severity.ERROR, "duplicate_language_period", f"duplicate {label} ({item.metric_id})")
+            seen.add(key)
+            if item.metric_id == METRIC_OCTOVERSE_RANK and item.rank is not None:
+                octoverse_ranks.setdefault(item.period_label, []).append(item.rank)
+        if {GitHubSource.OCTOVERSE.value, GitHubSource.INNOVATION_GRAPH.value} <= variants:
+            report.add(
+                Severity.ERROR,
+                "mixed_variant",
+                "batch mixes octoverse and innovation-graph metrics; the two variants are never conflated",
+            )
+        for edition, ranks in sorted(octoverse_ranks.items()):
+            ordered = sorted(ranks)
+            if ordered != list(range(1, len(ordered) + 1)):
+                report.add(
+                    Severity.WARNING,
+                    "octoverse_rank_gap",
+                    f"octoverse edition {edition} ranks {ordered} are not the contiguous run 1..{len(ordered)}",
+                )
+        for name in self.last_unmapped:
+            report.add(
+                Severity.WARNING, "unmapped_language", f"github language {name!r} did not map to a canonical language"
+            )
+        return report
 
 
 def _ensure_request_budget(planned: int, *, ceiling: int, has_token: bool) -> None:
