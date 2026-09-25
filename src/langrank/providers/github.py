@@ -277,7 +277,8 @@ class GitHubProvider:
             description=(
                 "GitHub language popularity across two independent variants: the annual Octoverse "
                 "ranking (--source octoverse) and the quarterly Innovation Graph global pusher series "
-                "(--source innovation-graph); the two are never conflated."
+                "(--source innovation-graph); the two are never conflated. `fetch all` fetches only the "
+                "default innovation-graph variant - run `langrank fetch github --source octoverse` for Octoverse."
             ),
             homepage=HOMEPAGE,
             default_metric=METRIC_IG_SHARE,
@@ -596,7 +597,10 @@ class GitHubProvider:
         if raw.artifact is not None:
             recorded = raw.artifact.metadata_json.get("variant")
             if isinstance(recorded, str):
-                return GitHubSource(recorded)
+                try:
+                    return GitHubSource(recorded)
+                except ValueError:
+                    raise ParseError(f"github cached artifact has unknown variant {recorded!r}.") from None
         return self._source or GitHubSource.INNOVATION_GRAPH
 
     def _filter_window(self, records: list[SourceRecord]) -> list[SourceRecord]:

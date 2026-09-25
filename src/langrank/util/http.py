@@ -135,23 +135,6 @@ class HttpClientFactory:
             transport=self._transport,
         )
 
-    def get_bytes(self, url: str) -> bytes:
-        last_error: Optional[Exception] = None
-        with self.build() as client:
-            for attempt in range(self._options.retries):
-                try:
-                    response = client.get(url)
-                    if response.status_code in _RETRYABLE_STATUS:
-                        raise FetchError(f"temporary upstream status {response.status_code}")
-                    response.raise_for_status()
-                    return response.content
-                except (httpx.HTTPError, FetchError) as exc:
-                    last_error = exc
-                    if attempt < self._options.retries - 1:
-                        sleep(self._options.backoff_seconds * (2**attempt))
-            assert last_error is not None
-            raise (self.map_error(last_error) if isinstance(last_error, httpx.HTTPError) else last_error)
-
     def get_json(
         self,
         url: str,
@@ -213,7 +196,7 @@ class HttpClientFactory:
     ) -> bytes:
         """GET raw bytes host-pinned, no-redirect and size-capped (GH-SEC-3).
 
-        Hardened counterpart to :meth:`get_bytes` for downloading an untrusted file
+        Hardened raw-bytes GET for downloading an untrusted file
         from a single pinned host: the scheme must be HTTPS, the host must equal
         ``allowed_host`` exactly, redirects are refused (so a request is never
         replayed cross-host), and the body is read with a post-decompression byte

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from langrank.errors import ParseError, ProviderError
-from langrank.models import FetchRequest, Granularity
+from langrank.models import FetchRequest, Granularity, RawArtifact
+from langrank.providers.base import FetchPayload
 from langrank.providers.github import (
     METRIC_IG_PUSHERS,
     METRIC_OCTOVERSE_RANK,
@@ -166,3 +168,18 @@ def test_octoverse_normalize_refuses_mixed_variants(tmp_path: Path) -> None:
     )
     with pytest.raises(ProviderError, match="mix variants"):
         provider.normalize([*octoverse, ig_like])
+
+
+def test_unknown_cached_variant_raises_parse_error(tmp_path: Path) -> None:
+    artifact = RawArtifact(
+        id="x",
+        rating_id="github",
+        url="https://example.invalid",
+        retrieved_at=datetime(2026, 1, 1, tzinfo=UTC),
+        sha256="0" * 64,
+        mime_type="text/csv",
+        local_path=str(tmp_path / "x.csv"),
+        metadata_json={"variant": "octoverse-chart-v9"},
+    )
+    with pytest.raises(ParseError, match="unknown variant"):
+        GitHubProvider(tmp_path).parse(FetchPayload(artifact=artifact, content=b"year,rank\n"))
