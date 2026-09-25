@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -77,6 +78,31 @@ def _seed_stackoverflow_tags_cache(cache_path: Path) -> None:
     )
 
 
+def _seed_github_innovation_graph_cache(cache_path: Path) -> None:
+    """Write an offline Innovation Graph CSV artifact plus its commit-sha sidecar.
+
+    With this cache present, ``github`` fetch (--offline) and parse now complete
+    offline; the run still FAILS at normalize, which lands in subtask 06. The
+    sidecar name embeds the CSV sha256 prefix and uses a non-cache extension so
+    ``load_cached_payload`` returns the CSV, not the sidecar (see
+    ``GitHubProvider._replay_innovation_graph_cache``).
+    """
+    provider_dir = cache_path / "github"
+    provider_dir.mkdir(parents=True, exist_ok=True)
+    csv_bytes = (
+        "num_pushers,language,language_type,iso2_code,year,quarter\n"
+        "1200,Python,programming,US,2020,1\n"
+        "800,Rust,programming,GB,2020,1\n"
+    ).encode("utf-8")
+    csv_sha256 = hashlib.sha256(csv_bytes).hexdigest()
+    commit_sha = "0123456789abcdef0123456789abcdef01234567"
+    (provider_dir / f"github-{csv_sha256[:12]}.csv").write_bytes(csv_bytes)
+    (provider_dir / f"github-{csv_sha256[:12]}.meta").write_text(
+        json.dumps({"commit_sha": commit_sha, "csv_sha256": csv_sha256}, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
 def test_cli_fetch_all_offline_every_implemented_provider_succeeds(tmp_path: Path) -> None:
     db_path = tmp_path / "langrank.sqlite"
     cache_path = tmp_path / "cache"
@@ -87,13 +113,14 @@ def test_cli_fetch_all_offline_every_implemented_provider_succeeds(tmp_path: Pat
     # stays offline. The bootstrap providers ignore --offline and read their bundled
     # CSVs, so CI never touches the network.
     #
-    # github is registered (subtask 02.0/04) but its fetch is still a stub until
-    # subtasks 05/07, so `fetch all` reports it FAILED with a clear
-    # "lands in subtask" message and exits non-zero. Provider execution is
-    # independent, so every implemented provider still reports SUCCESS. The offline
-    # cache cannot be seeded for github yet because its parser is unimplemented; this
-    # assertion flips back to all-SUCCESS once subtask 05 lands the offline replay.
+    # github's innovation-graph fetch + parse now complete offline (subtask 05), so
+    # its cache is pre-seeded alongside stackoverflow-tags. The run still reports
+    # github FAILED because normalize is unimplemented until subtask 06 - the error
+    # names the subtask that lands it ("lands in subtask"). Provider execution is
+    # independent, so every implemented provider still reports SUCCESS; this
+    # assertion flips to all-SUCCESS once subtask 06 lands normalization.
     _seed_stackoverflow_tags_cache(cache_path)
+    _seed_github_innovation_graph_cache(cache_path)
     result = runner.invoke(
         app,
         ["--db", str(db_path), "--cache", str(cache_path), "fetch", "all", "--offline", "--years", "10"],

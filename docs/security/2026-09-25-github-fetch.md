@@ -133,3 +133,78 @@ raw-bytes path) to `python-expert`, and the regression tests to `testing-expert`
 subtask-05 implementation before the merge gate clears. Should any HIGH remain unmet at
 implementation time, escalate that finding to BLOCK.
 </content>
+
+---
+
+## Re-audit - subtask 02.0/05 implementation - 2026-09-25
+
+Scope re-audited: uncommitted `git diff HEAD` in `src/langrank/util/http.py`
+(`get_capped_bytes`, `headers=` on `get_json`/`_read_capped`, `_AUTH_HEADER_RE`/`_BEARER_TOKEN_RE`
+scrubbing), `src/langrank/providers/github.py` (`_fetch_innovation_graph`, `_resolve_commit_sha`,
+`_validate_commit_sha`, `_parse_innovation_graph`, sidecar replay), and
+`tests/unit/test_github_innovation_graph.py`. Unit tests only (65 passed: the github, http and
+stackoverflow-tags suites). Live tests not run.
+
+### Per-GH-SEC verdict
+
+- GH-SEC-1 (token header-only, never persisted, scrubbed): PASS. Token read from `GITHUB_TOKEN`,
+  sent only as `Authorization: Bearer` on `api.github.com`; `get_capped_bytes` raw call passes no
+  headers. Scrubber extended (`_AUTH_HEADER_RE` + `_BEARER_TOKEN_RE`, both applied in `map_error`).
+  Char class `[A-Za-z0-9._~+/=-]` includes `_`, so `ghp_`/`github_pat_` tokens are covered. Proven
+  by `test_ig_token_only_on_api_host_and_never_persisted` and `test_scrub_message_redacts_*`.
+- GH-SEC-2 (SHA validated before URL build): PASS. `_validate_commit_sha` (`^[0-9a-f]{40}$`) gates
+  both the API-returned and sidecar SHAs before `IG_RAW_URL.format`. Proven by
+  `test_validate_commit_sha_rejects_malformed` (incl. `../`, url, uppercase, non-hex) and
+  `test_resolve_commit_sha_rejects_non_hex_from_api`.
+- GH-SEC-3 (raw CSV host-pinned/no-redirect/capped): PASS. `get_capped_bytes` enforces HTTPS +
+  exact `allowed_host` before any request, `follow_redirects=False`, `_read_capped` refuses
+  `is_redirect` and caps bytes (`IG_MAX_CSV_BYTES`, 64 MB headroom). Proven by
+  `test_get_capped_bytes_refuses_off_host`, `test_ig_fetch_refuses_raw_redirect`,
+  `test_get_capped_bytes_rejects_oversized_body`.
+- GH-SEC-4 (record + re-verify csv_sha256 + commit_sha on replay): PASS. `commit_sha`+`csv_sha256`
+  in `metadata_json` and `.meta` sidecar; offline replay re-hashes cached bytes, matches sidecar,
+  re-validates SHA. `.meta` excluded from `_CACHE_EXTENSIONS` so it is never served as the artifact.
+  Proven by `test_ig_offline_uses_cache`, `test_ig_offline_detects_tampered_sidecar`,
+  `test_ig_offline_without_sidecar_raises`. Residual (LOW): binding is bytes<->sidecar written
+  together, not bytes<->upstream commit; an actor who owns the cache dir can rewrite both. Accepted.
+- GH-SEC-5 (CSV shape/numeric validation): PASS. stdlib `csv.DictReader`, required-column check
+  naming the missing column, int coercion with non-negative `num_pushers`, `quarter` in 1..4,
+  plausible `year`, `ParseError`-wrapped rows, UTF-8 guard. Row count bounded by the SEC-3 cap.
+  Proven by `test_ig_parse_missing_column_raises`, `test_ig_parse_rejects_malformed_cells`,
+  `test_ig_parse_rejects_non_utf8`.
+- GH-SEC-6 (request budget / rate-limit): PASS_WITH_FOLLOWUP. `_ensure_request_budget` guard and the
+  exactly-two-requests path are tested. Fixed exponential backoff is used and server
+  `Retry-After`/`X-RateLimit-Reset` are intentionally NOT honoured - acceptable and arguably safer
+  than trusting an upstream-supplied delay. Caveat: 403 is NOT specially excluded from retry - it is
+  raised by `raise_for_status` and caught by the generic `except (httpx.HTTPError, FetchError)`, so
+  it is retried up to `retries` times like any HTTP error (the "403 not retried" claim is not borne
+  out by the code); request volume stays bounded by `retries` x 2, so no unbounded self-DoS.
+- GH-SEC-7 (CSV formula injection = export-time): PASS. No change; ingest unaffected.
+- GH-SEC-8 (Octoverse offline): N/A this subtask - Octoverse `fetch` still raises
+  `NotImplementedError`; lands in subtask 07.
+- GH-SEC-9 (audit trail): PASS_WITH_FOLLOWUP. `metadata_json` carries `commit_sha`,
+  `requests_made`, `source_document_id`; the quarter window is applied in `parse` but not recorded
+  in the artifact metadata, and no test asserts `requests_made`. `fetch_runs` recording is
+  `FetchService` scope, out of this diff.
+
+### Follow-ups (non-blocking)
+
+- LOW GH-SEC-6: exclude non-retryable 4xx (401/403) from the retry loop so an auth/rate-limit 403
+  fails fast instead of being retried `retries` times. Hand to `python-expert`.
+- LOW GH-SEC-6: add a regression test asserting 429 -> bounded retry-with-backoff and 403 behaviour.
+  Hand to `testing-expert`.
+- LOW GH-SEC-9: record the quarter window in `metadata_json`/`fetch_runs`; add a test asserting
+  `metadata_json["requests_made"] == 2`.
+- INFO: `_BEARER_TOKEN_RE` can over-redact benign `token <8+ chars>` text - cosmetic only, no
+  security impact; SO scrubbing regression suite still green.
+
+No SEC-1 regression for Stack Overflow: shared `_scrub_message` only adds redactions; the reworded
+messages ("upstream response body was not valid JSON", "refusing to follow cross-host redirect")
+still satisfy the substring assertions in `tests/unit/test_http.py` and
+`tests/unit/test_stackoverflow_tags_fetch.py`.
+
+### Re-audit verdict: CLEAR (PASS)
+
+All three HIGH items (GH-SEC-1/2/3) and both MEDIUM items (GH-SEC-4/5) are implemented and proven by
+unit tests; no CRITICAL or HIGH finding remains. Remaining items are LOW follow-ups. The subtask-05
+diff clears the merge gate.

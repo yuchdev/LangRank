@@ -12,7 +12,7 @@
 | 02 | [Quarterly granularity](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/02-quarterly-granularity.md) | Python Expert | - | ✅ Complete |
 | 03 | [Linguist language aliases](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/03-linguist-aliases.md) | Python Expert | 01.0/02 | ✅ Complete |
 | 04 | [Provider metadata, variants & registry entry](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/04-metadata-variants-and-registry.md) | Python Expert | 02, 03 | ✅ Complete |
-| 05 | [Innovation Graph fetch & parse](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/05-innovation-graph-fetch-and-parse.md) | Python Expert | 04, 01.0/04 | ⬜ Not started |
+| 05 | [Innovation Graph fetch & parse](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/05-innovation-graph-fetch-and-parse.md) | Python Expert | 04, 01.0/04 | ✅ Complete |
 | 06 | [Innovation Graph normalize: global aggregation, share & rank](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/06-innovation-graph-normalize.md) | Python Expert | 05 | ⬜ Not started |
 | 07 | [Octoverse annual rankings dataset](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/07-octoverse-annual-rankings.md) | Python Expert | 04 | ⬜ Not started |
 | 08 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/08-validate.md) | Python Expert | 06, 07 | ⬜ Not started |
