@@ -9,13 +9,15 @@ import pytest
 from langrank.models import FetchRequest
 from langrank.providers.stackoverflow_tags import StackOverflowTagsProvider
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.live]
 
 
 def test_stackoverflow_tags_live_smoke(tmp_path: Path) -> None:
     """Fetch one complete month against the real API and assert a plausible payload.
 
-    Opt-in only (``integration`` marker); skipped by ``pytest -m "not integration"``.
+    Opt-in only (``live`` marker); the ``tests/conftest.py`` collection hook skips
+    it unless ``LANGRANK_LIVE_TESTS=1`` is set, so plain ``uv run pytest`` (CI)
+    never reaches the network.
     """
     provider = StackOverflowTagsProvider(tmp_path)
     payload = provider.fetch(FetchRequest(since=date(2024, 1, 1), until=date(2024, 1, 31)))

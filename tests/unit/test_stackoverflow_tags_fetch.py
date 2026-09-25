@@ -11,12 +11,16 @@ import pytest
 from langrank.errors import FetchError, ProviderError
 from langrank.models import FetchRequest
 from langrank.providers.stackoverflow_tags import (
+    MAX_BACKOFF_SECONDS,
     STACKEXCHANGE_KEY_ENV,
     TAG_TO_LANGUAGE,
+    StackExchangeClient,
     StackOverflowTagsProvider,
     _month_windows,
 )
 from langrank.util.http import HttpClientFactory
+
+_SLEEP_TARGET = "langrank.providers.stackoverflow_tags.sleep"
 
 _FAKE_KEY = "do-not-log-me-0001"
 
@@ -161,6 +165,95 @@ def test_offline_without_cache_raises(tmp_path: Path) -> None:
 
     with pytest.raises(FetchError):
         provider.fetch(FetchRequest(offline=True))
+
+
+def _single_response_client(
+    *,
+    body: Optional[dict[str, object]] = None,
+    content: Optional[bytes] = None,
+    key: Optional[str] = None,
+) -> StackExchangeClient:
+    """Build a StackExchangeClient over a MockTransport returning one canned body."""
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        if content is not None:
+            return httpx.Response(200, content=content)
+        return httpx.Response(200, json=body if body is not None else {})
+
+    factory = HttpClientFactory(transport=httpx.MockTransport(handler))
+    return StackExchangeClient(factory, key, daily_budget=300)
+
+
+# --- SEC-4: backoff clamp and untrusted-JSON shape validation -----------------
+
+
+def test_honour_backoff_clamps_to_max(monkeypatch: pytest.MonkeyPatch) -> None:
+    slept: list[float] = []
+    monkeypatch.setattr(_SLEEP_TARGET, lambda seconds: slept.append(seconds))
+
+    StackExchangeClient._honour_backoff(10_000)
+
+    assert slept == [MAX_BACKOFF_SECONDS]
+
+
+@pytest.mark.parametrize("backoff", [True, False, "5", None, -1, 0, [], {}])
+def test_honour_backoff_ignores_malformed_or_nonpositive(monkeypatch: pytest.MonkeyPatch, backoff: object) -> None:
+    slept: list[float] = []
+    monkeypatch.setattr(_SLEEP_TARGET, lambda seconds: slept.append(seconds))
+
+    StackExchangeClient._honour_backoff(backoff)
+
+    assert slept == []
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},  # missing total
+        {"total": -1},  # negative
+        {"total": True},  # bool masquerading as int
+        {"total": "5"},  # string
+        {"total": 1.0},  # float, not int
+        {"total": None},  # explicit null
+    ],
+)
+def test_count_questions_rejects_malformed_total(body: dict[str, object]) -> None:
+    client = _single_response_client(body=body)
+
+    with pytest.raises(FetchError) as excinfo:
+        client.count_questions(None, date(2024, 1, 1), date(2024, 1, 31))
+
+    assert "total" in str(excinfo.value).lower()
+    # The request was issued (counted) before the shape check rejected the body.
+    assert client.requests_made == 1
+
+
+def test_count_questions_rejects_non_dict_body() -> None:
+    client = _single_response_client(content=b"[1, 2, 3]")
+
+    with pytest.raises(FetchError) as excinfo:
+        client.count_questions(None, date(2024, 1, 1), date(2024, 1, 31))
+
+    assert "JSON object" in str(excinfo.value)
+
+
+def test_count_questions_rejects_non_json_body() -> None:
+    client = _single_response_client(content=b"<html>not json</html>")
+
+    with pytest.raises(FetchError) as excinfo:
+        client.count_questions(None, date(2024, 1, 1), date(2024, 1, 31))
+
+    assert "not valid JSON" in str(excinfo.value)
+    # A body that never parsed is not counted as a completed request.
+    assert client.requests_made == 0
+
+
+def test_count_questions_accepts_valid_total(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(_SLEEP_TARGET, lambda _seconds: None)
+    client = _single_response_client(body={"total": 7})
+
+    assert client.count_questions("python", date(2024, 1, 1), date(2024, 1, 31)) == 7
+    assert client.requests_made == 1
 
 
 def test_fetch_sede_source_directs_to_import(tmp_path: Path) -> None:
