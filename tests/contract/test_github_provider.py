@@ -20,7 +20,7 @@ from langrank.providers.github import (
 _FIXTURES = Path(__file__).parents[1] / "fixtures" / "github"
 
 #: The pinned Innovation Graph commit the fixture rows were sampled from (see
-#: ``tests/fixtures/github/README.md``). It flows into every source URL,
+#: ``tests/fixtures/github/SOURCE.md``). It flows into every source URL,
 #: ``source_document_id`` and ``raw_record_hash``, so the golden is only stable
 #: when the same SHA is replayed here.
 _COMMIT_SHA = "054c7dbc527518fa2ecfd316efe2aa01f3986c39"
