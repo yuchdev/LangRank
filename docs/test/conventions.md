@@ -27,6 +27,7 @@ tests still run offline (using `DemoProvider` or pre-seeded fixtures); they are 
 
 ```python
 import pytest
+
 pytestmark = pytest.mark.integration
 ```
 
@@ -57,6 +58,7 @@ real HTTP request must carry the `live` marker; tests without it must not perfor
 
 ```python
 import pytest
+
 pytestmark = [pytest.mark.integration, pytest.mark.live]
 ```
 
