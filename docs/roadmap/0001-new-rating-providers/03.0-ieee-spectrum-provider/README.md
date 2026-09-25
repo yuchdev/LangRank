@@ -14,7 +14,7 @@
 | 04 | [Curated edition dataset & fetch/import path](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/04-curated-dataset-and-fetch.md) | Python Expert | 01, 03 | ✅ Complete |
 | 05 | [Parse & normalize per profile](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/05-parse-and-normalize.md) | Python Expert | 04 | ✅ Complete (rank derived from published scores - see status.md) |
 | 06 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/06-validate.md) | Python Expert | 05 | ✅ Complete |
-| 07 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/07-fixtures-and-contract-tests.md) | Testing Expert | 06, 01.0/07 | ⬜ Not started |
+| 07 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/07-fixtures-and-contract-tests.md) | Testing Expert | 06, 01.0/07 | ✅ Complete |
 | 08 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/08-docs.md) | Docs Writer | 07 | ✅ Complete |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started

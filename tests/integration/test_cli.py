@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -139,3 +140,42 @@ def test_cli_fetch_all_offline_all_providers_succeed(tmp_path: Path) -> None:
     # A clean offline replay of every provider emits no validation errors and no failures.
     assert "failed" not in result.stdout.lower()
     assert "[error]" not in result.stdout.lower()
+
+
+def test_ieee_import_command_round_trip(tmp_path: Path) -> None:
+    """``langrank import --rating ieee-spectrum`` loads a curated CSV end to end.
+
+    This is the documented path for adding a future IEEE edition, so it must parse,
+    normalize, validate and persist through the real CLI, and the stored rows must be
+    queryable per profile without mixing profiles.
+    """
+    db_path = tmp_path / "langrank.sqlite"
+    fixture = Path(__file__).resolve().parents[1] / "fixtures" / "ieee-spectrum" / "sample.csv"
+    base = ["--db", str(db_path), "--cache", str(tmp_path / "cache")]
+
+    imported = runner.invoke(app, [*base, "import", "--rating", "ieee-spectrum", str(fixture)])
+    assert imported.exit_code == 0, imported.stdout
+    assert "Imported ieee-spectrum" in imported.stdout
+    assert "inserted=48" in imported.stdout
+
+    query = runner.invoke(
+        app,
+        [*base, "query", "--rating", "ieee-spectrum", "--metric", "ieee-spectrum-jobs-rank", "--language", "python"],
+    )
+    assert query.exit_code == 0, query.stdout
+
+    with sqlite3.connect(db_path) as connection:
+        metrics = {
+            row[0]
+            for row in connection.execute(
+                "SELECT DISTINCT metric_id FROM observations WHERE rating_id = 'ieee-spectrum'"
+            )
+        }
+        jobs_python = connection.execute(
+            "SELECT period_label, rank, is_derived FROM observations "
+            "WHERE metric_id = 'ieee-spectrum-jobs-rank' AND language_id = 'python' ORDER BY period_label"
+        ).fetchall()
+    assert metrics == {
+        f"ieee-spectrum-{profile}-{kind}" for profile in ("spectrum", "jobs", "trending") for kind in ("rank", "score")
+    }
+    assert [(label, bool(derived)) for label, _rank, derived in jobs_python] == [("2022", True), ("2024", True)]
