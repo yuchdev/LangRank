@@ -77,25 +77,35 @@ def _seed_stackoverflow_tags_cache(cache_path: Path) -> None:
     )
 
 
-def test_cli_fetch_all_offline_all_providers_succeed(tmp_path: Path) -> None:
+def test_cli_fetch_all_offline_every_implemented_provider_succeeds(tmp_path: Path) -> None:
     db_path = tmp_path / "langrank.sqlite"
     cache_path = tmp_path / "cache"
-    # stackoverflow-tags is the only provider that performs a real network fetch;
-    # its default 10-year window also overruns the 300/day anonymous Stack Exchange
-    # budget. Pre-seed an offline cache artifact and run with --offline so the whole
-    # pipeline (fetch->parse->normalize->validate->upsert) stays offline. The
-    # bootstrap providers ignore --offline and read their bundled CSVs, so CI never
-    # touches the network and every provider reports SUCCESS.
+    # stackoverflow-tags is the only implemented provider that performs a real
+    # network fetch; its default 10-year window also overruns the 300/day anonymous
+    # Stack Exchange budget. Pre-seed an offline cache artifact and run with
+    # --offline so the whole pipeline (fetch->parse->normalize->validate->upsert)
+    # stays offline. The bootstrap providers ignore --offline and read their bundled
+    # CSVs, so CI never touches the network.
+    #
+    # github is registered (subtask 02.0/04) but its fetch is still a stub until
+    # subtasks 05/07, so `fetch all` reports it FAILED with a clear
+    # "lands in subtask" message and exits non-zero. Provider execution is
+    # independent, so every implemented provider still reports SUCCESS. The offline
+    # cache cannot be seeded for github yet because its parser is unimplemented; this
+    # assertion flips back to all-SUCCESS once subtask 05 lands the offline replay.
     _seed_stackoverflow_tags_cache(cache_path)
     result = runner.invoke(
         app,
         ["--db", str(db_path), "--cache", str(cache_path), "fetch", "all", "--offline", "--years", "10"],
     )
-    assert result.exit_code == 0, result.stdout
+    assert result.exit_code == 1, result.stdout
     assert "success tiobe" in result.stdout.lower()
     assert "success pypl" in result.stdout.lower()
     assert "success redmonk" in result.stdout.lower()
     assert "success stackoverflow-survey" in result.stdout.lower()
     assert "success stackoverflow-tags" in result.stdout.lower()
-    # A clean offline replay emits no validation issues.
-    assert "error" not in result.stdout.lower()
+    # The github stub is the only failure and it names the subtask that lands it.
+    assert "failed  github" in result.stdout.lower()
+    assert "lands in subtask" in result.stdout.lower()
+    # A clean offline replay of the implemented providers emits no validation errors.
+    assert "[error]" not in result.stdout.lower()
