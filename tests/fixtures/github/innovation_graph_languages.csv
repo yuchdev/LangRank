@@ -1,0 +1,37 @@
+num_pushers,language,language_type,iso2_code,year,quarter
+506798,Python,programming,US,2025,4
+541307,JavaScript,programming,US,2025,4
+124540,C++,programming,US,2025,4
+142793,Jupyter Notebook,markup,US,2025,4
+615740,HTML,markup,US,2025,4
+6453,Solidity,programming,US,2025,4
+556208,Python,programming,IN,2025,4
+833212,JavaScript,programming,IN,2025,4
+106637,C++,programming,IN,2025,4
+180703,Jupyter Notebook,markup,IN,2025,4
+992413,HTML,markup,IN,2025,4
+11814,Solidity,programming,IN,2025,4
+129908,Python,programming,BR,2025,4
+245996,JavaScript,programming,BR,2025,4
+27510,C++,programming,BR,2025,4
+27940,Jupyter Notebook,markup,BR,2025,4
+287881,HTML,markup,BR,2025,4
+1240,Solidity,programming,BR,2025,4
+615114,Python,programming,US,2026,1
+695095,JavaScript,programming,US,2026,1
+137479,C++,programming,US,2026,1
+139693,Jupyter Notebook,markup,US,2026,1
+801552,HTML,markup,US,2026,1
+6520,Solidity,programming,US,2026,1
+728887,Python,programming,IN,2026,1
+1032517,JavaScript,programming,IN,2026,1
+117629,C++,programming,IN,2026,1
+204667,Jupyter Notebook,markup,IN,2026,1
+1245924,HTML,markup,IN,2026,1
+11945,Solidity,programming,IN,2026,1
+132453,Python,programming,BR,2026,1
+238957,JavaScript,programming,BR,2026,1
+21655,C++,programming,BR,2026,1
+23556,Jupyter Notebook,markup,BR,2026,1
+290269,HTML,markup,BR,2026,1
+872,Solidity,programming,BR,2026,1
