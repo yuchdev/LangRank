@@ -510,9 +510,10 @@ def _to_epoch(day: date, *, end_of_day: bool) -> int:
     :param end_of_day: When ``True`` use ``23:59:59``; otherwise ``00:00:00``.
     :returns: The corresponding Unix epoch seconds.
     """
-    moment = datetime(day.year, day.month, day.day, 23, 59, 59 if end_of_day else 0, tzinfo=UTC)
-    if not end_of_day:
-        moment = datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=UTC)
+    if end_of_day:
+        moment = datetime(day.year, day.month, day.day, 23, 59, 59, tzinfo=UTC)
+    else:
+        moment = datetime(day.year, day.month, day.day, tzinfo=UTC)
     return int(moment.timestamp())
 
 
@@ -668,7 +669,11 @@ def _parse_sede_csv(content: bytes) -> list[SourceRecord]:
     :returns: Source records in file order.
     :raises ParseError: If required columns are missing or a cell is non-numeric.
     """
-    reader = csv.DictReader(content.decode("utf-8").splitlines())
+    try:
+        text = content.decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise ParseError("stackoverflow-tags sede CSV must be UTF-8 encoded.") from error
+    reader = csv.DictReader(text.splitlines())
     required = {"month", "tag", "questions", "union_total"}
     if reader.fieldnames is None or not required.issubset(reader.fieldnames):
         raise ParseError("stackoverflow-tags sede CSV needs columns month,tag,questions,union_total.")

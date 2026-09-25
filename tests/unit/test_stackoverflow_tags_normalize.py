@@ -7,7 +7,7 @@ from typing import Optional
 
 import pytest
 
-from langrank.errors import NormalizationError
+from langrank.errors import NormalizationError, ParseError
 from langrank.models import Observation, RawArtifact
 from langrank.providers.base import FetchPayload
 from langrank.providers.stackoverflow_tags import (
@@ -15,6 +15,7 @@ from langrank.providers.stackoverflow_tags import (
     METRIC_RANK,
     METRIC_SHARE,
     StackOverflowTagsProvider,
+    _to_epoch,
 )
 
 
@@ -162,3 +163,25 @@ def test_sede_source_document_id_hashes_content(tmp_path: Path) -> None:
     assert len(doc_ids) == 1
     (doc_id,) = doc_ids
     assert doc_id is not None and doc_id.startswith("sede:")
+
+
+def test_sede_non_utf8_raises_parse_error(tmp_path: Path) -> None:
+    payload = FetchPayload(
+        artifact=None, content="month,tag,questions,union_total\n2024-01,caf\u00e9,1,1\n".encode("latin-1")
+    )
+    with pytest.raises(ParseError, match="UTF-8"):
+        _provider(tmp_path).parse(payload)
+
+
+def test_sede_utf8_bom_is_accepted(tmp_path: Path) -> None:
+    payload = FetchPayload(artifact=None, content=b"\xef\xbb\xbfmonth,tag,questions,union_total\n2024-01,python,5,10\n")
+    records = _provider(tmp_path).parse(payload)
+    assert records
+
+
+def test_to_epoch_day_bounds() -> None:
+    day = date(2024, 2, 29)
+    start = _to_epoch(day, end_of_day=False)
+    end = _to_epoch(day, end_of_day=True)
+    assert start == int(datetime(2024, 2, 29, tzinfo=UTC).timestamp())
+    assert end - start == 86_399
