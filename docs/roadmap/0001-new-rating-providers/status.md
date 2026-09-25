@@ -8,7 +8,7 @@ Updated as each task lands.
 | Task | Name                                    | Status         | Tests |
 |------|--------------------------------------------|----------------|-------|
 | 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
-| 02.0 | GitHub Provider                             | 🔶 In progress (8/10 subtasks) | -     |
+| 02.0 | GitHub Provider                             | ✅ Complete | `test_github_{metadata,innovation_graph,innovation_graph_normalize,octoverse,validate}.py`, `test_periods.py`, `contract/test_github_provider.py` |
 | 03.0 | IEEE Spectrum Provider                      | ⬜ Not started | -     |
 | 04.0 | JetBrains Developer Ecosystem Provider      | ⬜ Not started | -     |
 
@@ -158,3 +158,52 @@ tasks otherwise remain parallelizable.
   don't match suffixed IDs such as `stackoverflow-tags-rank` (deferred to Milestone 0006 Task 01.0).
 - LOW: `langrank import` reads the whole local file without a size guard.
 - SEDE query template in `docs/providers.md` not yet executed against live SEDE (login-gated).
+
+### Task 02.0 - GitHub Provider (✅ 2026-09-25)
+
+**Delivered**
+- `github` provider (`providers/github.py`) with two independently selectable variants
+  (`--source innovation-graph` default, `--source octoverse`), never conflated with each other or
+  with RedMonk's GitHub component.
+  - **Innovation Graph** (quarterly): fetch pinned to a validated 40-hex commit SHA (1 commits-API
+    call + 1 raw CSV download), `commit_sha` + `csv_sha256` sidecar re-verified on offline
+    replay; normalize to derived global `pushers` (sum over ≥100-developer economy cells),
+    `share` (denominator = all published Linguist names) and `rank`, each with its
+    `derivation_method`; derived rank gets its own `raw_record_hash`.
+  - **Octoverse** (annual, manual-curated `providers/data/github_octoverse.csv`): raw published
+    ranks (`is_derived=False`) with per-edition source URL and ranking basis - 2024 top-10,
+    2025 top-3; other editions omitted (see Notes & decisions, alt-text ruling).
+- `Granularity.QUARTER` + `common.quarter_period` (no migration); GitHub Linguist rating-scoped
+  aliases + `GITHUB_NON_LANGUAGES`.
+- Shared hardening in `util/http.py`: `get_capped_bytes` (host-pinned, no redirects, capped),
+  Authorization/Bearer scrubbing, transient-only retry (429/5xx/transport) on both hardened paths;
+  the unhardened `get_bytes` was removed.
+- Source note + policy gate (IG `approved-for-scheduled-fetch`, Octoverse `manual-only`), threat
+  model with re-audit and task-close review
+  ([docs/security/2026-09-25-github-fetch.md](/docs/security/2026-09-25-github-fetch.md)),
+  provider/data-model docs.
+
+**Tests / gate**
+- All four CI checks green; 190 tests pass (2 live tests skipped by default). Coverage 79.6% →
+  82.5% (informational).
+- `/verify-subtask`: PASS ×9, PARTIAL ×1 (05 - extra keyword-only `headers=` on
+  `_resolve_commit_sha`, accepted).
+- `/pr-review`: feature LGTM, security CLEAR; follow-ups fixed in `b735371` (retry only transient
+  failures) and `efe3325` (remove `get_bytes`, `ParseError` on unknown cached variant, Octoverse
+  discoverability).
+- Innovation Graph fixture captured live 2026-09-25 at commit `054c7dbc…` (trimmed, no edits).
+
+**Reconciliation note**
+- 04 temporarily set the fetch-all CLI test to expect `github` FAILED; 08 restored
+  `test_cli_fetch_all_offline_all_providers_succeed` (all providers SUCCESS, offline). The fixture
+  provenance file is `tests/fixtures/github/SOURCE.md` per spec 09. All ten subtask specs
+  *consumed*.
+
+**Follow-ups (not blocking)**
+- Pre-existing `metric_id == "rank"` literals in `services/query.py` / `plotting/service.py` make
+  `--top`, `--top-current`, `--invert-rank` no-ops for suffixed rank metrics (Milestone 0006
+  Task 01.0).
+- Octoverse partial editions (2025 top-3 vs 2024 top-10) are not flagged by any validator; a
+  year-over-year edition-size note could help curators.
+- 429 retries use fixed exponential backoff, not the server's `Retry-After` value.
+
