@@ -16,7 +16,7 @@ Future sources do **not** measure the same thing, so their scores should not be 
 - GitHub -> development/repository activity
 - SO Survey -> self-reported usage
 - SO Tags -> questions/discussion
-- IEEE -> composite index
+- IEEE Spectrum (`ieee-spectrum`) -> composite weighted index (profiles: spectrum / jobs / trending)
 - JetBrains -> survey-reported usage
 
 ## Installation
@@ -35,6 +35,7 @@ The application now includes working providers for:
 - `stackoverflow-survey`
 - `stackoverflow-tags` - monthly question activity per language tag (see [docs/providers.md](/docs/providers.md))
 - `github` - Innovation Graph quarterly pusher data and Octoverse annual rankings (see [docs/providers.md](/docs/providers.md))
+- `ieee-spectrum` - annual Top Programming Languages bundled composite-index, 3 profiles × 6 metrics (see [docs/providers.md](/docs/providers.md))
 - `demo` (synthetic offline dataset for development)
 
 ```bash
@@ -45,6 +46,8 @@ uv run langrank plot --rating stackoverflow-tags --metric stackoverflow-tags-que
     --languages python,javascript,c++,rust --years 10
 uv run langrank export csv --ratings tiobe,pypl,redmonk,stackoverflow-survey,stackoverflow-tags \
     --since 2016 --output history.csv
+uv run langrank plot --rating ieee-spectrum --metric ieee-spectrum-spectrum-rank \
+    --languages python,java,c++ --years 10
 ```
 
 > **Note:** `stackoverflow-tags` measures question-asking activity, not language usage - it is a
@@ -52,6 +55,12 @@ uv run langrank export csv --ratings tiobe,pypl,redmonk,stackoverflow-survey,sta
 > equivalent. A full 10-year backfill requires `LANGRANK_STACKEXCHANGE_KEY`; use `--offline` to
 > replay a cached artifact without network access. See
 > [docs/providers.md](/docs/providers.md) for quota details.
+
+> **Note:** `ieee-spectrum` stores three independent ranking profiles (`spectrum`, `jobs`,
+> `trending`) as separate metrics. Profiles and editions are **not** comparable with each other;
+> do not plot them on a shared axis. Data comes from a bundled curated CSV with 0 network
+> requests. See [docs/providers.md](/docs/providers.md) for the full metric table and
+> new-edition import guide.
 
 ## Development checks
 

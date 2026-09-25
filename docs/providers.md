@@ -334,3 +334,202 @@ uv run langrank fetch github --offline
 - Only ranks printed in Octoverse text or tables are captured; chart-pixel extraction is not
   implemented.
 - `fetch all` fetches only the Innovation Graph variant; Octoverse is bundled in the repository.
+
+## IEEE Spectrum provider
+
+**Rating ID:** `ieee-spectrum`
+**Source note:** [/docs/source-notes/ieee-spectrum.md](/docs/source-notes/ieee-spectrum.md)
+**Gate verdict:** `manual-only` — 0 network requests; no automated or unattended fetch.
+
+IEEE Spectrum publishes an annual *Top Programming Languages* composite index. Each edition
+re-weights one metric set into several ranking **profiles**; a language's rank and score are
+meaningful only **within one profile of one edition**. This provider stores each profile as its
+own metric pair so a query never mixes profiles into one series.
+
+> **Profiles are distinct rankings, never one series.** Do not plot or compare
+> `ieee-spectrum-spectrum-*`, `ieee-spectrum-jobs-*`, and `ieee-spectrum-trending-*` on a shared
+> axis. Editions are not comparable either: the score is renormalized per edition and the metric
+> set and weights change between editions.
+
+Data comes from a manually transcribed, repo-committed bundled CSV
+(`src/langrank/providers/data/ieee_spectrum.csv`), read at `fetch` time with 0 network requests.
+There is no downloadable or machine-readable dataset from IEEE; the acquisition mechanism is
+manual transcription only. For the acquisition policy, score-scale rationale, Flourish data file
+ruling, terms, and robots.txt status see the [source note](/docs/source-notes/ieee-spectrum.md).
+
+### Profiles
+
+| Profile    | Description                                                              |
+|------------|--------------------------------------------------------------------------|
+| `spectrum` | Default; weighted for typical IEEE members / working software engineers. |
+| `jobs`     | Employer demand.                                                         |
+| `trending` | Zeitgeist (trend-signal weighting).                                      |
+
+The three profiles are verified for the 2022-2025 editions and map 1:1 onto the pre-2022
+interactive presets of the same name. The pre-2022 `Open` and `Custom` presets have no stable
+cross-edition definition and are **not imported**. Every profile is its own metric pair;
+querying one profile never returns another profile's rows.
+
+### Metrics
+
+All six metric IDs follow the scheme `ieee-spectrum-{profile}-{rank|score}`.
+
+| Metric ID                         | Unit  | Derived? | Notes                                                    |
+|-----------------------------------|-------|----------|----------------------------------------------------------|
+| `ieee-spectrum-spectrum-rank`     | rank  | Yes      | Competition rank derived from published scores (1 = best). |
+| `ieee-spectrum-spectrum-score`    | score | No       | Published relative score, stored as-is.                  |
+| `ieee-spectrum-jobs-rank`         | rank  | Yes      | Competition rank derived from published scores (1 = best). |
+| `ieee-spectrum-jobs-score`        | score | No       | Published relative score, stored as-is.                  |
+| `ieee-spectrum-trending-rank`     | rank  | Yes      | Competition rank derived from published scores (1 = best). |
+| `ieee-spectrum-trending-score`    | score | No       | Published relative score, stored as-is.                  |
+
+### Score scale (edition-specific, never rescaled)
+
+The published score is relative within each edition: the top-ranked language equals the scale's
+maximum value. Scores are **not** comparable across editions for two compounding reasons: the
+score is renormalized per edition (top = max), and the metric set and weights change between
+editions.
+
+| Editions  | Scale | Top value |
+|-----------|-------|-----------|
+| 2022      | 0-100 | `100`     |
+| 2023-2025 | 0-1   | `1`       |
+
+Scores are stored exactly as published; no rescaling or cross-edition normalization is applied.
+Score observations are `is_derived=False`.
+
+### Derived ranks
+
+IEEE's published data file has no rank column. Ranks are computed by this project from the
+published scores using standard competition ranking: equal scores share a rank and the next
+rank is skipped (ties do not raise an error). Rank observations are `is_derived=True` with
+`derivation_method="rank_by_published_score"`.
+
+See [/docs/data-model.md#derived-observations](/docs/data-model.md#derived-observations) for
+the `is_derived` / `derivation_method` field semantics.
+
+### Acquisition mode
+
+| Mode          | Network requests | How triggered                                          |
+|---------------|-----------------|--------------------------------------------------------|
+| Bundled CSV   | 0               | `langrank fetch ieee-spectrum` or `langrank fetch all` |
+| Manual import | 0               | `langrank import --rating ieee-spectrum <csv>`         |
+
+`langrank fetch ieee-spectrum` reads the curated bundled CSV committed at
+`src/langrank/providers/data/ieee_spectrum.csv`. The `--source` flag accepts `auto` (default)
+or `bundled`; any other value is rejected. No unattended or scheduled fetch exists for this
+source.
+
+### Adding a future edition
+
+When a new IEEE Spectrum edition is published, transcribe the ranks and scores from the
+published article or Flourish data file and import them:
+
+```bash
+uv run langrank import --rating ieee-spectrum path/to/new_edition.csv
+```
+
+**Required CSV header** (all columns are required; column order does not matter):
+
+```
+year,profile,rank,language,score,source_url,published_at,methodology_version
+```
+
+| Column                | Format / notes                                                                                  |
+|-----------------------|-------------------------------------------------------------------------------------------------|
+| `year`                | 4-digit calendar year, e.g. `2026`.                                                             |
+| `profile`             | One of `spectrum`, `jobs`, or `trending`.                                                       |
+| `rank`                | Positive integer; pre-compute from published scores using competition ranking (see above).       |
+| `language`            | Exact IEEE label as it appears in the edition's data file.                                      |
+| `score`               | Published relative score; may be empty if no score is available for the row.                    |
+| `source_url`          | Canonical `spectrum.ieee.org` URL for the edition (not a Wayback snapshot URL).                 |
+| `published_at`        | Edition publication date in `YYYY-MM-DD` format.                                                |
+| `methodology_version` | Short stable identifier for the edition, e.g. `ieee-2026-7metrics`.                            |
+
+**New-edition checklist:**
+
+- [ ] Transcribe ranks and scores from the published Flourish data file (or article
+      table/prose if no data file is available).
+- [ ] Pre-compute competition ranks from the published scores (equal scores share a rank; the
+      next rank skips tied positions); record them in the `rank` column.
+- [ ] Check for and drop duplicate language rows (see the ABAP defect in the
+      [source note](/docs/source-notes/ieee-spectrum.md)); other ranks remain as computed.
+- [ ] Add a row to the editions table in
+      [/docs/source-notes/ieee-spectrum.md#editions](/docs/source-notes/ieee-spectrum.md#editions).
+- [ ] Add a `_Edition` entry to `IEEE_EDITIONS` in `src/langrank/providers/ieee_spectrum.py`
+      (year, methodology version, source URL, description of any metric-set changes).
+      `EDITION_PROFILES` is derived from `IEEE_EDITIONS` automatically.
+- [ ] Add the new year's score scale to `SCORE_SCALE_BY_YEAR` in the same file if the scale
+      changed from the previous edition.
+- [ ] Append the new rows to `src/langrank/providers/data/ieee_spectrum.csv` and commit.
+
+### Untracked labels
+
+The following IEEE labels are intentionally not tracked — they do not raise an
+`unmapped_language` warning and produce no observation:
+
+| Label           | Reason                                                                                    |
+|-----------------|-------------------------------------------------------------------------------------------|
+| `HTML`          | Markup language, not a programming language.                                              |
+| `Arduino`       | Hardware platform, not a language.                                                        |
+| `Verilog`       | Hardware description language.                                                            |
+| `VHDL`          | Hardware description language.                                                            |
+| `Visual Basic`  | Classic VB. Splitting it from `vb.net` is deferred: the global alias `"visual basic" → vb.net` would merge them. |
+| `Cuda`          | C++ dialect / GPU-programming API, not a distinct language.                               |
+| `WebAssembly`   | Compilation target, not a source language.                                                |
+| `LabView`       | Graphical/PLC programming environment.                                                    |
+| `Ladder Logic`  | Graphical/PLC programming environment.                                                    |
+| `Pascal/Delphi` | IEEE 2022-2023 combined category; mapping it to either `pascal` or `delphi` would merge  |
+|                 | two distinct languages.                                                                   |
+
+Any other IEEE label that does not map to a canonical language is recorded as an
+`unmapped_language` warning and produces no observation.
+
+### Example commands
+
+```bash
+# Fetch the bundled curated edition data (no network requests):
+uv run langrank fetch ieee-spectrum
+
+# Plot the Spectrum profile rank for three languages over 10 years:
+uv run langrank plot --rating ieee-spectrum \
+    --metric ieee-spectrum-spectrum-rank \
+    --languages python,java,c++ \
+    --years 10
+
+# Plot the Jobs profile rank:
+uv run langrank plot --rating ieee-spectrum \
+    --metric ieee-spectrum-jobs-rank \
+    --languages python,sql,javascript \
+    --years 5
+
+# Query the Trending profile score for Python:
+uv run langrank query --rating ieee-spectrum \
+    --metric ieee-spectrum-trending-score \
+    --language python
+
+# Export all IEEE Spectrum metrics to CSV:
+uv run langrank export csv --ratings ieee-spectrum --since 2022 --output ieee_spectrum.csv
+
+# Import a new edition from a manually transcribed CSV:
+uv run langrank import --rating ieee-spectrum path/to/2026_edition.csv
+```
+
+### Caveats
+
+- Profiles are different rankings produced by re-weighting one metric set. They must not be
+  merged into a single series or plotted on one shared axis.
+- Editions are not comparable: scores are renormalized per edition and the metric set and
+  weights change between editions. Even an unchanged metric set would not make cross-edition
+  scores comparable because of per-edition renormalization.
+- The 2022 edition uses a 0-100 score scale; 2023-2025 use 0-1. Do not compare raw scores
+  across these editions.
+- Rank is derived (computed from published scores by this project, not published by IEEE).
+- The 2025 `Trending` list contained `ABAP` twice with different scores; both rows were
+  dropped as ambiguous. Other ranks in that edition are computed over the list as published.
+- Acquisition is manual transcription only: all data comes from the bundled curated CSV or a
+  manually imported file. No automated or unattended fetch exists for this source.
+- Coverage is limited to ranks and scores IEEE actually publishes. Where only a top-N is shown,
+  ranks beyond N stay missing (no interpolation, no fabricated values).
+- For terms, robots.txt status, and the full Flourish data file acquisition ruling see the
+  [source note](/docs/source-notes/ieee-spectrum.md).

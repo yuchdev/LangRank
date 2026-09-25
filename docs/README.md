@@ -4,7 +4,7 @@
 
 - [architecture.md](/docs/architecture.md) - System architecture overview.
 - [data-model.md](/docs/data-model.md) - Observation model, derived fields, provenance chain.
-- [providers.md](/docs/providers.md) - Provider reference: demo, stackoverflow-tags, github, and others.
+- [providers.md](/docs/providers.md) - Provider reference: demo, stackoverflow-tags, github, ieee-spectrum, and others.
 
 ## Source notes
 
@@ -16,6 +16,7 @@ Per-provider acquisition policy, quota limits, terms, and methodology gate verdi
 - [source-notes/redmonk.md](/docs/source-notes/redmonk.md)
 - [source-notes/stackoverflow-survey.md](/docs/source-notes/stackoverflow-survey.md)
 - [source-notes/github.md](/docs/source-notes/github.md)
+- [source-notes/ieee-spectrum.md](/docs/source-notes/ieee-spectrum.md)
 
 ## Security
 
