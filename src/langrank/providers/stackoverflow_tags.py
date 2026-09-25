@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import csv
+import hashlib
 import json
 import os
 from calendar import monthrange
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 from time import sleep
 from typing import Any, Optional
 
-from langrank.errors import FetchError, ProviderError
+from langrank.errors import FetchError, NormalizationError, ParseError, ProviderError
 from langrank.models import (
     FetchRequest,
     Granularity,
@@ -22,8 +25,14 @@ from langrank.models import (
 )
 from langrank.normalization import LanguageNormalizer
 from langrank.providers.base import FetchPayload
-from langrank.providers.common import load_cached_payload, payload_from_content
+from langrank.providers.common import build_observation, load_cached_payload, payload_from_content
 from langrank.util.http import HttpClientFactory
+
+#: Stable rating id, reused by the module-level parse helpers.
+_RATING_ID = "stackoverflow-tags"
+
+#: Manual-import homepage recorded as the ``source_url`` for ``sede`` records.
+SEDE_URL = "https://data.stackexchange.com/"
 
 #: Parser version stamped onto every observation this provider emits.
 PARSER_VERSION = "stackoverflow-tags-v1"
@@ -118,9 +127,12 @@ class StackOverflowTagsProvider:
     ``question-share`` (preferred for long-term comparison) and a derived ``rank``.
 
     :ivar provider_id: Stable rating ID used across the pipeline.
+    :ivar last_unmapped: Source tags the last :meth:`normalize` call could not
+        resolve to a canonical language; skipped rather than guessed, and reported
+        by validation (subtask 06).
     """
 
-    provider_id = "stackoverflow-tags"
+    provider_id = _RATING_ID
 
     def __init__(self, cache_dir: Path, *, http: Optional[HttpClientFactory] = None) -> None:
         """Wire the provider's cache directory, HTTP client and normalizer.
@@ -136,6 +148,8 @@ class StackOverflowTagsProvider:
         self._http = http or HttpClientFactory()
         self._normalizer = LanguageNormalizer()
         self._retrieved_at = datetime.now(UTC)
+        self._artifact_retrieved_at: Optional[datetime] = None
+        self.last_unmapped: list[str] = []
 
     def metadata(self) -> ProviderMetadata:
         """Return the provider's static metadata: metrics, caveats and methodology.
@@ -294,22 +308,84 @@ class StackOverflowTagsProvider:
         return since, until
 
     def parse(self, raw: FetchPayload) -> list[SourceRecord]:
-        """Parse a raw payload into source records (implemented in subtask 05).
+        """Parse a raw payload into ``questions`` and ``question-share`` records.
 
-        :param raw: The raw fetch payload.
-        :returns: Parsed source records.
-        :raises NotImplementedError: Always, until subtask 05 lands the parser.
+        The payload is sniffed by its first non-whitespace byte: ``{`` selects the
+        ``api`` JSON document, anything else the ``sede`` CSV. Each tag yields a raw
+        ``questions`` record and - only when its denominator is positive - a derived
+        ``question-share`` record; a zero denominator emits no share (never 0/NaN).
+        The artifact's ``retrieved_at`` (when present) is captured for
+        :meth:`normalize`; the method itself performs no network or database access.
+
+        :param raw: The raw fetch payload (API JSON or SEDE CSV).
+        :returns: Source records ordered by month then tag.
+        :raises ParseError: If the payload is empty or structurally malformed.
         """
-        raise NotImplementedError("stackoverflow-tags parse lands in subtask 05.")
+        self._artifact_retrieved_at = raw.artifact.retrieved_at if raw.artifact is not None else None
+        stripped = raw.content.lstrip()
+        if not stripped:
+            raise ParseError("stackoverflow-tags payload was empty.")
+        if stripped[:1] == b"{":
+            return _parse_api_json(raw.content)
+        return _parse_sede_csv(raw.content)
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
-        """Normalize source records into observations (implemented in subtask 05).
+        """Normalize source records into observations and derive a monthly rank.
 
-        :param records: Parsed source records.
-        :returns: Canonical observations.
-        :raises NotImplementedError: Always, until subtask 05 lands normalization.
+        Each source tag is resolved to a canonical language via the rating-scoped
+        alias map; unresolved tags are skipped and appended to
+        :attr:`last_unmapped` (never guessed). Because one canonical language maps
+        to exactly one master tag per month, a repeated ``(month, language, metric)``
+        signals a SEDE row that would double-count a question and raises rather than
+        silently summing. ``question-share`` observations are flagged
+        ``is_derived`` with a ``question_share:{denominator}`` method, and a derived
+        ``rank`` (competition ranking on the share, ties skipping the next rank) is
+        appended per month. Pure over its inputs: no network, no database.
+
+        :param records: Parsed source records from :meth:`parse`.
+        :returns: Raw ``questions`` plus derived ``question-share`` and ``rank``
+            observations; missing months are never interpolated.
+        :raises NormalizationError: If two tags in one month resolve to the same
+            canonical language (a double count).
         """
-        raise NotImplementedError("stackoverflow-tags normalize lands in subtask 05.")
+        parser_version = self.metadata().parser_version
+        retrieved_at = self._artifact_retrieved_at or self._retrieved_at
+        self.last_unmapped = []
+        observations: list[Observation] = []
+        shares: list[Observation] = []
+        seen: set[tuple[date, str, str]] = set()
+        for record in records:
+            language_id = self._normalizer.try_resolve(record.language, rating_id=self.provider_id)
+            if language_id is None:
+                if record.language not in self.last_unmapped:
+                    self.last_unmapped.append(record.language)
+                continue
+            key = (record.period_start, language_id, record.metric_id)
+            if key in seen:
+                raise NormalizationError(
+                    f"double count: multiple tags map to '{language_id}' for "
+                    f"{record.period_label} ({record.metric_id}); SEDE rows must be "
+                    "pre-deduplicated per canonical language."
+                )
+            seen.add(key)
+            is_derived = record.metric_id == METRIC_SHARE
+            denominator = str(record.metadata.get("denominator", ""))
+            derivation_method = f"question_share:{denominator}" if is_derived else None
+            observation = build_observation(
+                record=record,
+                language_id=language_id,
+                parser_version=parser_version,
+                retrieved_at=retrieved_at,
+                is_derived=is_derived,
+                derivation_method=derivation_method,
+                source_document_id=record.metadata.get("source_document_id"),
+                source_published_at=None,
+            )
+            observations.append(observation)
+            if is_derived:
+                shares.append(observation)
+        observations.extend(_derive_rank(shares))
+        return observations
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
         """Validate observations with named codes (implemented in subtask 06).
@@ -384,6 +460,224 @@ def _to_epoch(day: date, *, end_of_day: bool) -> int:
     if not end_of_day:
         moment = datetime(day.year, day.month, day.day, 0, 0, 0, tzinfo=UTC)
     return int(moment.timestamp())
+
+
+def _month_bounds(label: str) -> tuple[date, date]:
+    """Return the ``(first_day, last_day)`` of a ``YYYY-MM`` month label.
+
+    The last day is the true calendar end via :func:`calendar.monthrange` (so
+    February resolves to 28 or 29), never a fixed day-28 shortcut.
+
+    :param label: A ``YYYY-MM`` month label.
+    :returns: The month's inclusive start and end dates.
+    :raises ParseError: If ``label`` is not a valid ``YYYY-MM`` string.
+    """
+    try:
+        year_str, month_str = label.split("-")
+        start = date(int(year_str), int(month_str), 1)
+    except (ValueError, TypeError) as exc:
+        raise ParseError(f"stackoverflow-tags month label {label!r} is not YYYY-MM.") from exc
+    return start, _last_day_of_month(start)
+
+
+def _records_for_tag(
+    *,
+    tag: str,
+    count: int,
+    denominator: str,
+    denominator_count: int,
+    period_start: date,
+    period_end: date,
+    source: str,
+    source_url: str,
+    source_document_id: str,
+) -> list[SourceRecord]:
+    """Build the raw ``questions`` record (and derived ``share`` record) for one tag.
+
+    A share is emitted only when ``denominator_count`` is positive; a zero
+    denominator yields the count record alone (never a 0 or NaN share).
+
+    :param tag: Source tag string, preserved verbatim as ``SourceRecord.language``.
+    :param count: Raw monthly question count for the tag.
+    :param denominator: Denominator name (``all_questions`` or
+        ``tracked_language_union``).
+    :param denominator_count: Denominator value the share divides by.
+    :param period_start: First day of the month.
+    :param period_end: Last day of the month.
+    :param source: Acquisition mode (``api`` or ``sede``).
+    :param source_url: Provenance URL for the source mode.
+    :param source_document_id: Stable per-document identifier.
+    :returns: One or two source records sharing identical provenance metadata.
+    """
+    period_label = f"{period_start.year:04d}-{period_start.month:02d}"
+    metadata: dict[str, Any] = {
+        "source": source,
+        "denominator": denominator,
+        "denominator_count": denominator_count,
+        "tag": tag,
+        "source_document_id": source_document_id,
+    }
+    records = [
+        SourceRecord(
+            rating_id=_RATING_ID,
+            metric_id=METRIC_QUESTIONS,
+            language=tag,
+            period_start=period_start,
+            period_end=period_end,
+            period_label=period_label,
+            granularity=Granularity.MONTH,
+            rank=None,
+            value=float(count),
+            unit="count",
+            source_url=source_url,
+            metadata=metadata,
+        )
+    ]
+    if denominator_count > 0:
+        share = round(100.0 * count / denominator_count, 4)
+        records.append(
+            SourceRecord(
+                rating_id=_RATING_ID,
+                metric_id=METRIC_SHARE,
+                language=tag,
+                period_start=period_start,
+                period_end=period_end,
+                period_label=period_label,
+                granularity=Granularity.MONTH,
+                rank=None,
+                value=share,
+                unit="percent",
+                source_url=source_url,
+                metadata=metadata,
+            )
+        )
+    return records
+
+
+def _parse_api_json(content: bytes) -> list[SourceRecord]:
+    """Parse an ``api`` JSON payload into ``questions`` and ``share`` records.
+
+    Expected shape:
+    ``{"source": "api", "denominator": "all_questions",
+    "months": [{"month": "YYYY-MM", "total": N, "tags": {tag: count}}]}``.
+    The month ``total`` is the ``all_questions`` denominator.
+
+    :param content: Raw JSON payload bytes.
+    :returns: Source records ordered by month then tag.
+    :raises ParseError: If the payload is not a well-formed API document.
+    """
+    try:
+        document = json.loads(content)
+    except json.JSONDecodeError as exc:
+        raise ParseError("stackoverflow-tags api payload was not valid JSON.") from exc
+    if not isinstance(document, dict):
+        raise ParseError("stackoverflow-tags api payload was not a JSON object.")
+    denominator = str(document.get("denominator", "all_questions"))
+    months = document.get("months")
+    if not isinstance(months, list):
+        raise ParseError("stackoverflow-tags api payload is missing a 'months' array.")
+    records: list[SourceRecord] = []
+    for entry in months:
+        try:
+            label = str(entry["month"])
+            total = int(entry["total"])
+            tags = entry["tags"]
+            period_start, period_end = _month_bounds(label)
+            source_document_id = f"api:{label}"
+            for tag in sorted(tags):
+                records.extend(
+                    _records_for_tag(
+                        tag=tag,
+                        count=int(tags[tag]),
+                        denominator=denominator,
+                        denominator_count=total,
+                        period_start=period_start,
+                        period_end=period_end,
+                        source="api",
+                        source_url=API_URL,
+                        source_document_id=source_document_id,
+                    )
+                )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ParseError(f"stackoverflow-tags api month entry is malformed: {entry!r}") from exc
+    return records
+
+
+def _parse_sede_csv(content: bytes) -> list[SourceRecord]:
+    """Parse a ``sede`` CSV export into ``questions`` and ``share`` records.
+
+    Expected columns: ``month,tag,questions,union_total`` where ``union_total`` is
+    the deduplicated ``tracked_language_union`` denominator. The whole CSV is one
+    logical document, identified by ``sede:{sha256[:12]}``.
+
+    :param content: Raw CSV payload bytes.
+    :returns: Source records in file order.
+    :raises ParseError: If required columns are missing or a cell is non-numeric.
+    """
+    reader = csv.DictReader(content.decode("utf-8").splitlines())
+    required = {"month", "tag", "questions", "union_total"}
+    if reader.fieldnames is None or not required.issubset(reader.fieldnames):
+        raise ParseError("stackoverflow-tags sede CSV needs columns month,tag,questions,union_total.")
+    source_document_id = f"sede:{hashlib.sha256(content).hexdigest()[:12]}"
+    records: list[SourceRecord] = []
+    for row in reader:
+        try:
+            period_start, period_end = _month_bounds(row["month"])
+            records.extend(
+                _records_for_tag(
+                    tag=row["tag"],
+                    count=int(row["questions"]),
+                    denominator="tracked_language_union",
+                    denominator_count=int(row["union_total"]),
+                    period_start=period_start,
+                    period_end=period_end,
+                    source="sede",
+                    source_url=SEDE_URL,
+                    source_document_id=source_document_id,
+                )
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ParseError(f"stackoverflow-tags sede row is malformed: {row!r}") from exc
+    return records
+
+
+def _derive_rank(shares: list[Observation]) -> list[Observation]:
+    """Derive a monthly ``rank`` observation from each ``question-share`` observation.
+
+    Ranking is standard competition ranking on the share within one month
+    (highest share is rank 1): equal shares share a rank and the next distinct
+    share skips the tied positions (e.g. ``1, 1, 3``). Each rank inherits its
+    share's provenance and is flagged ``is_derived`` with a
+    ``rank_by_question_share:{denominator}`` method.
+
+    :param shares: Derived share observations across any number of months.
+    :returns: One rank observation per input share.
+    """
+    by_month: dict[date, list[Observation]] = {}
+    for share in shares:
+        by_month.setdefault(share.period_start, []).append(share)
+    ranked: list[Observation] = []
+    for month in sorted(by_month):
+        ordered = sorted(by_month[month], key=lambda obs: (-(obs.value or 0.0), obs.language_id))
+        current_rank = 0
+        previous_value: Optional[float] = None
+        for index, share in enumerate(ordered, start=1):
+            if previous_value is None or share.value != previous_value:
+                current_rank = index
+                previous_value = share.value
+            denominator = str(share.metadata_json.get("denominator", ""))
+            ranked.append(
+                replace(
+                    share,
+                    metric_id=METRIC_RANK,
+                    unit="rank",
+                    rank=current_rank,
+                    value=float(current_rank),
+                    is_derived=True,
+                    derivation_method=f"rank_by_question_share:{denominator}",
+                )
+            )
+    return ranked
 
 
 class StackExchangeClient:

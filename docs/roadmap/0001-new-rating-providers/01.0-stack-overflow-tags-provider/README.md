@@ -12,7 +12,7 @@
 | 02 | [Language catalog expansion & rating-scoped aliases](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/02-rating-scoped-aliases.md) | Python Expert | - | ✅ Complete (`visual-basic` deferred - key collides with `vb.net` alias; see status.md) |
 | 03 | [Provider metadata, metrics & registry entry](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/03-metadata-and-registry.md) | Python Expert | 02 | ✅ Complete |
 | 04 | [Fetch: Stack Exchange API client, SEDE import & offline cache](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/04-fetch-api-and-offline-cache.md) | Python Expert | 03 | ✅ Complete |
-| 05 | [Parse & normalize: counts, derived share and derived rank](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/05-parse-and-normalize.md) | Python Expert | 04 | ⬜ Not started |
+| 05 | [Parse & normalize: counts, derived share and derived rank](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/05-parse-and-normalize.md) | Python Expert | 04 | ✅ Complete |
 | 06 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/06-validate.md) | Python Expert | 05 | ⬜ Not started |
 | 07 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/07-fixtures-and-contract-tests.md) | Testing Expert | 06 | ⬜ Not started |
 | 08 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/08-docs.md) | Docs Writer | 07 | ⬜ Not started |
