@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import csv
+from pathlib import Path
+
 import pytest
 
 from langrank.db import Database
 from langrank.errors import UnknownLanguageError
-from langrank.normalization import GITHUB_NON_LANGUAGES, LanguageNormalizer
+from langrank.normalization import (
+    GITHUB_NON_LANGUAGES,
+    IEEE_UNTRACKED_LABELS,
+    LanguageNormalizer,
+)
 
 #: GitHub Linguist display names that must resolve under ``rating_id="github"``.
 GITHUB_LINGUIST_ALIASES: tuple[tuple[str, str], ...] = (
@@ -15,6 +22,66 @@ GITHUB_LINGUIST_ALIASES: tuple[tuple[str, str], ...] = (
     ("Visual Basic .NET", "vb.net"),
     ("Objective-C", "objective-c"),
 )
+
+#: IEEE Spectrum labels that must resolve under ``rating_id="ieee-spectrum"``.
+IEEE_SPECTRUM_ALIASES: tuple[tuple[str, str], ...] = (
+    ("Shell", "shell"),
+    ("Assembly", "assembly"),
+    ("SQL", "sql"),
+)
+
+#: Known IEEE Spectrum "Top Programming Languages" labels used to prove every
+#: published label either resolves or is explicitly untracked. Kept in-test
+#: because the curated dataset (``providers/data/ieee_spectrum.csv``) lands in a
+#: later subtask; the test also folds in the real CSV labels once it exists.
+IEEE_KNOWN_LABELS: tuple[str, ...] = (
+    "Python",
+    "Java",
+    "C++",
+    "C",
+    "C#",
+    "JavaScript",
+    "Go",
+    "Rust",
+    "SQL",
+    "Shell",
+    "Assembly",
+    "PHP",
+    "Ruby",
+    "R",
+    "Swift",
+    "Kotlin",
+    "Scala",
+    "MATLAB",
+    "Fortran",
+    "Cobol",
+    "HTML",
+    "Arduino",
+    "Verilog",
+    "VHDL",
+    "Visual Basic",
+)
+
+#: Location of the curated IEEE dataset once subtask 04 adds it.
+IEEE_DATASET_PATH = (
+    Path(__file__).resolve().parents[2] / "src" / "langrank" / "providers" / "data" / "ieee_spectrum.csv"
+)
+
+
+def _ieee_dataset_labels() -> set[str]:
+    """Collect IEEE labels from the curated CSV when present, else the known set.
+
+    :returns: Distinct IEEE language labels to check for accountability.
+    """
+    labels = set(IEEE_KNOWN_LABELS)
+    if IEEE_DATASET_PATH.exists():
+        with IEEE_DATASET_PATH.open(encoding="utf-8", newline="") as handle:
+            for row in csv.DictReader(handle):
+                label = (row.get("language") or row.get("source_name") or "").strip()
+                if label:
+                    labels.add(label)
+    return labels
+
 
 #: Every global alias that existed before rating-scoped aliases were introduced,
 #: paired with the canonical language it must keep resolving to.
@@ -139,6 +206,25 @@ def test_github_non_languages_not_mapped() -> None:
     assert normalizer.try_resolve("Jupyter Notebook", rating_id="github") is None
     for name in GITHUB_NON_LANGUAGES:
         assert normalizer.try_resolve(name, rating_id="github") is None
+
+
+def test_ieee_aliases_resolve() -> None:
+    normalizer = LanguageNormalizer()
+    for name, canonical in IEEE_SPECTRUM_ALIASES:
+        assert normalizer.resolve(name, rating_id="ieee-spectrum") == canonical
+
+
+def test_ieee_dataset_labels_all_accounted_for() -> None:
+    normalizer = LanguageNormalizer()
+    for label in _ieee_dataset_labels():
+        accounted = (
+            label in IEEE_UNTRACKED_LABELS or normalizer.try_resolve(label, rating_id="ieee-spectrum") is not None
+        )
+        assert accounted, f"IEEE label {label!r} neither resolves nor is listed in IEEE_UNTRACKED_LABELS"
+
+
+def test_ieee_untracked_labels_expected_contents() -> None:
+    assert IEEE_UNTRACKED_LABELS == frozenset({"HTML", "Arduino", "Verilog", "VHDL", "Visual Basic"})
 
 
 def test_seed_languages_persists_rating_scoped_alias(database: Database) -> None:

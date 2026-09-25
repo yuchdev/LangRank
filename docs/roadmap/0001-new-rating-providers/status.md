@@ -9,7 +9,7 @@ Updated as each task lands.
 |------|--------------------------------------------|----------------|-------|
 | 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
 | 02.0 | GitHub Provider                             | ✅ Complete | `test_github_{metadata,innovation_graph,innovation_graph_normalize,octoverse,validate}.py`, `test_periods.py`, `contract/test_github_provider.py` |
-| 03.0 | IEEE Spectrum Provider                      | ⬜ Not started | -     |
+| 03.0 | IEEE Spectrum Provider                      | 🔶 In progress (2/8 subtasks) | -     |
 | 04.0 | JetBrains Developer Ecosystem Provider      | ⬜ Not started | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started

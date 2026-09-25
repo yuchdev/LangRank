@@ -64,6 +64,29 @@ GITHUB_NON_LANGUAGES: frozenset[str] = frozenset(
 )
 
 
+#: IEEE Spectrum "Top Programming Languages" labels that are deliberately not
+#: tracked in this project's canonical catalog. ``HTML`` is markup; ``Arduino``,
+#: ``Verilog`` and ``VHDL`` are a board dialect and two hardware-description
+#: languages rather than general-purpose programming languages (2026-09-25 user
+#: ruling, recorded in ``docs/roadmap/0001-new-rating-providers/status.md``).
+#: ``Visual Basic`` is IEEE's classic-VB label: ``visual-basic`` is not a
+#: canonical language yet and its normalized key collides with the global
+#: ``"visual basic" -> vb.net`` alias, so it is skipped here rather than silently
+#: folded into ``vb.net``. A provider must consult this set *before* attempting
+#: resolution so these documented labels are skipped without emitting an
+#: ``unmapped_language`` warning; any IEEE label neither in this set nor
+#: resolvable should still warn downstream.
+IEEE_UNTRACKED_LABELS: frozenset[str] = frozenset(
+    {
+        "HTML",
+        "Arduino",
+        "Verilog",
+        "VHDL",
+        "Visual Basic",
+    }
+)
+
+
 #: Source-specific aliases shared by the new rating providers (Tasks 01.0-04.0).
 #: Rating-scoped entries win over the global alias table in :meth:`resolve`.
 RATING_ALIASES: tuple[RatingAlias, ...] = (
@@ -82,6 +105,9 @@ RATING_ALIASES: tuple[RatingAlias, ...] = (
     RatingAlias("github", "PowerShell", "powershell", notes="GitHub Linguist PowerShell name"),
     RatingAlias("github", "Visual Basic .NET", "vb.net", notes="GitHub Linguist Visual Basic .NET name"),
     RatingAlias("github", "Objective-C", "objective-c", notes="GitHub Linguist Objective-C name"),
+    RatingAlias("ieee-spectrum", "Shell", "shell", notes="IEEE Spectrum Shell label"),
+    RatingAlias("ieee-spectrum", "Assembly", "assembly", notes="IEEE Spectrum Assembly label"),
+    RatingAlias("ieee-spectrum", "SQL", "sql", notes="IEEE Spectrum ranks SQL as a language"),
 )
 
 
