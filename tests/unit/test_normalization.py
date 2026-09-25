@@ -19,16 +19,26 @@ from langrank.normalization import (
 #: ``Kotlin`` ...) already resolve globally against the shared catalog.
 JETBRAINS_ALIASES: tuple[tuple[str, str], ...] = (
     ("Shell scripting languages", "shell"),
+    ("Shell scripting languages (bash/shell/powershell)", "shell"),
+    ("Shell scripting", "shell"),
     ("SQL(PL/SQL, T-SQL and other programming extensions of SQL)", "sql"),
+    ("SQL and its extensions", "sql"),
+    ("SQL and programming extensions over SQL", "sql"),
+    ("Clojure / CLJS", "clojure"),
+    ("Clojure / ClojureScript", "clojure"),
     ("C/C++", "c-cpp"),
 )
 
-#: JetBrains meta-answers and markup that ``try_resolve`` must reject outright
-#: (``Visual Basic`` is handled separately - see the test - because the bootstrap
-#: TIOBE alias still resolves it globally to ``vb.net``).
+#: JetBrains meta-answers, markup and non-general-purpose labels that
+#: ``try_resolve`` must reject outright (``Visual Basic`` is handled separately -
+#: see the test - because the bootstrap TIOBE alias still resolves it globally to
+#: ``vb.net``).
 JETBRAINS_UNMAPPED_ANSWERS: tuple[str, ...] = (
     "HTML / CSS",
+    "GraphQL",
     "Other",
+    "Others",
+    "Platform tied language",
     "I don't use programming languages",
 )
 
@@ -290,11 +300,48 @@ def test_jetbrains_non_language_answers_expected_contents() -> None:
     assert JETBRAINS_NON_LANGUAGE_ANSWERS == frozenset(
         {
             "HTML / CSS",
+            "GraphQL",
             "Visual Basic",
             "Other",
+            "Others",
+            "Platform tied language",
             "I don't use programming languages",
         }
     )
+
+
+#: Location of the curated JetBrains published-percentages dataset (subtask 04.0/05).
+JETBRAINS_DATASET_PATH = (
+    Path(__file__).resolve().parents[2] / "src" / "langrank" / "providers" / "data" / "jetbrains.csv"
+)
+
+
+def _jetbrains_dataset_labels() -> set[str]:
+    """Collect every distinct language label printed in the curated JetBrains CSV.
+
+    :returns: The set of ``language`` values across all rows.
+    """
+    labels: set[str] = set()
+    with JETBRAINS_DATASET_PATH.open(encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle):
+            label = (row.get("language") or "").strip()
+            if label:
+                labels.add(label)
+    return labels
+
+
+def test_jetbrains_dataset_labels_all_accounted_for() -> None:
+    normalizer = LanguageNormalizer()
+    for label in _jetbrains_dataset_labels():
+        accounted = (
+            label in JETBRAINS_NON_LANGUAGE_ANSWERS or normalizer.try_resolve(label, rating_id="jetbrains") is not None
+        )
+        assert accounted, f"JetBrains label {label!r} neither resolves nor is a documented non-language answer"
+
+
+def test_crystal_added_to_catalog() -> None:
+    normalizer = LanguageNormalizer()
+    assert normalizer.resolve("Crystal") == "crystal"
 
 
 def test_seed_languages_persists_rating_scoped_alias(database: Database) -> None:

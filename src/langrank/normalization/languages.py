@@ -98,10 +98,13 @@ IEEE_UNTRACKED_LABELS: frozenset[str] = frozenset(
 
 
 #: JetBrains *State of Developer Ecosystem* survey answer labels that are
-#: deliberately not tracked as canonical languages. ``HTML / CSS`` is markup;
-#: ``Other`` and ``I don't use programming languages`` are survey meta-answers,
-#: not languages. ``Visual Basic`` is JetBrains' classic-VB answer: per the
-#: 2026-09-26 user ruling (recorded in
+#: deliberately not tracked as canonical languages. ``HTML / CSS`` is markup and
+#: ``GraphQL`` is an API query/schema language rather than a general-purpose
+#: programming language (kept untracked exactly as ``HTML / CSS`` is, not merged
+#: into any tracked language). ``Other``, ``Others``, ``Platform tied language``
+#: and ``I don't use programming languages`` are survey meta-answers / catch-all
+#: categories, not specific languages. ``Visual Basic`` is JetBrains' classic-VB
+#: answer: per the 2026-09-26 user ruling (recorded in
 #: ``docs/roadmap/0001-new-rating-providers/status.md``) classic Visual Basic
 #: stays untracked and is *not* folded into ``vb.net`` for this milestone;
 #: because the bootstrap global alias ``"visual basic" -> vb.net`` (used by
@@ -112,8 +115,11 @@ IEEE_UNTRACKED_LABELS: frozenset[str] = frozenset(
 JETBRAINS_NON_LANGUAGE_ANSWERS: frozenset[str] = frozenset(
     {
         "HTML / CSS",
+        "GraphQL",
         "Visual Basic",
         "Other",
+        "Others",
+        "Platform tied language",
         "I don't use programming languages",
     }
 )
@@ -148,9 +154,45 @@ RATING_ALIASES: tuple[RatingAlias, ...] = (
     ),
     RatingAlias(
         "jetbrains",
+        "Shell scripting languages (bash/shell/powershell)",
+        "shell",
+        notes="JetBrains 2018 planned-adoption spelling of the shell-scripting grouping",
+    ),
+    RatingAlias(
+        "jetbrains",
+        "Shell scripting",
+        "shell",
+        notes="JetBrains 2023+ primary / 2024-25 spelling of the shell-scripting grouping",
+    ),
+    RatingAlias(
+        "jetbrains",
         "SQL(PL/SQL, T-SQL and other programming extensions of SQL)",
         "sql",
         notes="JetBrains verbose SQL answer label",
+    ),
+    RatingAlias(
+        "jetbrains",
+        "SQL and its extensions",
+        "sql",
+        notes="JetBrains SQL answer spelling (2019-2023 usage)",
+    ),
+    RatingAlias(
+        "jetbrains",
+        "SQL and programming extensions over SQL",
+        "sql",
+        notes="JetBrains 2018 SQL answer spelling",
+    ),
+    RatingAlias(
+        "jetbrains",
+        "Clojure / CLJS",
+        "clojure",
+        notes="JetBrains 2017 Clojure/ClojureScript label; ClojureScript tracked as Clojure",
+    ),
+    RatingAlias(
+        "jetbrains",
+        "Clojure / ClojureScript",
+        "clojure",
+        notes="JetBrains Clojure/ClojureScript label; ClojureScript tracked as Clojure",
     ),
     RatingAlias(
         "jetbrains",
@@ -227,6 +269,7 @@ class LanguageNormalizer:
             CanonicalLanguage("scheme", "Scheme", ()),
             CanonicalLanguage("solidity", "Solidity", ()),
             CanonicalLanguage("tcl", "Tcl", ()),
+            CanonicalLanguage("crystal", "Crystal", ()),
         ]
         self._lookup: dict[str, str] = {}
         for language in self._languages:

@@ -124,12 +124,13 @@ def test_cli_fetch_all_offline_all_providers_succeed(tmp_path: Path) -> None:
     # pipeline runs with zero network requests and reports SUCCESS like every other
     # provider.
     #
-    # jetbrains is registered (subtask 04.0/04) but its fetch is still a stub until
-    # subtask 05 lands the curated bundled CSV, so its offline cache cannot be seeded
-    # yet. The run reports jetbrains FAILED with a "lands in subtask" message and
-    # exits non-zero. Provider execution is independent, so every implemented provider
-    # still reports SUCCESS; this assertion flips back to all-SUCCESS once subtask 05
-    # lands the bundled dataset.
+    # jetbrains now reads its curated published-percentages CSV in fetch and runs
+    # parse/normalize offline (subtask 04.0/05), but validate is still a stub until
+    # subtask 07, so the pipeline raises "jetbrains validate lands in subtask 07."
+    # The run reports jetbrains FAILED with that "lands in subtask" message and exits
+    # non-zero. Provider execution is independent, so every implemented provider still
+    # reports SUCCESS; this assertion flips back to all-SUCCESS once subtask 07 lands
+    # validation.
     _seed_stackoverflow_tags_cache(cache_path)
     _seed_github_innovation_graph_cache(cache_path)
     result = runner.invoke(

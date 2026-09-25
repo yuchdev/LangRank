@@ -69,15 +69,16 @@ def test_jetbrains_methodology_notes_from_wording(tmp_path: Path) -> None:
     ]
     assert len(notes) == len(expected)
 
-    # Only the confirmed 2024 used-last-12-months verbatim wording is verified today,
-    # so exactly one note exists and it carries that wording and year.
-    assert len(notes) == 1
-    (metric_id, year, wording) = expected[0]
-    note = notes[0]
-    assert note.rating_id == "jetbrains"
-    assert note.valid_from is not None and note.valid_from.year == year
-    assert wording in note.description
-    assert str(year) in note.methodology_version
+    # Six confirmed verbatim wordings are on record today (four used-in-12-months
+    # editions plus one primary and one planned-adoption), so six notes exist and
+    # each traces to a real, verified change - nothing is fabricated.
+    assert len(notes) == 6
+    for (metric_id, year, wording), note in zip(expected, notes, strict=True):
+        assert note.rating_id == "jetbrains"
+        assert note.valid_from is not None and note.valid_from.year == year
+        assert wording in note.description
+        assert str(year) in note.methodology_version
+        assert metric_id in note.methodology_version
 
 
 def test_jetbrains_raw_metrics_are_derived_marker() -> None:

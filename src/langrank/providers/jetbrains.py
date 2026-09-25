@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import csv
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-from langrank.errors import ProviderError
+from langrank.errors import ParseError, ProviderError
 from langrank.models import (
     FetchRequest,
     Granularity,
@@ -17,13 +18,15 @@ from langrank.models import (
     SourceRecord,
     ValidationReport,
 )
-from langrank.normalization import LanguageNormalizer
+from langrank.normalization import JETBRAINS_NON_LANGUAGE_ANSWERS, LanguageNormalizer
 from langrank.providers.base import FetchPayload
+from langrank.providers.common import build_observation, payload_from_content
 from langrank.providers.jetbrains_questions import (
     METRIC_PLANNED_ADOPTION,
     METRIC_PRIMARY_LANGUAGE,
     METRIC_USED_LAST_12_MONTHS,
     RAW_METRIC_SUFFIX,
+    question_for,
     wording_changes,
 )
 
@@ -37,6 +40,35 @@ PARSER_VERSION = "jetbrains-v1"
 #: curated row carries its own per-edition ``source_url`` (subtask 05), so this is
 #: only the artifact-level provenance URL for the provider's metadata.
 HOMEPAGE = "https://devecosystem-2025.jetbrains.com/"
+
+#: Curated, repo-committed published-percentages dataset read at
+#: :meth:`JetBrainsProvider.fetch` time in the default ``published`` mode (0 network
+#: requests). Every value is a figure JetBrains itself ships as chart data for its
+#: edition pages; integrity is assured by code review. Columns:
+#: ``year,metric,language,percent,sample_size,population,source_url,published_at``.
+DATA_PATH = Path(__file__).parent / "data" / "jetbrains.csv"
+
+#: Exact curated-CSV header the published parser requires; a missing column raises a
+#: :class:`~langrank.errors.ParseError` so a malformed file never lands miscolumned.
+_REQUIRED_COLUMNS: tuple[str, ...] = (
+    "year",
+    "metric",
+    "language",
+    "percent",
+    "sample_size",
+    "population",
+    "source_url",
+    "published_at",
+)
+
+#: ``metadata['provenance']`` stamped on every published record: the value is
+#: JetBrains' own weighted percentage taken from the edition's shipped chart data.
+_PUBLISHED_PROVENANCE = "published_chart_data"
+
+#: Inclusive percent bounds. JetBrains ships whole-percent figures and prints ``0``
+#: values (kept, never dropped); anything outside ``0..100`` is a malformed cell.
+_PERCENT_MIN = 0.0
+_PERCENT_MAX = 100.0
 
 #: Unit shared by every JetBrains metric: a self-reported percentage. Published
 #: percentages are JetBrains' own weighted figures; ``-raw`` percentages are
@@ -173,6 +205,11 @@ class JetBrainsProvider:
         self._cache_dir = cache_dir / self.provider_id
         self._normalizer = LanguageNormalizer()
         self._retrieved_at = datetime.now(UTC)
+        #: JetBrains labels the last :meth:`normalize` call could not resolve to a
+        #: canonical language (documented :data:`JETBRAINS_NON_LANGUAGE_ANSWERS` are
+        #: excluded); skipped rather than guessed and surfaced to validation
+        #: (subtask 07).
+        self.last_unmapped: list[str] = []
 
     def metadata(self) -> ProviderMetadata:
         """Return the provider's static metadata: the published and ``-raw`` families.
@@ -278,53 +315,122 @@ class JetBrainsProvider:
         return notes
 
     def fetch(self, request: FetchRequest) -> FetchPayload:
-        """Fetch raw data for the selected acquisition mode (lands in subtasks 05/06).
+        """Fetch raw data for the selected acquisition mode.
 
         Resolves ``--source`` first, so an unknown mode is rejected here. The default
-        ``published`` mode reads the bundled curated CSV (no network) and lands in
-        subtask 05; ``--source raw-data`` imports the anonymized response dump from a
-        local file and lands in subtask 06. Both pipeline paths are honest stubs
-        until then.
+        ``published`` mode reads the bundled curated CSV (:data:`DATA_PATH`) with **no
+        network request** (budget 0) - its bytes' integrity is assured by code review
+        and the ``--offline`` flag is a no-op for it. ``--source raw-data`` imports the
+        anonymized response dump from a local file and lands in subtask 06 (still a
+        stub). The artifact ``url`` is the provider homepage; each row carries its own
+        per-edition ``source_url`` for the parser.
 
-        :param request: Fetch parameters; only ``source`` (validated here) is
-            consulted until the dataset paths land.
+        :param request: Fetch parameters; ``source`` (validated here) and ``no_cache``
+            are honoured. The published dataset covers a fixed span, so the
+            ``since`` / ``until`` / ``years`` window is not applied to it.
         :returns: The raw fetch payload for the selected mode.
         :raises ProviderError: If ``--source`` names an unknown mode.
-        :raises NotImplementedError: Until subtask 05 (published) / 06 (raw-data)
-            land the dataset paths.
+        :raises NotImplementedError: Until subtask 06 lands the raw-data import path.
         """
         source = _resolve_source(request.source)
         if source is JetBrainsSource.RAW_DATA:
             raise NotImplementedError("jetbrains raw-data import lands in subtask 06.")
-        raise NotImplementedError("jetbrains published fetch lands in subtask 05.")
+        content = DATA_PATH.read_bytes()
+        return payload_from_content(
+            provider_id=self.provider_id,
+            cache_dir=self._cache_dir,
+            url=HOMEPAGE,
+            content=content,
+            mime_type="text/csv",
+            metadata_json={
+                "mode": JetBrainsSource.PUBLISHED.value,
+                "provenance": _PUBLISHED_PROVENANCE,
+                "source_document_id": self.provider_id,
+            },
+            no_cache=request.no_cache,
+        )
 
     def parse(self, raw: FetchPayload) -> list[SourceRecord]:
-        """Parse a raw payload into per-language source records (lands in subtask 05/06).
+        """Parse the curated published-percentages CSV into per-language records.
 
-        :param raw: The raw fetch payload.
-        :returns: One source record per published percentage (published mode) or per
-            respondent-share tally (raw-data mode).
-        :raises NotImplementedError: Until subtask 05 (published) / 06 (raw-data)
-            land the parser.
+        Hardens the untrusted CSV: the stdlib ``csv`` module is used (never ``eval``);
+        non-UTF-8 bytes raise a :class:`~langrank.errors.ParseError` (a UTF-8 BOM is
+        tolerated); a missing required column (:data:`_REQUIRED_COLUMNS`) raises a
+        ``ParseError`` naming it; and an unknown ``metric``, an implausible ``year``, a
+        percent outside ``0..100``, a non-positive ``sample_size`` or a blank
+        ``population`` each raise a ``ParseError`` naming the offending row. A row for a
+        ``(year, metric)`` the registry says was **not** asked
+        (:func:`~langrank.providers.jetbrains_questions.question_for` is ``None``) is
+        rejected too, so a mis-yeared row never lands. Each mapped row yields one
+        percentage record (no rank metric - JetBrains publishes percentages only); the
+        row's ``question_wording`` / ``wording_verified``, ``sample_size``,
+        ``population``, ``source_url`` and ``published_at`` are carried for
+        :meth:`normalize`. Records are annual (:attr:`Granularity.YEAR`).
+
+        :param raw: The raw curated-CSV fetch payload.
+        :returns: One percentage record per curated row.
+        :raises ParseError: On a decoding error, a missing required column, an unknown
+            or unasked ``(year, metric)``, or a malformed / out-of-range cell.
         """
-        raise NotImplementedError("jetbrains parse lands in subtask 05.")
+        try:
+            text = raw.content.decode("utf-8-sig")
+        except UnicodeDecodeError as exc:
+            raise ParseError("jetbrains CSV must be UTF-8 encoded.") from exc
+        reader = csv.DictReader(text.splitlines())
+        fieldnames = reader.fieldnames or []
+        for column in _REQUIRED_COLUMNS:
+            if column not in fieldnames:
+                raise ParseError(f"jetbrains CSV is missing required column {column!r}.")
+        return [_record_from_row(row) for row in reader]
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
-        """Normalize source records into observations (lands in subtask 05/06).
+        """Normalize source records into observations with full provenance.
 
-        The normalizer will consult
-        :data:`~langrank.normalization.JETBRAINS_NON_LANGUAGE_ANSWERS` **before**
-        attempting resolution so meta-answers and JetBrains' classic-VB
-        ``Visual Basic`` are skipped without folding into ``vb.net`` via the global
-        alias. Published values are emitted ``is_derived=False``; ``-raw`` values are
-        emitted ``is_derived=True`` with ``derivation_method=`` :data:`RAW_DERIVATION_METHOD`.
+        :data:`~langrank.normalization.JETBRAINS_NON_LANGUAGE_ANSWERS` is consulted
+        **before** resolution, so markup / meta-answers (``HTML / CSS``, ``Other``,
+        ``GraphQL`` ...) and JetBrains' classic-VB ``Visual Basic`` are skipped
+        silently - no observation, no ``unmapped_language`` warning - and never fold
+        into ``vb.net`` via the global alias. Any other label that resolves to no
+        canonical language is skipped and recorded in :attr:`last_unmapped` (never
+        guessed) for validation (subtask 07).
 
-        :param records: Parsed source records.
-        :returns: One observation per mapped record.
-        :raises NotImplementedError: Until subtask 05 (published) / 06 (raw-data)
-            land normalization.
+        Published values are JetBrains' own weighted percentages, emitted verbatim
+        (``is_derived=False``, ``derivation_method=None``, ``unit='percent'``). The
+        edition identifies the document (``source_document_id=jetbrains-devecosystem-{year}``);
+        the survey year is the period; ``sample_size`` and ``population`` come from the
+        row; and ``metadata_json`` carries the registry ``question_wording`` (``None``
+        when unverified - never invented) plus ``wording_verified``. Pure over its
+        inputs: no network, no database.
+
+        :param records: Parsed per-language source records.
+        :returns: One observation per mapped record; empty when none map.
         """
-        raise NotImplementedError("jetbrains normalize lands in subtask 05.")
+        self.last_unmapped = []
+        observations: list[Observation] = []
+        for record in records:
+            label = record.language
+            if label in JETBRAINS_NON_LANGUAGE_ANSWERS:
+                continue
+            language_id = self._normalizer.try_resolve(label, rating_id=self.provider_id)
+            if language_id is None:
+                if label not in self.last_unmapped:
+                    self.last_unmapped.append(label)
+                continue
+            observations.append(
+                build_observation(
+                    record=record,
+                    language_id=language_id,
+                    parser_version=PARSER_VERSION,
+                    retrieved_at=self._retrieved_at,
+                    is_derived=False,
+                    derivation_method=None,
+                    source_document_id=f"jetbrains-devecosystem-{record.period_start.year}",
+                    source_published_at=_published_at(record.metadata.get("published_at")),
+                    sample_size=record.metadata.get("sample_size"),
+                    population=record.metadata.get("population"),
+                )
+            )
+        return observations
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
         """Validate observations against named codes (lands in subtask 07).
@@ -334,3 +440,83 @@ class JetBrainsProvider:
         :raises NotImplementedError: Until subtask 07 lands validation.
         """
         raise NotImplementedError("jetbrains validate lands in subtask 07.")
+
+
+def _published_at(value: object) -> Optional[datetime]:
+    """Parse a curated ``published_at`` cell into an aware UTC datetime.
+
+    JetBrains prints no publication date for any edition, so the column is empty
+    throughout; an empty (or missing) cell therefore yields ``None`` rather than a
+    fabricated date.
+
+    :param value: The row's ``published_at`` cell (``str`` or ``None``).
+    :returns: The date at UTC midnight, or ``None`` when the cell is blank.
+    """
+    text = str(value or "").strip()
+    if not text:
+        return None
+    return datetime.combine(date.fromisoformat(text), datetime.min.time(), UTC)
+
+
+def _record_from_row(row: dict[str, Any]) -> SourceRecord:
+    """Build one percentage :class:`~langrank.models.SourceRecord` from a curated row.
+
+    The row's ``metric`` must be one of :data:`PUBLISHED_METRICS`, its ``year`` must be
+    plausible and asked for that metric (:func:`~langrank.providers.jetbrains_questions.question_for`),
+    its ``percent`` must lie in ``0..100`` (JetBrains ships whole-percent figures and
+    prints ``0`` values, which are kept), its ``sample_size`` must be a positive integer
+    and its ``population`` must be non-empty. The verified/registry ``question_wording``
+    and ``wording_verified`` flag are attached to the record metadata here (from the pure
+    registry) so they travel into ``metadata_json`` unchanged; wording is never invented.
+
+    :param row: A curated CSV row keyed by column name.
+    :returns: The percentage record for the ``(year, metric, language)`` cell.
+    :raises ParseError: If the metric is unknown, the year implausible or unasked, or a
+        numeric / required cell is malformed.
+    """
+    try:
+        year = int(row["year"])
+        metric_id = row["metric"]
+        language = row["language"]
+        percent = float(row["percent"])
+        sample_size = int(row["sample_size"])
+        population = (row["population"] or "").strip()
+        source_url = row["source_url"]
+        published_at = (row["published_at"] or "").strip()
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ParseError(f"jetbrains row is malformed: {row!r}") from exc
+    if metric_id not in PUBLISHED_METRICS:
+        raise ParseError(f"jetbrains row has unknown metric {metric_id!r}: {row!r}")
+    if not 2000 <= year <= 2100:
+        raise ParseError(f"jetbrains year is implausible: {row!r}")
+    question = question_for(year, metric_id)
+    if question is None:
+        raise ParseError(f"jetbrains metric {metric_id!r} was not asked in {year}: {row!r}")
+    if not _PERCENT_MIN <= percent <= _PERCENT_MAX:
+        raise ParseError(f"jetbrains percent must be in 0..100: {row!r}")
+    if sample_size <= 0:
+        raise ParseError(f"jetbrains sample_size must be positive: {row!r}")
+    if not population:
+        raise ParseError(f"jetbrains population must not be empty: {row!r}")
+    metadata: dict[str, Any] = {
+        "provenance": _PUBLISHED_PROVENANCE,
+        "sample_size": sample_size,
+        "population": population,
+        "published_at": published_at,
+        "question_wording": question.wording,
+        "wording_verified": question.wording_verified,
+    }
+    return SourceRecord(
+        rating_id=_RATING_ID,
+        metric_id=metric_id,
+        language=language,
+        period_start=date(year, 1, 1),
+        period_end=date(year, 12, 31),
+        period_label=str(year),
+        granularity=Granularity.YEAR,
+        rank=None,
+        value=percent,
+        unit=_UNIT_PERCENT,
+        source_url=source_url,
+        metadata=metadata,
+    )

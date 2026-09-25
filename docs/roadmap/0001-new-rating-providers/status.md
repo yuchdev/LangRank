@@ -10,7 +10,7 @@ Updated as each task lands.
 | 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
 | 02.0 | GitHub Provider                             | ✅ Complete | `test_github_{metadata,innovation_graph,innovation_graph_normalize,octoverse,validate}.py`, `test_periods.py`, `contract/test_github_provider.py` |
 | 03.0 | IEEE Spectrum Provider                      | ✅ Complete | `test_ieee_spectrum_{metadata,fetch,normalize,validate}.py`, `contract/test_ieee_spectrum_provider.py`, `integration/test_ieee_spectrum_integration.py` |
-| 04.0 | JetBrains Developer Ecosystem Provider      | 🔶 In progress (4/9 subtasks) | -     |
+| 04.0 | JetBrains Developer Ecosystem Provider      | 🔶 In progress (5/9 subtasks) | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -92,6 +92,13 @@ check, ruff format --check, mypy, pytest) is green on that baseline.
   page ships it) is published text and may be transcribed; estimating a value from bar length or
   pixel geometry stays forbidden. Unlabelled values are omitted, never guessed. JetBrains robots.txt
   does not restrict these pages.
+- **2026-09-26 - Ruling (loop), JetBrains labels:** same catalog principle as for IEEE -
+  `crystal` added as a canonical language; `GraphQL` (API schema/query language, not a programming
+  language), `Platform tied language` (catch-all category) and `Other`/`Others`/non-answers go into
+  `JETBRAINS_NON_LANGUAGE_ANSWERS`. The question registry was corrected from the chart evidence:
+  2017 did ask about planned adoption; 2018 primary language is not recorded (no percentages
+  published). Only question text JetBrains prints is recorded as verified wording; chart legends
+  are kept separately, never as wording.
 
 ## Decomposition tree (as planned)
 

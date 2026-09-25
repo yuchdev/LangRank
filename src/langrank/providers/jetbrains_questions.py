@@ -51,6 +51,11 @@ class SurveyQuestion:
     :ivar raw_column_prefix: Column-name prefix locating this question's
         answers in the raw-data dump (used by subtask 06), or ``None`` when the
         raw schema for the year has not been transcribed.
+    :ivar chart_legend: The chart legend / heading JetBrains printed above this
+        metric's values, when the source note records one but the verbatim
+        question text is not yet confirmed. A legend proves the metric *was*
+        asked that year; it is **not** question wording and never sets
+        :attr:`wording_verified`. ``None`` when no legend is on record.
     """
 
     year: int
@@ -59,76 +64,90 @@ class SurveyQuestion:
     wording: Optional[str]
     wording_verified: bool
     raw_column_prefix: Optional[str]
+    chart_legend: Optional[str] = None
 
 
-# Verbatim wordings confirmed by the source note. Keep this the single place a
-# transcriber edits when a new year's exact string is confirmed.
-_VERBATIM_USED_LAST_12_MONTHS_2024 = "Which programming languages have you used in the last 12 months?"
+# Verbatim question wordings confirmed by the source note / curated NOTES, keyed
+# by ``(year, metric_id)``. This is the single place a transcriber edits when a
+# new year's exact string is confirmed. Only full question text JetBrains
+# actually printed belongs here; chart legends, group labels and headings are
+# not wording and live in :data:`_CHART_LEGENDS`.
+_VERBATIM_WORDINGS: dict[tuple[int, str], str] = {
+    (2018, METRIC_USED_LAST_12_MONTHS): "What programming language(s) do you regularly use?",
+    (2018, METRIC_PLANNED_ADOPTION): (
+        "Do you plan to adopt / migrate to other language(s) in the next 12 months? If so, to which one(s)?"
+    ),
+    (2019, METRIC_USED_LAST_12_MONTHS): "What programming languages have you used in the last 12 months?",
+    (2019, METRIC_PRIMARY_LANGUAGE): ("What are your primary programming languages? Choose no more than 3 languages."),
+    (2023, METRIC_USED_LAST_12_MONTHS): (
+        "Which programming, scripting, and markup languages have you used in the last 12 months?"
+    ),
+    (2024, METRIC_USED_LAST_12_MONTHS): "Which programming languages have you used in the last 12 months?",
+}
+
+# Chart legends / headings the source note quotes. These are **not** question
+# wording (they never set ``wording_verified``); they are kept only as provenance
+# that a metric was asked in a year whose verbatim question text is still
+# unconfirmed - notably 2017, where the "To be adopted / migrated to soon (%)"
+# legend proves the planned-adoption metric was asked.
+_CHART_LEGENDS: dict[tuple[int, str], str] = {
+    (2017, METRIC_USED_LAST_12_MONTHS): "Used regularly (%)",
+    (2017, METRIC_PRIMARY_LANGUAGE): "Primary Programming Language (%)",
+    (2017, METRIC_PLANNED_ADOPTION): "To be adopted / migrated to soon (%)",
+}
 
 
-def _used_last_12_months(year: int) -> SurveyQuestion:
-    """Build the ``used_last_12_months`` question row for ``year``.
+def _question(year: int, metric_id: str) -> SurveyQuestion:
+    """Build one registry row, attaching verbatim wording only where confirmed.
 
-    :param year: Survey year.
-    :returns: The :class:`SurveyQuestion`, with verbatim wording only where the
-        source note confirms it.
-    """
-    if year == 2024:
-        return SurveyQuestion(
-            year=year,
-            metric_id=METRIC_USED_LAST_12_MONTHS,
-            question_id=None,
-            wording=_VERBATIM_USED_LAST_12_MONTHS_2024,
-            wording_verified=True,
-            raw_column_prefix=None,
-        )
-    return SurveyQuestion(
-        year=year,
-        metric_id=METRIC_USED_LAST_12_MONTHS,
-        question_id=None,
-        wording=None,
-        wording_verified=False,
-        raw_column_prefix=None,
-    )
-
-
-def _unverified(year: int, metric_id: str) -> SurveyQuestion:
-    """Build an as-yet-unverified question row.
+    Verbatim wording is taken from :data:`_VERBATIM_WORDINGS` (and only then is
+    ``wording_verified`` set); any chart legend on record is attached for
+    provenance but never treated as wording.
 
     :param year: Survey year.
     :param metric_id: Published metric ID.
-    :returns: A :class:`SurveyQuestion` with ``wording=None`` and
-        ``wording_verified=False``.
+    :returns: The :class:`SurveyQuestion` for ``(year, metric_id)``.
     """
+    wording = _VERBATIM_WORDINGS.get((year, metric_id))
     return SurveyQuestion(
         year=year,
         metric_id=metric_id,
         question_id=None,
-        wording=None,
-        wording_verified=False,
+        wording=wording,
+        wording_verified=wording is not None,
         raw_column_prefix=None,
+        chart_legend=_CHART_LEGENDS.get((year, metric_id)),
     )
 
 
 # Years JetBrains has run the survey (source note Editions table, 2017-2025).
 _SURVEY_YEARS = (2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
 
-# The first edition (2017) had no "planning to adopt" question.
-_PLANNED_ADOPTION_FIRST_YEAR = 2018
+# Years whose primary-language percentages JetBrains did **not** publish. 2018
+# rendered "Primary programming languages" only as a rank podium (no
+# percentages), so the published dataset carries no 2018 primary rows and
+# ``question_for(2018, primary)`` is ``None``.
+_PRIMARY_UNPUBLISHED_YEARS: frozenset[int] = frozenset({2018})
 
 
 def _build_registry() -> tuple[SurveyQuestion, ...]:
     """Assemble the full registry from the source note.
+
+    Every survey year carries a ``used_last_12_months`` and a
+    ``planned_adoption`` question (planned adoption was asked from the first,
+    2017, edition - its "To be adopted / migrated to soon (%)" legend proves
+    it); ``primary_language`` is present for every year except those in
+    :data:`_PRIMARY_UNPUBLISHED_YEARS`.
 
     :returns: Every known ``(year, metric)`` question, ordered by year then
         metric.
     """
     entries: list[SurveyQuestion] = []
     for year in _SURVEY_YEARS:
-        entries.append(_used_last_12_months(year))
-        entries.append(_unverified(year, METRIC_PRIMARY_LANGUAGE))
-        if year >= _PLANNED_ADOPTION_FIRST_YEAR:
-            entries.append(_unverified(year, METRIC_PLANNED_ADOPTION))
+        entries.append(_question(year, METRIC_USED_LAST_12_MONTHS))
+        if year not in _PRIMARY_UNPUBLISHED_YEARS:
+            entries.append(_question(year, METRIC_PRIMARY_LANGUAGE))
+        entries.append(_question(year, METRIC_PLANNED_ADOPTION))
     return tuple(entries)
 
 
