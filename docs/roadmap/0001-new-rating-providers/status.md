@@ -9,7 +9,7 @@ Updated as each task lands.
 |------|--------------------------------------------|----------------|-------|
 | 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
 | 02.0 | GitHub Provider                             | ✅ Complete | `test_github_{metadata,innovation_graph,innovation_graph_normalize,octoverse,validate}.py`, `test_periods.py`, `contract/test_github_provider.py` |
-| 03.0 | IEEE Spectrum Provider                      | 🔶 In progress (6/8 subtasks) | -     |
+| 03.0 | IEEE Spectrum Provider                      | ✅ Complete | `test_ieee_spectrum_{metadata,fetch,normalize,validate}.py`, `contract/test_ieee_spectrum_provider.py`, `integration/test_ieee_spectrum_integration.py` |
 | 04.0 | JetBrains Developer Ecosystem Provider      | ⬜ Not started | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
@@ -233,4 +233,43 @@ tasks otherwise remain parallelizable.
 - Octoverse partial editions (2025 top-3 vs 2024 top-10) are not flagged by any validator; a
   year-over-year edition-size note could help curators.
 - 429 retries use fixed exponential backoff, not the server's `Retry-After` value.
+
+### Task 03.0 - IEEE Spectrum Provider (✅ 2026-09-26)
+
+**Delivered**
+- `ieee-spectrum` provider (`providers/ieee_spectrum.py`): six metrics
+  `ieee-spectrum-{spectrum,jobs,trending}-{rank,score}` - profiles never merged, editions never
+  compared; annual granularity; per-edition `MethodologyNote`s.
+- Curated bundled dataset `providers/data/ieee_spectrum.csv` - 664 rows, editions 2022-2025 × 3
+  profiles × full published lists, transcribed from each edition's published Flourish data file
+  (user-directed reads; see Notes & decisions). Scores stored exactly as published with the
+  edition's scale (2022 0-100, 2023-2025 0-1; never rescaled); ranks computed from them are
+  `is_derived=True` (`rank_by_published_score`, competition ranking). Normalizes to 1106
+  observations with no unmapped labels; manual-only gate, 0 runtime requests.
+- `langrank import --rating ieee-spectrum <csv>` path for future editions (same header/parser).
+- Language catalog +21 canonical languages; IEEE aliases and `IEEE_UNTRACKED_LABELS` (10 labels),
+  checked before resolution so classic `Visual Basic` never folds into `vb.net`.
+- Source note with data origin, score scale, derived ranks, source defect (2025 trending
+  duplicate ABAP dropped) and robots/terms stance; provider docs.
+
+**Tests / gate**
+- All four CI checks green; 240+ tests pass (2 live skipped). Coverage 82.5% → 84.8%
+  (informational).
+- `/verify-subtask`-equivalent spec checks: all 8 consumed; 05/06 deviate by design (ranks
+  derived; per-edition score range) - recorded above.
+- `/pr-review`: feature LGTM, security/source-policy CLEAR; follow-up fixed in this task
+  (unknown-edition score scale now raises `ParseError`).
+
+**Reconciliation note**
+- Spec 03.0/02's `Visual Basic → visual-basic` row: *superseded* by the Visual Basic ruling
+  (untracked). Spec 05 §3 (`is_derived=False` for rank): *superseded* - IEEE publishes no rank
+  column. Spec 06 fixed 0..100 score range: *superseded* by per-edition scale. The fetch-all CLI
+  test passed through the usual interim FAILED state (03) and is back to all-SUCCESS (06).
+
+**Follow-ups (not blocking)**
+- 2021 and earlier editions are not in the dataset (JS-rendered apps); `IEEE_EDITIONS` still lists
+  2021 for its methodology note - keep `IEEE_EDITIONS` / `SCORE_SCALE_BY_YEAR` / CSV in sync when
+  adding editions.
+- `duplicate_rank` cannot detect a shared rank when both rows lack a score (import path only).
+- No negative-path CLI test for malformed external `import` CSVs (parser-level tests exist).
 
