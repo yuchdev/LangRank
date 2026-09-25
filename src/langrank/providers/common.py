@@ -5,7 +5,7 @@ import json
 import os
 import re
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -21,6 +21,40 @@ _CACHE_EXTENSIONS = (".json", ".csv", ".bin")
 #: A provider id safe to interpolate into a cache glob: no path separators or
 #: traversal segments (SEC-5).
 _PROVIDER_ID_RE = re.compile(r"^[a-z0-9-]+$")
+
+
+#: Calendar bounds ``(start_month, start_day, end_month, end_day)`` of each quarter,
+#: indexed by quarter number. Quarter-end months (Mar/Jun/Sep/Dec) have fixed last
+#: days, so no leap-year handling is needed.
+_QUARTER_BOUNDS = {
+    1: (1, 1, 3, 31),
+    2: (4, 1, 6, 30),
+    3: (7, 1, 9, 30),
+    4: (10, 1, 12, 31),
+}
+
+
+def quarter_period(year: int, quarter: int) -> tuple[date, date, str]:
+    """Return the calendar bounds and label for a calendar quarter.
+
+    Quarters follow the standard calendar convention: Q1 is Jan 1..Mar 31, Q2 is
+    Apr 1..Jun 30, Q3 is Jul 1..Sep 30 and Q4 is Oct 1..Dec 31. Used by quarterly
+    providers to populate ``period_start`` / ``period_end`` / ``period_label`` on a
+    :class:`~langrank.models.SourceRecord`.
+
+    :param year: The calendar year the quarter belongs to.
+    :param quarter: The quarter number, in ``1..4``.
+    :returns: A ``(period_start, period_end, period_label)`` tuple where the label
+        is formatted ``"YYYY-Qn"``.
+    :raises ValueError: If ``quarter`` is not in ``1..4``.
+    """
+    bounds = _QUARTER_BOUNDS.get(quarter)
+    if bounds is None:
+        raise ValueError(f"quarter must be in 1..4, got {quarter!r}")
+    start_month, start_day, end_month, end_day = bounds
+    period_start = date(year, start_month, start_day)
+    period_end = date(year, end_month, end_day)
+    return period_start, period_end, f"{year:04d}-Q{quarter}"
 
 
 def build_observation_hash(record: SourceRecord) -> str:
