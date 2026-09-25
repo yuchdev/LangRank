@@ -14,13 +14,31 @@ Updated as each task lands.
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
-**Current gate status:** No task started yet. Baseline this milestone builds
-on is already merged: the `RatingProvider` protocol, `ProviderRegistry`, five
-bootstrap providers (`demo`, `tiobe`, `pypl`, `redmonk`,
-`stackoverflow-survey`), `Database`/migrations, and the
-`FetchService`/`QueryService`/`ValidationService`/`StatusService` layer (PR #3,
-`be77d0d` "feat: add first production provider implementations"). CI (ruff
-check, ruff format --check, mypy, pytest) is green on that baseline.
+**Current gate status: ✅ MILESTONE COMPLETE (2026-09-26).** All four tasks landed on branch
+`milestone/0001-new-rating-providers`; milestone exit gates run 2026-09-26:
+
+1. **Four CI checks** - `ruff check`, `ruff format --check`, `mypy src`, `pytest` all green
+   (≈360 tests, 2 opt-in `live` tests skipped; `pytest -m "not integration"` green). Coverage
+   73.1% → 86.6% (informational; `.coveragerc` floor 73%).
+2. **End-to-end acceptance run** on a throwaway `LANGRANK_DB`/`LANGRANK_CACHE`: every provider
+   fetched or imported (bundled: demo, tiobe, pypl, redmonk, stackoverflow-survey, ieee-spectrum,
+   jetbrains published, github octoverse; live: github innovation-graph (2 requests → 1458
+   observations), stackoverflow-tags 2025-07..08 (204 observations); import: jetbrains raw
+   synthetic fixture, ieee-spectrum fixture re-import idempotent) → `validate --strict` passed →
+   `export csv/json` → `plot` for all four new providers → `doctor` (schema 2 / expected 2). The
+   run found and fixed one defect (`--since/--until YYYY-MM` rejected - `58d1d25`).
+3. **Migration replay** - fresh DB `schema_version() == SCHEMA_VERSION == 2`; no migration added.
+4. **Security / source-policy** - threat models with re-audits and task-close reviews for 01.0,
+   02.0, 04.0; source-policy review for 03.0; source notes with gate verdicts for all four sources
+   (all CLEAR, no open CRITICAL/HIGH/MEDIUM).
+5. **`/link-check docs/roadmap/`** - 0 problems.
+
+`langrank fetch all --years 10` note: bundled/offline providers succeed; a live 10-year
+`stackoverflow-tags` backfill needs `LANGRANK_STACKEXCHANGE_KEY` (the anonymous 300/day budget is
+refused up front, by design) - documented in `docs/providers.md`.
+
+Baseline this milestone built on: the `RatingProvider` protocol, `ProviderRegistry`, five bootstrap
+providers, `Database`/migrations and the service layer (PR #3, `be77d0d`).
 
 ## Notes & decisions
 
@@ -334,3 +352,25 @@ tasks otherwise remain parallelizable.
   chart - excluded; add only on an explicit ruling.
 - `csv.field_size_limit` is process-global - fine for the single-threaded CLI.
 
+
+### Milestone close - open follow-ups carried forward
+
+Collected from the per-task records above (none block this milestone):
+
+- `metric_id == "rank"` literals in `services/query.py` / `plotting/service.py` make `--top`,
+  `--top-current` and `--invert-rank` no-ops for every suffixed rank metric
+  (`stackoverflow-tags-rank`, `github-*-rank`, `ieee-spectrum-*-rank`) - Milestone 0006 Task 01.0.
+  Visible in e2e: IEEE rank plots draw rank 1 at the bottom.
+- `FetchService` reports SUCCESS / exit 0 when `validate()` rejects a batch (upsert skipped).
+- Classic Visual Basic vs VB.NET split (bootstrap `"visual basic" → vb.net` alias) - deferred by
+  ruling.
+- Derived SO-tags rank inherits its share's `raw_record_hash` (GitHub/IEEE ranks already hash
+  their own inputs).
+- JetBrains: 2025 raw layout needs a year discriminator; 2022/2023 raw layouts unverified; a few
+  2024 raw labels unmapped.
+- IEEE: editions before 2022 not curated; `IEEE_EDITIONS` / `SCORE_SCALE_BY_YEAR` / CSV must stay
+  in sync.
+- Generic `langrank import` still reads the whole file for providers without `SupportsRawImport`
+  (LOW; local operator file).
+- 3 pre-existing dangling links in `docs/adr/0001-config-loading-via-layered-settings.md` (outside
+  `docs/roadmap/`).
