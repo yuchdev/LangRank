@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import io
+import stat
 from collections import Counter
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
@@ -115,6 +116,15 @@ _MAX_IMPORT_ROWS = 2_000_000
 #: explicit bound stops a single pathological field from amplifying memory. Set for
 #: the duration of a raw parse only (see :func:`_bounded_csv_field_size`).
 _CSV_FIELD_SIZE_LIMIT = 1_000_000
+
+#: Hard cap on the length of one physical line (JB-SEC-1). ``csv.reader`` builds a
+#: whole line in memory before the row cap or field limit can act, so a single
+#: crafted line would otherwise be bounded only by :data:`_MAX_IMPORT_BYTES`. The
+#: verified 2024 dump averages ~9.4 KB per row with a ~200 KB header.
+_MAX_LINE_CHARS = 16 * 1024 * 1024
+
+#: Hard cap on the header's column count (JB-SEC-1); the 2024 dump has 5,469.
+_MAX_COLUMNS = 50_000
 
 #: ZIP local-file / central-directory / end-of-archive magic byte signatures. A raw
 #: import must be a **pre-extracted** CSV (JB-SEC-2); a ``.zip`` is rejected with a
@@ -505,9 +515,12 @@ class JetBrainsProvider:
             UTF-8, has no detectable supported survey year, or is malformed.
         """
         try:
-            size = path.stat().st_size
+            status = path.stat()
         except OSError as exc:
             raise ParseError(f"jetbrains raw import: cannot read {path.name!r}.") from exc
+        if not stat.S_ISREG(status.st_mode):
+            raise ParseError(f"jetbrains raw import: {path.name!r} is not a regular file.")
+        size = status.st_size
         if size > _MAX_IMPORT_BYTES:
             raise ParseError(
                 f"jetbrains raw import: file is {size} bytes, over the {_MAX_IMPORT_BYTES}-byte cap; refusing to load it."
@@ -707,6 +720,26 @@ def _detect_survey_year(
     return candidates[0]
 
 
+def _bounded_lines(stream: io.TextIOBase) -> Iterator[str]:
+    """Yield physical lines from ``stream``, refusing any over :data:`_MAX_LINE_CHARS`.
+
+    :param stream: A text stream.
+    :returns: An iterator of lines, each at most :data:`_MAX_LINE_CHARS` characters.
+    :raises ParseError: If a line exceeds the cap (its content is never echoed).
+    """
+    line_number = 0
+    while True:
+        line = stream.readline(_MAX_LINE_CHARS + 1)
+        if not line:
+            return
+        line_number += 1
+        if len(line) > _MAX_LINE_CHARS:
+            raise ParseError(
+                f"jetbrains raw import: physical line {line_number} exceeds the {_MAX_LINE_CHARS}-character cap."
+            )
+        yield line
+
+
 def _aggregate_raw(stream: io.TextIOBase) -> list[SourceRecord]:
     """Stream a raw-dump text handle into derived ``-raw`` source records.
 
@@ -726,11 +759,13 @@ def _aggregate_raw(stream: io.TextIOBase) -> list[SourceRecord]:
         unexpected width, a row-count overflow, or a malformed CSV line.
     """
     with _bounded_csv_field_size():
-        reader = csv.reader(stream)
+        reader = csv.reader(_bounded_lines(stream))
         try:
             header = next(reader)
         except StopIteration as exc:
             raise ParseError("jetbrains raw import: file is empty.") from exc
+        if len(header) > _MAX_COLUMNS:
+            raise ParseError(f"jetbrains raw import: header has {len(header)} columns, over the {_MAX_COLUMNS} cap.")
         year = _detect_survey_year(header)
         width = len(header)
         columns: dict[str, list[tuple[int, str]]] = {}

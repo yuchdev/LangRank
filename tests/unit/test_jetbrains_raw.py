@@ -318,3 +318,43 @@ def test_capability_is_opt_in() -> None:
         provider_id = "bare"
 
     assert not isinstance(_Bare(), SupportsRawImport)
+
+
+def test_jb_sec_1_single_huge_line_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    legitimate = _csv_bytes()
+    longest = max(len(line) for line in legitimate.decode("utf-8").splitlines(keepends=True))
+    monkeypatch.setattr(jetbrains, "_MAX_LINE_CHARS", longest)
+    # Every real line fits the cap; only the appended crafted line exceeds it.
+    JetBrainsProvider(tmp_path).import_path(_write(tmp_path, legitimate, name="ok.csv"))
+    crafted = legitimate + b"x" * (longest + 1) + b"\n"
+    with pytest.raises(ParseError, match="character cap") as excinfo:
+        JetBrainsProvider(tmp_path).import_path(_write(tmp_path, crafted))
+    assert "xxxx" not in str(excinfo.value)
+
+
+def test_jb_sec_1_hyper_wide_header_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(jetbrains, "_MAX_COLUMNS", 3)
+    path = _write(tmp_path, _csv_bytes())
+    with pytest.raises(ParseError, match="columns"):
+        JetBrainsProvider(tmp_path).import_path(path)
+
+
+def test_jb_sec_1_non_regular_file_rejected(tmp_path: Path) -> None:
+    directory = tmp_path / "not-a-file.csv"
+    directory.mkdir()
+    with pytest.raises(ParseError, match="not a regular file"):
+        JetBrainsProvider(tmp_path).import_path(directory)
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param(b"\xff\xfe\xfd not utf-8\n", id="non-utf8"),
+        pytest.param(b"unrelated,columns\n1,2\n", id="no-detectable-year"),
+    ],
+)
+def test_jb_sec_3_field_size_limit_restored_on_error_paths(tmp_path: Path, content: bytes) -> None:
+    before = csv.field_size_limit()
+    with pytest.raises(ParseError):
+        JetBrainsProvider(tmp_path).import_path(_write(tmp_path, content))
+    assert csv.field_size_limit() == before
