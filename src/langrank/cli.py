@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 import json
 import logging
 import sys
@@ -52,11 +53,24 @@ class AppState:
 
 
 def _parse_date(value: Optional[str], *, is_end: bool = False) -> Optional[date]:
+    """Parse a ``--since``/``--until`` bound given as ``YYYY``, ``YYYY-MM`` or ``YYYY-MM-DD``.
+
+    Year and month forms expand to the first day of the period for a start bound and
+    to the last day for an end bound (``is_end``).
+    """
     if value is None:
         return None
-    if len(value) == 4 and value.isdigit():
-        return date(int(value), 12 if is_end else 1, 31 if is_end else 1)
-    return date.fromisoformat(value)
+    try:
+        if len(value) == 4 and value.isdigit():
+            return date(int(value), 12 if is_end else 1, 31 if is_end else 1)
+        if len(value) == 7 and value[4] == "-":
+            year, month = int(value[:4]), int(value[5:])
+            if not is_end:
+                return date(year, month, 1)
+            return date(year, month, calendar.monthrange(year, month)[1])
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise LangRankError(f"Invalid date {value!r}: expected YYYY, YYYY-MM or YYYY-MM-DD.") from exc
 
 
 def _language_ids(state: AppState, names: Optional[str], rating_id: Optional[str]) -> list[str]:
