@@ -115,8 +115,18 @@ def test_raw_metric_resolves_to_published_question() -> None:
     assert raw is published
 
 
-def test_raw_column_prefix_unset_pending_subtask_06() -> None:
-    assert all(q.raw_column_prefix is None for q in QUESTION_REGISTRY)
+def test_raw_column_prefix_set_for_verified_2024_only() -> None:
+    # Subtask 06 verified the 2024 raw dump layout only: its three language questions
+    # carry a ``<parent>::`` column prefix; every other year stays None (unverified,
+    # never invented). 2025 is deliberately omitted - its dump reuses 2024's prefixes,
+    # which would make year detection permanently ambiguous.
+    prefixes = {(q.year, q.metric_id): q.raw_column_prefix for q in QUESTION_REGISTRY}
+    assert prefixes[(2024, METRIC_USED_LAST_12_MONTHS)] == "proglang::"
+    assert prefixes[(2024, METRIC_PRIMARY_LANGUAGE)] == "primary_lang::"
+    assert prefixes[(2024, METRIC_PLANNED_ADOPTION)] == "adopt_proglang::"
+    assert all(q.raw_column_prefix is None for q in QUESTION_REGISTRY if q.year != 2024), (
+        "only 2024 raw layout is verified in subtask 06"
+    )
 
 
 def test_survey_question_is_frozen() -> None:

@@ -129,3 +129,69 @@ and the regression tests (oversized-input rejection, malformed-CSV, free-text-no
 implementation before the merge gate clears. Any HIGH left unmet at implementation time escalates to
 BLOCK.
 </content>
+
+---
+
+## Re-audit - subtask 04.0/06 implementation - 2026-09-26
+
+Re-audited the uncommitted implementation (`git diff HEAD`) against JB-SEC-1..9. Scope:
+`jetbrains.py` (`import_path`, `_reject_zip`, `_bounded_csv_field_size`, `_aggregate_raw`,
+`_parse_raw`, `_detect_survey_year`, `_records_from_counts`), `jetbrains_questions.py` raw prefixes,
+`base.py` `SupportsRawImport`, `cli.py` dispatch, `tests/unit/test_jetbrains_raw.py` (15 tests, all
+passing). Product code was not modified.
+
+### Per-requirement verdicts
+
+- **JB-SEC-1 (memory DoS) - PASS_WITH_FOLLOWUP.** `st_size` byte cap (`_MAX_IMPORT_BYTES` 600 MB)
+  is checked before any read, a streamed `csv.reader` is capped at `_MAX_IMPORT_ROWS` (2 M) rows, and
+  no per-row objects are retained. Residual MEDIUM: `csv.reader` materialises one physical line as a
+  single field list; neither `field_size_limit` (bounds per-field *bytes*, 1 MB) nor the row cap
+  (counts *rows*) bounds the *number of fields on one line*, so a crafted single ~600 MB line - or the
+  header row itself - is read into one list (pointer-per-field amplification over the file). Bounded by
+  the byte cap, so not unbounded, but a real spike. Also `st_size` on a FIFO/char-device reports 0 and
+  slips past the byte cap (row + field caps still bound it).
+- **JB-SEC-2 (zip-slip/zip-bomb) - PASS.** 4-byte `PK` magic check rejects `.zip` on both
+  `import_path` (reads only 4 bytes) and `_parse_raw`; a pre-extracted CSV is required. Tested.
+- **JB-SEC-3 (CSV robustness) - PASS.** `csv.field_size_limit` set and restored via a try/finally
+  context manager (process-global value restored on every exit path that reaches it - the oversize and
+  zip rejections return before it is ever set); `utf-8-sig` tolerates BOM; non-UTF-8 raises
+  `ParseError`; width mismatch and `csv.Error` are wrapped. Restoration proven on the malformed-field
+  path.
+- **JB-SEC-4 (PII/free-text) - PASS.** Only the detected year's registry prefix columns are read;
+  storage is aggregate counts + denominator only; the free-text-never-stored test passes across
+  records, observations and metadata.
+- **JB-SEC-5 (no raw committed/cached) - PASS.** No raw dump in the git tree (committed
+  `data/jetbrains.csv` is the published curated file); fixtures are tiny synthetic rows; the
+  import-never-touches-cache test passes; the session scratchpad holds no raw JetBrains dump (only the
+  724-row published curated CSV, no `proglang::` layout, no zip).
+- **JB-SEC-6 (derived -raw distinct) - PASS.** `is_derived=True`,
+  `derivation_method=unweighted_respondent_share`, `-raw` metric IDs disjoint from `PUBLISHED_METRICS`,
+  denominator stored as `metadata['denominator']` and `sample_size`. Tested.
+- **JB-SEC-7 (no download/SSRF) - PASS.** `fetch(--source raw-data)` raises `NotImplementedError`;
+  import is local-file-only. Tested.
+- **JB-SEC-9 (error/log redaction) - PASS.** Parse/width/year errors cite row/column indices and
+  counts only; tests assert cell values and the PII fixture never appear in messages.
+- **JB-SEC-8 - N/A** for this subtask (export-time concern, unchanged).
+
+### Required fixes
+
+- **MEDIUM** - JB-SEC-1 residual: bound per-line size / field count before full row materialisation
+  (e.g. a max-line-bytes guard on the stream, or reject files whose header field count is implausible)
+  so a single huge line or hyper-wide row cannot amplify memory up to ~byte-cap x pointer size.
+- **LOW** - JB-SEC-1: reject non-regular input (`stat.S_ISREG`) so a FIFO/char-device with
+  `st_size == 0` cannot bypass the byte cap.
+
+### Missing tests
+
+- No test for the single-huge-line / hyper-wide-row residual (the exact amplification vector).
+- Field-size-limit restoration is tested only on the malformed-field path, not on the
+  `UnicodeDecodeError` decode path or the year-detection `ParseError` path.
+- No test exercising the `cli.py` dispatch branch itself (asserting a non-`SupportsRawImport`
+  provider still takes the `read_bytes()`/`parse()` path).
+
+### Re-audit verdict: CLEAR (PASS_WITH_FOLLOWUP)
+
+No CRITICAL or HIGH remains: JB-SEC-1..5 HIGH requirements are implemented and test-proven. The one
+residual (single-line field-count amplification) is MEDIUM and bounded by the byte cap, so it does not
+BLOCK the merge gate; track it plus the LOW FIFO edge and the three missing tests as follow-ups. Hand
+the two fixes to `python-expert` and the three tests to `testing-expert`.

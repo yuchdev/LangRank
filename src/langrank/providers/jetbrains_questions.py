@@ -96,6 +96,25 @@ _CHART_LEGENDS: dict[tuple[int, str], str] = {
     (2017, METRIC_PLANNED_ADOPTION): "To be adopted / migrated to soon (%)",
 }
 
+# Raw-dump column-name prefixes for the anonymized *State of Developer Ecosystem*
+# response file (subtask 06), keyed by ``(year, metric_id)``. The 2024 dump
+# (``2024_sharing_data_outside.csv``) encodes every multi-select language answer as
+# **one column per option**, named ``<prefix><Option label>`` with a ``::``
+# delimiter (e.g. ``proglang::Python``); a cell holds the option label when the
+# respondent selected it and is empty otherwise. Only the exact prefixes verified
+# by inspecting the real header are recorded here; a ``(year, metric_id)`` absent
+# from this map has ``raw_column_prefix=None`` and cannot be raw-imported. 2025 is
+# deliberately **omitted**: its dump reuses the identical ``proglang::`` /
+# ``primary_lang::`` / ``adopt_proglang::`` prefixes, so registering it would make
+# :func:`raw_prefix_years` share a fingerprint with 2024 and render year detection
+# permanently ambiguous - distinguishing 2024 from 2025 needs a year-unique marker
+# column, which is deferred.
+_RAW_COLUMN_PREFIXES: dict[tuple[int, str], str] = {
+    (2024, METRIC_USED_LAST_12_MONTHS): "proglang::",
+    (2024, METRIC_PRIMARY_LANGUAGE): "primary_lang::",
+    (2024, METRIC_PLANNED_ADOPTION): "adopt_proglang::",
+}
+
 
 def _question(year: int, metric_id: str) -> SurveyQuestion:
     """Build one registry row, attaching verbatim wording only where confirmed.
@@ -115,7 +134,7 @@ def _question(year: int, metric_id: str) -> SurveyQuestion:
         question_id=None,
         wording=wording,
         wording_verified=wording is not None,
-        raw_column_prefix=None,
+        raw_column_prefix=_RAW_COLUMN_PREFIXES.get((year, metric_id)),
         chart_legend=_CHART_LEGENDS.get((year, metric_id)),
     )
 
@@ -182,6 +201,50 @@ def question_for(year: int, metric_id: str) -> Optional[SurveyQuestion]:
         asked that year (e.g. planned-adoption in 2017).
     """
     return _BY_KEY.get((year, base_metric_id(metric_id)))
+
+
+def raw_column_prefix_for(year: int, metric_id: str) -> Optional[str]:
+    """Return the raw-dump column prefix for ``(year, metric_id)``, if verified.
+
+    A ``-raw`` metric ID resolves to its published metric's prefix. The prefix is
+    the string that locates this question's per-option columns in the anonymized
+    response dump (e.g. ``"proglang::"``); ``None`` when the year's raw schema has
+    not been transcribed (only 2024 is verified in subtask 06).
+
+    :param year: Survey year.
+    :param metric_id: Published or ``-raw`` metric ID.
+    :returns: The column prefix, or ``None`` when no raw layout is recorded.
+    """
+    question = _BY_KEY.get((year, base_metric_id(metric_id)))
+    return question.raw_column_prefix if question is not None else None
+
+
+def raw_prefix_years() -> tuple[int, ...]:
+    """Return every survey year that has at least one raw-dump column prefix.
+
+    These are the years the raw-data importer can detect from a CSV header
+    (:func:`raw_column_prefix_for` is non-``None`` for at least one metric).
+
+    :returns: Supported raw-import years in ascending order.
+    """
+    years = {question.year for question in QUESTION_REGISTRY if question.raw_column_prefix is not None}
+    return tuple(sorted(years))
+
+
+def raw_prefixes_for_year(year: int) -> dict[str, str]:
+    """Return ``{published_metric_id: column_prefix}`` for a raw-import year.
+
+    Only metrics whose raw column prefix is recorded for ``year`` appear; a year
+    with no verified raw layout yields an empty mapping.
+
+    :param year: Survey year.
+    :returns: Published metric ID to raw column prefix for that year.
+    """
+    prefixes: dict[str, str] = {}
+    for question in QUESTION_REGISTRY:
+        if question.year == year and question.raw_column_prefix is not None:
+            prefixes[question.metric_id] = question.raw_column_prefix
+    return prefixes
 
 
 def wording_changes(metric_id: str) -> list[tuple[int, str]]:

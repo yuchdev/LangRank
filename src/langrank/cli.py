@@ -6,7 +6,7 @@ import sys
 from dataclasses import asdict
 from datetime import date
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Optional
 
 import typer
 from rich.console import Console
@@ -26,7 +26,7 @@ from langrank.exports.json_export import (
 from langrank.models import FetchRequest, FetchRunStatus, QueryFilters
 from langrank.plotting.service import PlotService
 from langrank.providers import ProviderRegistry
-from langrank.providers.base import FetchPayload
+from langrank.providers.base import FetchPayload, SupportsRawImport
 from langrank.services.fetch import FetchService
 from langrank.services.query import QueryService
 from langrank.services.status import StatusService
@@ -51,7 +51,7 @@ class AppState:
         self.providers = ProviderRegistry(config.cache_path)
 
 
-def _parse_date(value: str | None, *, is_end: bool = False) -> date | None:
+def _parse_date(value: Optional[str], *, is_end: bool = False) -> Optional[date]:
     if value is None:
         return None
     if len(value) == 4 and value.isdigit():
@@ -59,7 +59,7 @@ def _parse_date(value: str | None, *, is_end: bool = False) -> date | None:
     return date.fromisoformat(value)
 
 
-def _language_ids(state: AppState, names: str | None, rating_id: str | None) -> list[str]:
+def _language_ids(state: AppState, names: Optional[str], rating_id: Optional[str]) -> list[str]:
     if not names:
         return []
     resolved: list[str] = []
@@ -79,17 +79,17 @@ def _language_ids(state: AppState, names: str | None, rating_id: str | None) -> 
 
 def _build_filters(
     state: AppState,
-    rating: str | None,
-    metric: str | None,
-    language: str | None,
-    languages: str | None,
+    rating: Optional[str],
+    metric: Optional[str],
+    language: Optional[str],
+    languages: Optional[str],
     all_languages: bool,
-    since: str | None,
-    until: str | None,
-    years: int | None,
-    year: int | None,
-    top: int | None = None,
-    top_current: int | None = None,
+    since: Optional[str],
+    until: Optional[str],
+    years: Optional[int],
+    year: Optional[int],
+    top: Optional[int] = None,
+    top_current: Optional[int] = None,
 ) -> QueryFilters:
     selected_names = ",".join(filter(None, [language, languages])) or None
     if rating is not None:
@@ -157,9 +157,9 @@ def _render_rows(rows: list[Any], format_name: str) -> None:
 @app.callback()
 def main_callback(
     ctx: typer.Context,
-    db: Annotated[Path | None, typer.Option("--db", help="Override database path")] = None,
-    cache: Annotated[Path | None, typer.Option("--cache", help="Override cache path")] = None,
-    config: Annotated[Path | None, typer.Option("--config", help="Override config path")] = None,
+    db: Annotated[Optional[Path], typer.Option("--db", help="Override database path")] = None,
+    cache: Annotated[Optional[Path], typer.Option("--cache", help="Override cache path")] = None,
+    config: Annotated[Optional[Path], typer.Option("--config", help="Override config path")] = None,
     verbose: Annotated[int, typer.Option("-v", count=True, help="Increase verbosity")] = 0,
     quiet: Annotated[bool, typer.Option("--quiet", help="Suppress non-essential output")] = False,
 ) -> None:
@@ -279,7 +279,7 @@ def languages_show(ctx: typer.Context, language: str) -> None:
 
 
 @languages_app.command("aliases")
-def languages_aliases(ctx: typer.Context, rating: str | None = None) -> None:
+def languages_aliases(ctx: typer.Context, rating: Optional[str] = None) -> None:
     state: AppState = ctx.obj
     table = Table(title="Language aliases")
     table.add_column("Rating")
@@ -294,15 +294,15 @@ def languages_aliases(ctx: typer.Context, rating: str | None = None) -> None:
 def fetch(
     ctx: typer.Context,
     provider_id: str,
-    since: str | None = None,
-    until: str | None = None,
-    years: int | None = None,
+    since: Optional[str] = None,
+    until: Optional[str] = None,
+    years: Optional[int] = None,
     force: bool = False,
     refresh: bool = False,
     offline: bool = False,
     no_cache: bool = False,
     dry_run: bool = False,
-    source: str | None = None,
+    source: Optional[str] = None,
 ) -> None:
     state: AppState = ctx.obj
     if provider_id == "all":
@@ -356,8 +356,14 @@ def import_data(
     provider = state.providers.get(rating)
     metadata = provider.metadata()
     state.database.upsert_provider_metadata(metadata)
-    payload = FetchPayload(artifact=None, content=path.read_bytes())
-    records = provider.parse(payload)
+    # A provider that supports streaming import (e.g. jetbrains raw-data) owns its own
+    # capped, streamed read of the large untrusted file; every other provider keeps the
+    # default whole-file bytes path. Dispatch only - parsing logic stays in the provider.
+    if isinstance(provider, SupportsRawImport):
+        records = provider.import_path(path)
+    else:
+        payload = FetchPayload(artifact=None, content=path.read_bytes())
+        records = provider.parse(payload)
     observations = provider.normalize(records)
     report = provider.validate(observations)
     if report.ok and not dry_run:
@@ -380,15 +386,15 @@ def import_data(
 @app.command()
 def query(
     ctx: typer.Context,
-    rating: str | None = typer.Option(None, "--rating"),
-    metric: str | None = typer.Option(None, "--metric"),
-    language: str | None = typer.Option(None, "--language"),
-    languages: str | None = typer.Option(None, "--languages"),
+    rating: Optional[str] = typer.Option(None, "--rating"),
+    metric: Optional[str] = typer.Option(None, "--metric"),
+    language: Optional[str] = typer.Option(None, "--language"),
+    languages: Optional[str] = typer.Option(None, "--languages"),
     all_languages: bool = typer.Option(False, "--all-languages"),
-    since: str | None = typer.Option(None, "--since"),
-    until: str | None = typer.Option(None, "--until"),
-    years: int | None = typer.Option(None, "--years"),
-    year: int | None = typer.Option(None, "--year"),
+    since: Optional[str] = typer.Option(None, "--since"),
+    until: Optional[str] = typer.Option(None, "--until"),
+    years: Optional[int] = typer.Option(None, "--years"),
+    year: Optional[int] = typer.Option(None, "--year"),
     format_name: str = typer.Option("table", "--format"),
 ) -> None:
     state: AppState = ctx.obj
@@ -402,20 +408,20 @@ def query(
 def export_csv_command(
     ctx: typer.Context,
     output: Path = typer.Option(..., "--output"),
-    rating: str | None = typer.Option(None, "--rating"),
-    ratings: str | None = typer.Option(None, "--ratings"),
-    metric: str | None = typer.Option(None, "--metric"),
-    language: str | None = typer.Option(None, "--language"),
-    languages: str | None = typer.Option(None, "--languages"),
+    rating: Optional[str] = typer.Option(None, "--rating"),
+    ratings: Optional[str] = typer.Option(None, "--ratings"),
+    metric: Optional[str] = typer.Option(None, "--metric"),
+    language: Optional[str] = typer.Option(None, "--language"),
+    languages: Optional[str] = typer.Option(None, "--languages"),
     all_languages: bool = typer.Option(False, "--all-languages"),
-    since: str | None = typer.Option(None, "--since"),
-    until: str | None = typer.Option(None, "--until"),
-    years: int | None = typer.Option(None, "--years"),
-    year: int | None = typer.Option(None, "--year"),
+    since: Optional[str] = typer.Option(None, "--since"),
+    until: Optional[str] = typer.Option(None, "--until"),
+    years: Optional[int] = typer.Option(None, "--years"),
+    year: Optional[int] = typer.Option(None, "--year"),
     metadata_sidecar: bool = typer.Option(True, "--metadata-sidecar/--no-metadata-sidecar"),
 ) -> None:
     state: AppState = ctx.obj
-    sidecar_filters: QueryFilters | None = None
+    sidecar_filters: Optional[QueryFilters] = None
     provider_ids = [item.strip() for item in (ratings or "").split(",") if item.strip()]
     if rating:
         provider_ids.append(rating)
@@ -451,21 +457,21 @@ def export_csv_command(
 def export_json_command(
     ctx: typer.Context,
     output: Path = typer.Option(..., "--output"),
-    rating: str | None = typer.Option(None, "--rating"),
-    ratings: str | None = typer.Option(None, "--ratings"),
-    metric: str | None = typer.Option(None, "--metric"),
-    language: str | None = typer.Option(None, "--language"),
-    languages: str | None = typer.Option(None, "--languages"),
+    rating: Optional[str] = typer.Option(None, "--rating"),
+    ratings: Optional[str] = typer.Option(None, "--ratings"),
+    metric: Optional[str] = typer.Option(None, "--metric"),
+    language: Optional[str] = typer.Option(None, "--language"),
+    languages: Optional[str] = typer.Option(None, "--languages"),
     all_languages: bool = typer.Option(False, "--all-languages"),
-    since: str | None = typer.Option(None, "--since"),
-    until: str | None = typer.Option(None, "--until"),
-    years: int | None = typer.Option(None, "--years"),
-    year: int | None = typer.Option(None, "--year"),
+    since: Optional[str] = typer.Option(None, "--since"),
+    until: Optional[str] = typer.Option(None, "--until"),
+    years: Optional[int] = typer.Option(None, "--years"),
+    year: Optional[int] = typer.Option(None, "--year"),
     layout: str = typer.Option("records", "--layout"),
     metadata_sidecar: bool = typer.Option(True, "--metadata-sidecar/--no-metadata-sidecar"),
 ) -> None:
     state: AppState = ctx.obj
-    sidecar_filters: QueryFilters | None = None
+    sidecar_filters: Optional[QueryFilters] = None
     provider_ids = [item.strip() for item in (ratings or "").split(",") if item.strip()]
     if rating:
         provider_ids.append(rating)
@@ -503,18 +509,18 @@ def export_json_command(
 @app.command()
 def plot(
     ctx: typer.Context,
-    rating: str | None = typer.Option(None, "--rating"),
+    rating: Optional[str] = typer.Option(None, "--rating"),
     metric: str = typer.Option("rating", "--metric"),
-    language: str | None = typer.Option(None, "--language"),
-    languages: str | None = typer.Option(None, "--languages"),
+    language: Optional[str] = typer.Option(None, "--language"),
+    languages: Optional[str] = typer.Option(None, "--languages"),
     all_languages: bool = typer.Option(False, "--all-languages"),
-    top: int | None = typer.Option(None, "--top"),
-    top_current: int | None = typer.Option(None, "--top-current"),
-    since: str | None = typer.Option(None, "--since"),
-    until: str | None = typer.Option(None, "--until"),
-    years: int | None = typer.Option(None, "--years"),
-    output: Path | None = typer.Option(None, "--output"),
-    title: str | None = typer.Option(None, "--title"),
+    top: Optional[int] = typer.Option(None, "--top"),
+    top_current: Optional[int] = typer.Option(None, "--top-current"),
+    since: Optional[str] = typer.Option(None, "--since"),
+    until: Optional[str] = typer.Option(None, "--until"),
+    years: Optional[int] = typer.Option(None, "--years"),
+    output: Optional[Path] = typer.Option(None, "--output"),
+    title: Optional[str] = typer.Option(None, "--title"),
     width: float = typer.Option(10.0, "--width"),
     height: float = typer.Option(6.0, "--height"),
     dpi: int = typer.Option(100, "--dpi"),
@@ -553,7 +559,7 @@ def plot(
 
 
 @app.command()
-def validate(ctx: typer.Context, rating: str | None = typer.Option(None, "--rating"), strict: bool = False) -> None:
+def validate(ctx: typer.Context, rating: Optional[str] = typer.Option(None, "--rating"), strict: bool = False) -> None:
     state: AppState = ctx.obj
     report = ValidationService(state.database).validate()
     if rating is not None:
@@ -572,7 +578,7 @@ def validate(ctx: typer.Context, rating: str | None = typer.Option(None, "--rati
 
 
 @app.command()
-def coverage(ctx: typer.Context, language: str | None = typer.Option(None, "--language")) -> None:
+def coverage(ctx: typer.Context, language: Optional[str] = typer.Option(None, "--language")) -> None:
     state: AppState = ctx.obj
     language_id = state.database.alias_to_language(language) if language else None
     rows = state.database.coverage(language_id)

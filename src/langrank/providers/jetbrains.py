@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import csv
-from collections.abc import Sequence
+import io
+from collections import Counter
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from enum import StrEnum
 from pathlib import Path
@@ -26,8 +29,14 @@ from langrank.providers.jetbrains_questions import (
     METRIC_PRIMARY_LANGUAGE,
     METRIC_USED_LAST_12_MONTHS,
     RAW_METRIC_SUFFIX,
+    base_metric_id,
     question_for,
+    raw_prefix_years,
+    raw_prefixes_for_year,
     wording_changes,
+)
+from langrank.providers.jetbrains_questions import (
+    question_for as _question_for,  # noqa: F401  (kept for clarity; see usage below)
 )
 
 #: Stable rating id, used across the pipeline and as every metric-id prefix.
@@ -79,7 +88,38 @@ _UNIT_PERCENT = "percent"
 #: ``derivation_method`` stamped on every ``-raw`` observation (subtask 06). Raw-mode
 #: percentages are unweighted per-language respondent shares computed by LangRank over
 #: the anonymized response dump, distinct from JetBrains' published weighted figures.
-RAW_DERIVATION_METHOD = "unweighted_respondent_share"
+RAW_DERIVATION = "unweighted_respondent_share"
+
+#: Backwards-compatible alias for :data:`RAW_DERIVATION` (same value; the spec/subtask
+#: symbol table names the constant :data:`RAW_DERIVATION`, existing code imports
+#: ``RAW_DERIVATION_METHOD``).
+RAW_DERIVATION_METHOD = RAW_DERIVATION
+
+#: ``metadata['provenance']`` stamped on every ``-raw`` record: the value is an
+#: unweighted respondent share LangRank counted over the anonymized raw response dump.
+_RAW_PROVENANCE = "raw_respondent_share"
+
+#: Hard cap on the on-disk size of a raw-import file (JB-SEC-1). The verified 2024
+#: wide dump is ~219 MB uncompressed; the cap leaves headroom for future editions
+#: while rejecting an absurdly padded / decompression-bomb-expanded file before any
+#: byte is parsed.
+_MAX_IMPORT_BYTES = 600 * 1024 * 1024
+
+#: Hard cap on the number of data rows a raw-import file may contain (JB-SEC-1).
+#: JetBrains surveys draw ~25-30k cleaned respondents; the cap is far above any real
+#: edition yet bounds a crafted row-flood.
+_MAX_IMPORT_ROWS = 2_000_000
+
+#: Explicit per-field byte limit for the raw CSV parser (JB-SEC-3). Language-answer
+#: cells are short; free-text cells are ignored but still tokenized by ``csv``, so an
+#: explicit bound stops a single pathological field from amplifying memory. Set for
+#: the duration of a raw parse only (see :func:`_bounded_csv_field_size`).
+_CSV_FIELD_SIZE_LIMIT = 1_000_000
+
+#: ZIP local-file / central-directory / end-of-archive magic byte signatures. A raw
+#: import must be a **pre-extracted** CSV (JB-SEC-2); a ``.zip`` is rejected with a
+#: clear message telling the operator to extract it (no zip handling in this subtask).
+_ZIP_MAGIC: tuple[bytes, ...] = (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")
 
 #: The three published, weighted metric IDs (``is_derived=False``). Ordered
 #: ``used_last_12_months`` first so it can be the default metric. ``primary_language``
@@ -320,21 +360,27 @@ class JetBrainsProvider:
         Resolves ``--source`` first, so an unknown mode is rejected here. The default
         ``published`` mode reads the bundled curated CSV (:data:`DATA_PATH`) with **no
         network request** (budget 0) - its bytes' integrity is assured by code review
-        and the ``--offline`` flag is a no-op for it. ``--source raw-data`` imports the
-        anonymized response dump from a local file and lands in subtask 06 (still a
-        stub). The artifact ``url`` is the provider homepage; each row carries its own
-        per-edition ``source_url`` for the parser.
+        and the ``--offline`` flag is a no-op for it. ``--source raw-data`` is
+        **import-only** and never reachable through ``fetch``: the anonymized response
+        dump enters solely via ``langrank import``
+        (:meth:`import_path`), which makes **no** network request (JB-SEC-7), so
+        ``fetch`` refuses the raw-data mode rather than downloading it. The artifact
+        ``url`` is the provider homepage; each row carries its own per-edition
+        ``source_url`` for the parser.
 
         :param request: Fetch parameters; ``source`` (validated here) and ``no_cache``
             are honoured. The published dataset covers a fixed span, so the
             ``since`` / ``until`` / ``years`` window is not applied to it.
         :returns: The raw fetch payload for the selected mode.
         :raises ProviderError: If ``--source`` names an unknown mode.
-        :raises NotImplementedError: Until subtask 06 lands the raw-data import path.
+        :raises NotImplementedError: When ``--source raw-data`` is requested; raw data
+            is imported via :meth:`import_path`, never fetched.
         """
         source = _resolve_source(request.source)
         if source is JetBrainsSource.RAW_DATA:
-            raise NotImplementedError("jetbrains raw-data import lands in subtask 06.")
+            raise NotImplementedError(
+                "jetbrains raw-data is import-only; use `langrank import --rating jetbrains <raw.csv>`, not fetch."
+            )
         content = DATA_PATH.read_bytes()
         return payload_from_content(
             provider_id=self.provider_id,
@@ -395,12 +441,16 @@ class JetBrainsProvider:
         guessed) for validation (subtask 07).
 
         Published values are JetBrains' own weighted percentages, emitted verbatim
-        (``is_derived=False``, ``derivation_method=None``, ``unit='percent'``). The
-        edition identifies the document (``source_document_id=jetbrains-devecosystem-{year}``);
-        the survey year is the period; ``sample_size`` and ``population`` come from the
-        row; and ``metadata_json`` carries the registry ``question_wording`` (``None``
-        when unverified - never invented) plus ``wording_verified``. Pure over its
-        inputs: no network, no database.
+        (``is_derived=False``, ``derivation_method=None``, ``unit='percent'``). A
+        ``-raw`` record (metric ID suffixed :data:`~langrank.providers.jetbrains_questions.RAW_METRIC_SUFFIX`,
+        produced by :meth:`import_path`) is instead an unweighted respondent share
+        (``is_derived=True``, ``derivation_method=`` :data:`RAW_DERIVATION`); its
+        denominator travels in ``metadata_json['denominator']`` and is also stored as
+        ``sample_size``. Either way the edition identifies the document
+        (``source_document_id=jetbrains-devecosystem-{year}[-raw]``); the survey year
+        is the period; and ``metadata_json`` carries the registry ``question_wording``
+        (``None`` when unverified - never invented) plus ``wording_verified``. Pure
+        over its inputs: no network, no database.
 
         :param records: Parsed per-language source records.
         :returns: One observation per mapped record; empty when none map.
@@ -416,21 +466,59 @@ class JetBrainsProvider:
                 if label not in self.last_unmapped:
                     self.last_unmapped.append(label)
                 continue
+            is_raw = record.metric_id.endswith(RAW_METRIC_SUFFIX)
+            year = record.period_start.year
+            source_document_id = f"jetbrains-devecosystem-{year}-raw" if is_raw else f"jetbrains-devecosystem-{year}"
             observations.append(
                 build_observation(
                     record=record,
                     language_id=language_id,
                     parser_version=PARSER_VERSION,
                     retrieved_at=self._retrieved_at,
-                    is_derived=False,
-                    derivation_method=None,
-                    source_document_id=f"jetbrains-devecosystem-{record.period_start.year}",
+                    is_derived=is_raw,
+                    derivation_method=RAW_DERIVATION if is_raw else None,
+                    source_document_id=source_document_id,
                     source_published_at=_published_at(record.metadata.get("published_at")),
                     sample_size=record.metadata.get("sample_size"),
                     population=record.metadata.get("population"),
                 )
             )
         return observations
+
+    def import_path(self, path: Path) -> list[SourceRecord]:
+        """Stream a local raw-response CSV into derived ``-raw`` source records.
+
+        This is the :class:`~langrank.providers.base.SupportsRawImport` capability
+        (``langrank import --rating jetbrains <raw.csv>``). Unlike the default import
+        path it never reads the whole file into memory: it rejects a file larger than
+        :data:`_MAX_IMPORT_BYTES` up front (JB-SEC-1), rejects a ``.zip`` by magic
+        bytes with a message telling the operator to extract it (JB-SEC-2), then
+        streams the CSV over a text file handle - one pass, no per-row objects - under
+        a :data:`_MAX_IMPORT_ROWS` cap. Only the registry's language-question columns
+        for the detected year are read; every other column (free-text included) is
+        ignored and never persisted (JB-SEC-4). The file is read in place and never
+        copied into the repo or cache (JB-SEC-5).
+
+        :param path: Local, operator-supplied, pre-extracted raw CSV.
+        :returns: One derived ``-raw`` record per (metric, language) selected.
+        :raises ParseError: If the file is oversized, a ``.zip``, too many rows, not
+            UTF-8, has no detectable supported survey year, or is malformed.
+        """
+        try:
+            size = path.stat().st_size
+        except OSError as exc:
+            raise ParseError(f"jetbrains raw import: cannot read {path.name!r}.") from exc
+        if size > _MAX_IMPORT_BYTES:
+            raise ParseError(
+                f"jetbrains raw import: file is {size} bytes, over the {_MAX_IMPORT_BYTES}-byte cap; refusing to load it."
+            )
+        with path.open("rb") as handle:
+            _reject_zip(handle.read(len(_ZIP_MAGIC[0])))
+        try:
+            with path.open("r", encoding="utf-8-sig", newline="") as text_handle:
+                return _aggregate_raw(text_handle)
+        except UnicodeDecodeError as exc:
+            raise ParseError("jetbrains raw import: file must be UTF-8 encoded.") from exc
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
         """Validate observations against named codes (lands in subtask 07).
@@ -520,3 +608,235 @@ def _record_from_row(row: dict[str, Any]) -> SourceRecord:
         source_url=source_url,
         metadata=metadata,
     )
+
+
+def _report_url(year: int) -> str:
+    """Return the *State of Developer Ecosystem* report URL for a survey year.
+
+    Carried as the ``source_url`` of every ``-raw`` record. 2025 onward moved to a
+    per-edition subdomain; earlier editions live under ``/lp/devecosystem-<year>/``.
+
+    :param year: Survey year.
+    :returns: The edition's report landing-page URL.
+    """
+    if year >= 2025:
+        return f"https://devecosystem-{year}.jetbrains.com/"
+    return f"https://www.jetbrains.com/lp/devecosystem-{year}/"
+
+
+def _reject_zip(head: bytes) -> None:
+    """Reject a raw import that is a ``.zip`` archive by magic bytes (JB-SEC-2).
+
+    Raw import accepts only a **pre-extracted** CSV; this subtask does no zip
+    handling (zip-slip / zip-bomb surface), so a ``.zip`` is refused with a message
+    telling the operator to extract it first.
+
+    :param head: The first bytes of the candidate file / payload.
+    :raises ParseError: If ``head`` carries a ZIP signature.
+    """
+    if any(head.startswith(signature) for signature in _ZIP_MAGIC):
+        raise ParseError(
+            "jetbrains raw import: input looks like a .zip archive; extract the CSV and import the extracted file."
+        )
+
+
+@contextmanager
+def _bounded_csv_field_size() -> Iterator[None]:
+    """Bound :func:`csv.field_size_limit` for the duration of a raw parse (JB-SEC-3).
+
+    The stdlib default is very large, so a single pathological field can amplify
+    memory. This sets an explicit :data:`_CSV_FIELD_SIZE_LIMIT` and restores the
+    previous process-wide value on exit, so other providers' parsing is unaffected.
+
+    :returns: A context manager yielding ``None``.
+    """
+    previous = csv.field_size_limit()
+    csv.field_size_limit(_CSV_FIELD_SIZE_LIMIT)
+    try:
+        yield
+    finally:
+        csv.field_size_limit(previous)
+
+
+def _raw_year_prefixes() -> dict[int, dict[str, str]]:
+    """Build ``{year: {metric_id: column_prefix}}`` for every raw-import year.
+
+    Sourced purely from the question registry (:func:`raw_prefix_years` /
+    :func:`raw_prefixes_for_year`); a year appears only when its raw column layout
+    has been verified (2024 in this subtask).
+
+    :returns: Per-year language-question column prefixes.
+    """
+    return {year: raw_prefixes_for_year(year) for year in raw_prefix_years()}
+
+
+def _detect_survey_year(
+    header: list[str],
+    *,
+    year_prefixes: Optional[Mapping[int, Mapping[str, str]]] = None,
+) -> int:
+    """Detect the survey year of a raw dump from its CSV header (JB-SEC / spec 06).
+
+    A registry year is a candidate when **all** its language-question column
+    prefixes are present in ``header``. Exactly one candidate is required: zero
+    means the header matches no supported year's layout, and more than one means the
+    layout cannot be attributed to a single year - both raise rather than guess, so
+    a value is never mis-yeared. The message references years only, never a header
+    cell (JB-SEC-9).
+
+    :param header: The raw CSV header row.
+    :param year_prefixes: Optional ``{year: {metric_id: prefix}}`` override; defaults
+        to the registry-derived mapping (:func:`_raw_year_prefixes`).
+    :returns: The single detected survey year.
+    :raises ParseError: If no supported year matches, or the match is ambiguous.
+    """
+    mapping = _raw_year_prefixes() if year_prefixes is None else year_prefixes
+    candidates = [
+        year
+        for year, prefixes in mapping.items()
+        if prefixes and all(any(column.startswith(prefix) for column in header) for prefix in prefixes.values())
+    ]
+    if not candidates:
+        supported = ", ".join(str(year) for year in sorted(mapping)) or "none"
+        raise ParseError(
+            f"jetbrains raw import: could not detect a supported survey year from the CSV header (supported: {supported})."
+        )
+    if len(candidates) > 1:
+        years = ", ".join(str(year) for year in sorted(candidates))
+        raise ParseError(f"jetbrains raw import: survey year is ambiguous between {years}; refusing to guess.")
+    return candidates[0]
+
+
+def _aggregate_raw(stream: io.TextIOBase) -> list[SourceRecord]:
+    """Stream a raw-dump text handle into derived ``-raw`` source records.
+
+    One pass over ``stream``: the header selects the detected year's language
+    columns (only those columns are ever read - JB-SEC-4), then each data row is
+    counted without building a per-row object. For every language question, a
+    respondent counts toward the denominator when they selected **at least one**
+    option (a non-empty cell); the per-option count over that denominator is the
+    unweighted respondent share. Row width is checked against the header and the row
+    count is capped (:data:`_MAX_IMPORT_ROWS`); malformed rows raise a
+    :class:`~langrank.errors.ParseError` naming the **row index only** - never a cell
+    value (JB-SEC-9).
+
+    :param stream: A text stream positioned at the header row.
+    :returns: One ``-raw`` record per (metric, selected option label).
+    :raises ParseError: On an empty file, an undetectable / ambiguous year, a row of
+        unexpected width, a row-count overflow, or a malformed CSV line.
+    """
+    with _bounded_csv_field_size():
+        reader = csv.reader(stream)
+        try:
+            header = next(reader)
+        except StopIteration as exc:
+            raise ParseError("jetbrains raw import: file is empty.") from exc
+        year = _detect_survey_year(header)
+        width = len(header)
+        columns: dict[str, list[tuple[int, str]]] = {}
+        for metric_id, prefix in raw_prefixes_for_year(year).items():
+            columns[metric_id] = [
+                (index, column[len(prefix) :]) for index, column in enumerate(header) if column.startswith(prefix)
+            ]
+        selection_counts: dict[str, Counter[str]] = {metric_id: Counter() for metric_id in columns}
+        denominators: dict[str, int] = dict.fromkeys(columns, 0)
+        try:
+            for row_number, row in enumerate(reader, start=2):
+                if row_number - 1 > _MAX_IMPORT_ROWS:
+                    raise ParseError(
+                        f"jetbrains raw import: exceeded the {_MAX_IMPORT_ROWS}-row cap at data row {row_number - 1}."
+                    )
+                if len(row) != width:
+                    raise ParseError(f"jetbrains raw import: row {row_number} has {len(row)} fields, expected {width}.")
+                for metric_id, cells in columns.items():
+                    selected = [label for index, label in cells if row[index].strip()]
+                    if selected:
+                        denominators[metric_id] += 1
+                        selection_counts[metric_id].update(selected)
+        except csv.Error as exc:
+            raise ParseError("jetbrains raw import: malformed CSV line.") from exc
+    return _records_from_counts(year, selection_counts, denominators)
+
+
+def _records_from_counts(
+    year: int,
+    selection_counts: Mapping[str, Counter[str]],
+    denominators: Mapping[str, int],
+) -> list[SourceRecord]:
+    """Turn per-metric selection counts into derived ``-raw`` source records.
+
+    Only aggregate counts and the denominator are persisted - never a response-level
+    row or a free-text value (JB-SEC-4). Each record's ``value`` is the unweighted
+    respondent share (``count / denominator * 100``); the denominator is stored both
+    as ``metadata['denominator']`` and ``metadata['sample_size']`` (the latter feeds
+    :meth:`JetBrainsProvider.normalize`); the registry question wording (``None`` when
+    unverified) travels alongside. A metric no respondent answered (denominator 0) is
+    skipped. Metrics are emitted in :data:`PUBLISHED_METRICS` order for determinism.
+
+    :param year: Detected survey year.
+    :param selection_counts: Per published metric ID, the count each option label was
+        selected.
+    :param denominators: Per published metric ID, the respondents who answered it.
+    :returns: Derived ``-raw`` records (:data:`RAW_DERIVATION`, ``-raw`` metric IDs).
+    """
+    records: list[SourceRecord] = []
+    source_url = _report_url(year)
+    for metric_id in PUBLISHED_METRICS:
+        counts = selection_counts.get(metric_id)
+        denominator = denominators.get(metric_id, 0)
+        if not counts or denominator <= 0:
+            continue
+        question = question_for(year, metric_id)
+        wording = question.wording if question is not None else None
+        wording_verified = question.wording_verified if question is not None else False
+        derived_metric_id = raw_metric_id(base_metric_id(metric_id))
+        for label, count in sorted(counts.items()):
+            metadata: dict[str, Any] = {
+                "provenance": _RAW_PROVENANCE,
+                "acquisition_mode": JetBrainsSource.RAW_DATA.value,
+                "denominator": denominator,
+                "sample_size": denominator,
+                "respondent_count": count,
+                "survey_year": year,
+                "question_wording": wording,
+                "wording_verified": wording_verified,
+            }
+            records.append(
+                SourceRecord(
+                    rating_id=_RATING_ID,
+                    metric_id=derived_metric_id,
+                    language=label,
+                    period_start=date(year, 1, 1),
+                    period_end=date(year, 12, 31),
+                    period_label=str(year),
+                    granularity=Granularity.YEAR,
+                    rank=None,
+                    value=count / denominator * 100.0,
+                    unit=_UNIT_PERCENT,
+                    source_url=source_url,
+                    metadata=metadata,
+                )
+            )
+    return records
+
+
+def _parse_raw(content: bytes) -> list[SourceRecord]:
+    """Parse raw-dump **bytes** into derived ``-raw`` source records (spec 06 symbol).
+
+    Pure over the input bytes: wraps them in a text stream and delegates to
+    :func:`_aggregate_raw`. A ``.zip`` is rejected by magic bytes (JB-SEC-2) and
+    non-UTF-8 bytes raise a :class:`~langrank.errors.ParseError` (JB-SEC-3). The
+    streaming, size-capped file path used by ``langrank import`` is
+    :meth:`JetBrainsProvider.import_path`; this bytes entry point shares the same
+    one-pass aggregation for callers that already hold the content.
+
+    :param content: Raw response-dump CSV bytes.
+    :returns: One ``-raw`` record per (metric, selected option label).
+    :raises ParseError: On a ``.zip`` input, non-UTF-8 bytes, or a malformed CSV.
+    """
+    _reject_zip(content[: len(_ZIP_MAGIC[0])])
+    stream = io.TextIOWrapper(io.BytesIO(content), encoding="utf-8-sig", newline="")
+    try:
+        return _aggregate_raw(stream)
+    except UnicodeDecodeError as exc:
+        raise ParseError("jetbrains raw import: content must be UTF-8 encoded.") from exc
