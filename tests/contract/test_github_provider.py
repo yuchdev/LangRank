@@ -154,24 +154,24 @@ def test_github_innovation_graph_global_pushers_are_sum_over_economies(tmp_path:
 def test_github_innovation_graph_rank_orders_by_share(tmp_path: Path) -> None:
     """The derived global rank orders mapped languages by descending pusher share.
 
-    In both fixture quarters JavaScript > Python > C++ by pushers, so the ranks
-    must be 1/2/3 respectively; a mis-ordered rank would silently rewrite a
-    language's history.
+    In both fixture quarters JavaScript > Python > C++ > Solidity by pushers, so
+    the ranks must be 1/2/3/4 respectively; a mis-ordered rank would silently
+    rewrite a language's history.
     """
     _, observations = _ig_observations(tmp_path)
     for quarter in ("2025-Q4", "2026-Q1"):
         ranks = {
             o.language_id: o.rank for o in observations if o.metric_id == METRIC_IG_RANK and o.period_label == quarter
         }
-        assert ranks == {"javascript": 1, "python": 2, "c++": 3}
+        assert ranks == {"javascript": 1, "python": 2, "c++": 3, "solidity": 4}
 
 
 def test_github_innovation_graph_share_denominator_includes_all_published(tmp_path: Path) -> None:
     """Shares divide by total pushers across *all* published names, mapped or not.
 
-    Unmapped (Solidity) and non-language (HTML, Jupyter Notebook) rows never become
-    observations, yet they must remain in the share denominator so shares are
-    comparable across quarters and never overstated.
+    Non-language (HTML, Jupyter Notebook) rows never become observations, yet they
+    must remain in the share denominator so shares are comparable across quarters
+    and never overstated.
     """
     _, observations = _ig_observations(tmp_path)
     published_2025q4 = (
@@ -180,7 +180,7 @@ def test_github_innovation_graph_share_denominator_includes_all_published(tmp_pa
         + (124540 + 106637 + 27510)  # C++
         + (142793 + 180703 + 27940)  # Jupyter Notebook (non-language)
         + (615740 + 992413 + 287881)  # HTML (non-language)
-        + (6453 + 11814 + 1240)  # Solidity (unmapped)
+        + (6453 + 11814 + 1240)  # Solidity (mapped since the 2026-09-26 catalog expansion)
     )
     python_share = next(
         o
@@ -192,23 +192,31 @@ def test_github_innovation_graph_share_denominator_includes_all_published(tmp_pa
     assert python_share.metadata_json["denominator_count"] == float(published_2025q4)
     # A share can never exceed 100 %, and no non-language leaked in as a language id.
     ids = {o.language_id for o in observations}
-    assert ids == {"python", "javascript", "c++"}
+    assert ids == {"python", "javascript", "c++", "solidity"}
+
+
+#: A clearly synthetic Linguist name appended in-test (never written to the live
+#: fixture): every real name in the captured slice now resolves or is a documented
+#: non-language, so the unmapped path needs an explicit stand-in.
+_SYNTHETIC_UNMAPPED_ROW = b"1000,Zzz Synthetic Unlisted,programming,US,2025,4\n"
 
 
 def test_github_innovation_graph_reports_unmapped_suppresses_non_languages(tmp_path: Path) -> None:
-    """Solidity is reported unmapped; HTML / Jupyter Notebook are silently excluded.
+    """An unlisted name is reported unmapped; HTML / Jupyter Notebook are silently excluded.
 
     A genuinely unlisted Linguist name must surface as an ``unmapped_language``
     warning (never silently dropped), while documented non-language formats are
     excluded without noise. Either way none of them becomes a language observation.
     """
-    provider, observations = _ig_observations(tmp_path)
-    assert provider.last_unmapped == ["Solidity"]
+    provider = _innovation_graph(tmp_path)
+    content = (_FIXTURES / "innovation_graph_languages.csv").read_bytes() + _SYNTHETIC_UNMAPPED_ROW
+    observations = provider.normalize(provider.parse(FetchPayload(artifact=None, content=content)))
+    assert provider.last_unmapped == ["Zzz Synthetic Unlisted"]
     report = provider.validate(observations)
     assert report.ok  # unmapped is a WARNING, not an ERROR
     unmapped_codes = [issue for issue in report.issues if issue.code == "unmapped_language"]
     assert len(unmapped_codes) == 1
-    assert "Solidity" in unmapped_codes[0].message
+    assert "Zzz Synthetic Unlisted" in unmapped_codes[0].message
     assert "HTML" not in provider.last_unmapped
     assert "Jupyter Notebook" not in provider.last_unmapped
 

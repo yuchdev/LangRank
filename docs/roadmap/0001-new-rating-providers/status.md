@@ -9,7 +9,7 @@ Updated as each task lands.
 |------|--------------------------------------------|----------------|-------|
 | 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
 | 02.0 | GitHub Provider                             | ✅ Complete | `test_github_{metadata,innovation_graph,innovation_graph_normalize,octoverse,validate}.py`, `test_periods.py`, `contract/test_github_provider.py` |
-| 03.0 | IEEE Spectrum Provider                      | 🔶 In progress (3/8 subtasks) | -     |
+| 03.0 | IEEE Spectrum Provider                      | 🔶 In progress (4/8 subtasks) | -     |
 | 04.0 | JetBrains Developer Ecosystem Provider      | ⬜ Not started | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
@@ -76,6 +76,16 @@ check, ruff format --check, mypy, pytest) is green on that baseline.
   the Octoverse numbered alt text - it is not chart-geometry/pixel extraction, which stays
   forbidden. Article prose is the fallback only where no data file exists; values are never
   estimated.
+- **2026-09-26 - Ruling (loop), catalog expansion for IEEE labels:** the curated IEEE dataset carries
+  26 labels outside the catalog. Applying the user's HTML/Arduino/HDL principle (general-purpose or
+  domain programming languages are tracked; markup, dialects, targets and tool environments are
+  not): **21 added as canonical languages** - ABAP, Apex, Clojure, CoffeeScript, D, Eiffel, Elm,
+  Erlang, F#, Forth, J, Lisp, Mathematica, OCaml, Pascal, Prolog, Raku, SAS, Scheme, Solidity,
+  Tcl; **5 added to `IEEE_UNTRACKED_LABELS`** - `Cuda` (C++ dialect), `WebAssembly` (compilation
+  target), `LabView` / `Ladder Logic` (graphical/PLC environments), `Pascal/Delphi` (IEEE
+  2022-2023 combined category; mapping it would merge two languages). Additive only: no existing
+  golden value changed; the GitHub Innovation Graph golden gained `solidity` rows (previously its
+  unmapped example - the unmapped contract test now uses a clearly synthetic in-test row).
 
 ## Decomposition tree (as planned)
 

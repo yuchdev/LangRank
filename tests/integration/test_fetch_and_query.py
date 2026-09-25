@@ -152,7 +152,7 @@ def test_github_fetch_both_variants_and_query(tmp_path: Path) -> None:
     service = FetchService(database)
 
     ig_summary = service.fetch(GitHubProvider(ig_cache), FetchRequest(offline=True, source="innovation-graph"))
-    assert ig_summary.validation_report.ok  # Solidity is an unmapped WARNING, not an ERROR
+    assert ig_summary.validation_report.ok
     assert ig_summary.records_inserted > 0
 
     oct_summary = service.fetch(GitHubProvider(tmp_path / "cache-oct"), FetchRequest(source="octoverse"))
@@ -170,7 +170,7 @@ def test_github_fetch_both_variants_and_query(tmp_path: Path) -> None:
     )
     assert ig_ranks
     q4_ranks = {row.language_id: row.rank for row in ig_ranks if row.period_label == "2025-Q4"}
-    assert q4_ranks == {"javascript": 1, "python": 2, "c++": 3}
+    assert q4_ranks == {"javascript": 1, "python": 2, "c++": 3, "solidity": 4}
 
     ig_shares = QueryService(database).query(
         QueryFilters(rating_id="github", metric_id=METRIC_IG_SHARE, since=date(2025, 1, 1), until=date(2026, 3, 31))

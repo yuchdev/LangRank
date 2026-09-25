@@ -31,9 +31,10 @@ The 180k-row file was filtered to the Cartesian slice of:
 - **3 economies:** `US`, `IN`, `BR` (`iso2_code`);
 - **6 Linguist names:** `Python`, `JavaScript`, `C++` (mapped), plus
   `Jupyter Notebook` and `HTML` (documented `GITHUB_NON_LANGUAGES`, excluded from
-  the language series but kept in the share denominator) and `Solidity` (a real
-  Linguist language absent from this project's canonical catalog, so it surfaces
-  as an `unmapped_language` warning).
+  the language series but kept in the share denominator) and `Solidity` (captured
+  as an unmapped language; since the 2026-09-26 catalog expansion it is a mapped
+  canonical language, so the unmapped-warning contract test appends a clearly
+  synthetic row in-test instead - this fixture file is unchanged).
 
 All 36 cells (2 × 3 × 6) are present at the pinned commit — no `>=100`-developer
 suppression gaps in this slice — so every `num_pushers` value below is the

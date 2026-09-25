@@ -118,12 +118,12 @@ def test_cli_fetch_all_offline_all_providers_succeed(tmp_path: Path) -> None:
     # stackoverflow-tags; --source auto selects innovation-graph (octoverse needs
     # --source octoverse).
     #
-    # ieee-spectrum is registered (subtask 03.0/03) but its fetch is still a stub
-    # until subtask 04 lands the curated bundled CSV, so its offline cache cannot be
-    # seeded yet. The run reports ieee-spectrum FAILED with a "lands in subtask"
-    # message and exits non-zero. Provider execution is independent, so every
-    # implemented provider still reports SUCCESS; this assertion flips back to
-    # all-SUCCESS once subtask 04 lands the bundled dataset.
+    # ieee-spectrum now reads its curated bundled CSV in fetch (subtask 03.0/04), but
+    # parse/normalize are still stubs until subtask 05, so the pipeline fails at parse.
+    # The run reports ieee-spectrum FAILED with a "lands in subtask" message (now
+    # "parse lands in subtask 05") and exits non-zero. Provider execution is
+    # independent, so every implemented provider still reports SUCCESS; this assertion
+    # flips back to all-SUCCESS once subtask 05 lands parse/normalize.
     _seed_stackoverflow_tags_cache(cache_path)
     _seed_github_innovation_graph_cache(cache_path)
     result = runner.invoke(

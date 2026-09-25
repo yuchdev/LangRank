@@ -224,7 +224,20 @@ def test_ieee_dataset_labels_all_accounted_for() -> None:
 
 
 def test_ieee_untracked_labels_expected_contents() -> None:
-    assert IEEE_UNTRACKED_LABELS == frozenset({"HTML", "Arduino", "Verilog", "VHDL", "Visual Basic"})
+    assert IEEE_UNTRACKED_LABELS == frozenset(
+        {
+            "HTML",
+            "Arduino",
+            "Verilog",
+            "VHDL",
+            "Visual Basic",
+            "Cuda",
+            "WebAssembly",
+            "LabView",
+            "Ladder Logic",
+            "Pascal/Delphi",
+        }
+    )
 
 
 def test_seed_languages_persists_rating_scoped_alias(database: Database) -> None:

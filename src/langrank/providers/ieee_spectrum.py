@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from enum import StrEnum
 from pathlib import Path
+from typing import Optional
 
+from langrank.errors import ProviderError
 from langrank.models import (
     FetchRequest,
     Granularity,
@@ -18,6 +20,7 @@ from langrank.models import (
 )
 from langrank.normalization import LanguageNormalizer
 from langrank.providers.base import FetchPayload
+from langrank.providers.common import payload_from_content
 
 #: Stable rating id, used across the pipeline and as every metric-id prefix.
 _RATING_ID = "ieee-spectrum"
@@ -29,6 +32,36 @@ PARSER_VERSION = "ieee-spectrum-v1"
 #: row carries its own per-edition ``source_url`` (subtask 04), so this is only
 #: the artifact-level provenance URL.
 HOMEPAGE = "https://spectrum.ieee.org/top-programming-languages-2025"
+
+#: Curated, repo-committed edition dataset read at :meth:`IeeeSpectrumProvider.fetch`
+#: time (manual transcription only, 0 network requests). Columns:
+#: ``year,profile,rank,language,score,source_url,published_at,methodology_version``.
+DATA_PATH = Path(__file__).parent / "data" / "ieee_spectrum.csv"
+
+#: ``--source`` values that select the only supported acquisition mode (the bundled,
+#: manually transcribed CSV). ``None`` and ``"auto"`` fall through to it because
+#: there is no network source; any other value is rejected with a
+#: :class:`~langrank.errors.ProviderError`.
+_BUNDLED_SOURCES: frozenset[Optional[str]] = frozenset({None, "auto", "bundled"})
+
+#: ``derivation_method`` stamped on every **rank** observation in subtask 05. IEEE's
+#: Flourish data file publishes only per-language scores, never a rank column, so we
+#: compute the rank ourselves with standard competition ranking (ties share a rank,
+#: the next distinct score skips the tied positions). Rank observations are therefore
+#: ``is_derived=True``; score observations are ``is_derived=False`` (published raw).
+RANK_DERIVATION_METHOD = "rank_by_published_score"
+
+#: Published-score scale per edition, kept so subtask 05 never rescales a score. The
+#: ``score`` column is IEEE's own figure from that edition's Flourish published data
+#: file, stored exactly as published: 2022 is on a 0-100 scale, 2023-2025 on a 0-1
+#: scale. The scale is edition-specific and scores are never comparable across
+#: editions, so no normalization or rescaling is applied - the raw value is stored.
+SCORE_SCALE_BY_YEAR: dict[int, str] = {
+    2022: "0-100",
+    2023: "0-1",
+    2024: "0-1",
+    2025: "0-1",
+}
 
 
 class IeeeProfile(StrEnum):
@@ -159,16 +192,24 @@ class IeeeSpectrumProvider:
     Each edition re-weights one metric set into several ranking *profiles*
     (:class:`IeeeProfile`); every profile is stored as its **own** metric pair
     (``ieee-spectrum-{profile}-rank`` / ``ieee-spectrum-{profile}-score``), so a
-    query never mixes profiles into one series. The published score is IEEE's own
-    relative figure (top language = 100) and is stored raw (``is_derived=False``,
-    landed in subtask 05). The score is renormalized per edition and the metric set
-    changes between editions, so ranks and scores are **not comparable across
-    editions** and only comparable within one edition's one profile.
+    query never mixes profiles into one series. The published ``score`` is IEEE's own
+    figure from the edition's Flourish published data file, stored exactly as
+    published (``is_derived=False``, landed in subtask 05); its scale is
+    edition-specific (:data:`SCORE_SCALE_BY_YEAR` - 2022 on 0-100, 2023-2025 on 0-1)
+    and is never rescaled. IEEE's data file has no rank column, so **rank** is
+    computed by this project from the published scores (competition ranking, ties
+    share a rank) and is therefore ``is_derived=True`` with
+    ``derivation_method=`` :data:`RANK_DERIVATION_METHOD` (subtask 05). The score is
+    renormalized per edition and the metric set changes between editions, so ranks
+    and scores are **not comparable across editions** and only comparable within one
+    edition's one profile.
 
     Acquisition is manual transcription only: there is no downloadable dataset and
-    no network fetch (0 requests). The curated bundled CSV and the
-    ``langrank import`` path land in subtask 04; the pipeline methods here are
-    honest stubs until then.
+    no network fetch (0 requests). :meth:`fetch` reads the curated bundled CSV
+    (:data:`DATA_PATH`); parse/normalize/validate remain honest stubs until
+    subtasks 05-06. One data-integrity note carried for subtask 05: the 2025
+    ``trending`` edition's data file listed ABAP twice with different scores, so both
+    ambiguous rows were dropped from the curated CSV (other ranks unchanged).
 
     :ivar provider_id: Stable rating ID used across the pipeline.
     """
@@ -259,16 +300,44 @@ class IeeeSpectrumProvider:
         )
 
     def fetch(self, request: FetchRequest) -> FetchPayload:
-        """Read the curated IEEE Spectrum edition dataset (lands in subtask 04).
+        """Read the curated IEEE Spectrum edition dataset from the bundled CSV.
 
-        Acquisition is manual transcription only - a bundled CSV read with no
-        network request - but the curated dataset and its reader land in subtask 04.
+        Acquisition is manual transcription only: no network request is ever issued
+        (request budget 0). The bytes come from the repo-committed
+        :data:`DATA_PATH`, whose integrity is assured by code review. ``--source``
+        must be unset, ``auto`` or ``bundled`` - there is no network source, so any
+        other value is rejected rather than guessed. The artifact ``url`` is the
+        provider homepage; each row carries its own per-edition ``source_url`` for
+        the parser (subtask 05). The ``since`` / ``until`` / ``years`` window is
+        applied after parse (subtask 05), not here.
 
-        :param request: Fetch parameters (unused until subtask 04).
-        :returns: The raw curated-CSV fetch payload.
-        :raises NotImplementedError: Until subtask 04 lands the bundled dataset.
+        :param request: Fetch parameters; only ``source`` (validated here) and
+            ``no_cache`` are honoured at this stage.
+        :returns: The raw curated-CSV fetch payload for the bundled edition dataset.
+        :raises ProviderError: If ``--source`` is neither unset/``auto`` nor
+            ``bundled`` (the only supported acquisition mode).
         """
-        raise NotImplementedError("ieee-spectrum fetch lands in subtask 04.")
+        if request.source not in _BUNDLED_SOURCES:
+            valid = ", ".join(["auto", "bundled"])
+            raise ProviderError(
+                f"unknown --source {request.source!r} for ieee-spectrum; the only source is the bundled, "
+                f"manually transcribed dataset (valid: {valid})."
+            )
+        content = DATA_PATH.read_bytes()
+        return payload_from_content(
+            provider_id=self.provider_id,
+            cache_dir=self._cache_dir,
+            url=HOMEPAGE,
+            content=content,
+            mime_type="text/csv",
+            metadata_json={
+                "mode": "bundled",
+                "provenance": "manual_transcription",
+                "data_origin": "flourish_published_data",
+                "source_document_id": _RATING_ID,
+            },
+            no_cache=request.no_cache,
+        )
 
     def parse(self, raw: FetchPayload) -> list[SourceRecord]:
         """Parse the curated edition CSV into per-profile source records (subtask 05).

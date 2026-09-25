@@ -75,7 +75,12 @@ GITHUB_NON_LANGUAGES: frozenset[str] = frozenset(
 #: folded into ``vb.net``. A provider must consult this set *before* attempting
 #: resolution so these documented labels are skipped without emitting an
 #: ``unmapped_language`` warning; any IEEE label neither in this set nor
-#: resolvable should still warn downstream.
+#: resolvable should still warn downstream. By the same principle (2026-09-26
+#: loop ruling, same status.md): ``Cuda`` is a C++ dialect, ``WebAssembly`` a
+#: compilation target, ``LabView`` and ``Ladder Logic`` graphical/PLC
+#: environments, and ``Pascal/Delphi`` (IEEE 2022-2023) an ambiguous combined
+#: category - mapping it to either ``pascal`` or ``delphi`` would merge two
+#: languages.
 IEEE_UNTRACKED_LABELS: frozenset[str] = frozenset(
     {
         "HTML",
@@ -83,6 +88,11 @@ IEEE_UNTRACKED_LABELS: frozenset[str] = frozenset(
         "Verilog",
         "VHDL",
         "Visual Basic",
+        "Cuda",
+        "WebAssembly",
+        "LabView",
+        "Ladder Logic",
+        "Pascal/Delphi",
     }
 )
 
@@ -156,6 +166,27 @@ class LanguageNormalizer:
             CanonicalLanguage("cobol", "COBOL", ()),
             CanonicalLanguage("ada", "Ada", ()),
             CanonicalLanguage("delphi", "Delphi", ()),
+            CanonicalLanguage("abap", "ABAP", ()),
+            CanonicalLanguage("apex", "Apex", ()),
+            CanonicalLanguage("clojure", "Clojure", ()),
+            CanonicalLanguage("coffeescript", "CoffeeScript", ()),
+            CanonicalLanguage("d", "D", ()),
+            CanonicalLanguage("eiffel", "Eiffel", ()),
+            CanonicalLanguage("elm", "Elm", ()),
+            CanonicalLanguage("erlang", "Erlang", ()),
+            CanonicalLanguage("f#", "F#", ()),
+            CanonicalLanguage("forth", "Forth", ()),
+            CanonicalLanguage("j", "J", ()),
+            CanonicalLanguage("lisp", "Lisp", ()),
+            CanonicalLanguage("mathematica", "Mathematica", ()),
+            CanonicalLanguage("ocaml", "OCaml", ()),
+            CanonicalLanguage("pascal", "Pascal", ()),
+            CanonicalLanguage("prolog", "Prolog", ()),
+            CanonicalLanguage("raku", "Raku", ()),
+            CanonicalLanguage("sas", "SAS", ()),
+            CanonicalLanguage("scheme", "Scheme", ()),
+            CanonicalLanguage("solidity", "Solidity", ()),
+            CanonicalLanguage("tcl", "Tcl", ()),
         ]
         self._lookup: dict[str, str] = {}
         for language in self._languages:
