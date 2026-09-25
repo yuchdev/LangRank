@@ -8,16 +8,16 @@
 
 | #  | Subtask | Role | Depends on | Status |
 |----|---------|------|------------|--------|
-| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ⬜ Not started |
-| 02 | [Quarterly granularity](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/02-quarterly-granularity.md) | Python Expert | - | ⬜ Not started |
-| 03 | [Linguist language aliases](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/03-linguist-aliases.md) | Python Expert | 01.0/02 | ⬜ Not started |
-| 04 | [Provider metadata, variants & registry entry](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/04-metadata-variants-and-registry.md) | Python Expert | 02, 03 | ⬜ Not started |
-| 05 | [Innovation Graph fetch & parse](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/05-innovation-graph-fetch-and-parse.md) | Python Expert | 04, 01.0/04 | ⬜ Not started |
-| 06 | [Innovation Graph normalize: global aggregation, share & rank](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/06-innovation-graph-normalize.md) | Python Expert | 05 | ⬜ Not started |
-| 07 | [Octoverse annual rankings dataset](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/07-octoverse-annual-rankings.md) | Python Expert | 04 | ⬜ Not started |
-| 08 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/08-validate.md) | Python Expert | 06, 07 | ⬜ Not started |
-| 09 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/09-fixtures-and-contract-tests.md) | Testing Expert | 08, 01.0/07 | ⬜ Not started |
-| 10 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/10-docs.md) | Docs Writer | 09 | ⬜ Not started |
+| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ✅ Complete |
+| 02 | [Quarterly granularity](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/02-quarterly-granularity.md) | Python Expert | - | ✅ Complete |
+| 03 | [Linguist language aliases](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/03-linguist-aliases.md) | Python Expert | 01.0/02 | ✅ Complete |
+| 04 | [Provider metadata, variants & registry entry](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/04-metadata-variants-and-registry.md) | Python Expert | 02, 03 | ✅ Complete |
+| 05 | [Innovation Graph fetch & parse](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/05-innovation-graph-fetch-and-parse.md) | Python Expert | 04, 01.0/04 | ✅ Complete |
+| 06 | [Innovation Graph normalize: global aggregation, share & rank](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/06-innovation-graph-normalize.md) | Python Expert | 05 | ✅ Complete |
+| 07 | [Octoverse annual rankings dataset](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/07-octoverse-annual-rankings.md) | Python Expert | 04 | ✅ Complete |
+| 08 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/08-validate.md) | Python Expert | 06, 07 | ✅ Complete |
+| 09 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/09-fixtures-and-contract-tests.md) | Testing Expert | 08, 01.0/07 | ✅ Complete |
+| 10 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/10-docs.md) | Docs Writer | 09 | ✅ Complete |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 

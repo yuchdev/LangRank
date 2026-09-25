@@ -8,14 +8,14 @@
 
 | #  | Subtask | Role | Depends on | Status |
 |----|---------|------|------------|--------|
-| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ⬜ Not started |
-| 02 | [IEEE language aliases](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/02-ieee-aliases.md) | Python Expert | 01.0/02 | ⬜ Not started |
-| 03 | [Provider metadata, profiles & registry entry](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/03-metadata-profiles-and-registry.md) | Python Expert | 02 | ⬜ Not started |
-| 04 | [Curated edition dataset & fetch/import path](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/04-curated-dataset-and-fetch.md) | Python Expert | 01, 03 | ⬜ Not started |
-| 05 | [Parse & normalize per profile](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/05-parse-and-normalize.md) | Python Expert | 04 | ⬜ Not started |
-| 06 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/06-validate.md) | Python Expert | 05 | ⬜ Not started |
-| 07 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/07-fixtures-and-contract-tests.md) | Testing Expert | 06, 01.0/07 | ⬜ Not started |
-| 08 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/08-docs.md) | Docs Writer | 07 | ⬜ Not started |
+| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ✅ Complete |
+| 02 | [IEEE language aliases](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/02-ieee-aliases.md) | Python Expert | 01.0/02 | ✅ Complete |
+| 03 | [Provider metadata, profiles & registry entry](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/03-metadata-profiles-and-registry.md) | Python Expert | 02 | ✅ Complete |
+| 04 | [Curated edition dataset & fetch/import path](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/04-curated-dataset-and-fetch.md) | Python Expert | 01, 03 | ✅ Complete |
+| 05 | [Parse & normalize per profile](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/05-parse-and-normalize.md) | Python Expert | 04 | ✅ Complete (rank derived from published scores - see status.md) |
+| 06 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/06-validate.md) | Python Expert | 05 | ✅ Complete |
+| 07 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/07-fixtures-and-contract-tests.md) | Testing Expert | 06, 01.0/07 | ✅ Complete |
+| 08 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/08-docs.md) | Docs Writer | 07 | ✅ Complete |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 

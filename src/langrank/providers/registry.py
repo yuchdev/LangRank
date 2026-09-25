@@ -5,9 +5,13 @@ from pathlib import Path
 from langrank.errors import ProviderError
 from langrank.providers.base import RatingProvider
 from langrank.providers.demo import DemoProvider
+from langrank.providers.github import GitHubProvider
+from langrank.providers.ieee_spectrum import IeeeSpectrumProvider
+from langrank.providers.jetbrains import JetBrainsProvider
 from langrank.providers.pypl import PyplProvider
 from langrank.providers.redmonk import RedMonkProvider
 from langrank.providers.stackoverflow_survey import StackOverflowSurveyProvider
+from langrank.providers.stackoverflow_tags import StackOverflowTagsProvider
 from langrank.providers.tiobe import TiobeProvider
 
 
@@ -19,6 +23,10 @@ class ProviderRegistry:
             "pypl": PyplProvider(cache_dir),
             "redmonk": RedMonkProvider(cache_dir),
             "stackoverflow-survey": StackOverflowSurveyProvider(cache_dir),
+            "stackoverflow-tags": StackOverflowTagsProvider(cache_dir),
+            "github": GitHubProvider(cache_dir),
+            "ieee-spectrum": IeeeSpectrumProvider(cache_dir),
+            "jetbrains": JetBrainsProvider(cache_dir),
         }
 
     def get(self, provider_id: str) -> RatingProvider:

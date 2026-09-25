@@ -1,0 +1,21 @@
+respondent_id,country,proglang::Python,proglang::Java,proglang::C++,proglang::Kotlin,proglang::Other,proglang::I don't use programming languages,comment_freetext,primary_lang::Python,primary_lang::Java,primary_lang::Kotlin,adopt_proglang::Rust,adopt_proglang::Go
+R1,Somewhere,Python,Java,C++,,,,alice.secret@example.com wrote: '); DROP TABLE observations;-- SSN 000-00-0000,Python,,,Rust,
+R2,Somewhere,Python,Java,,,,,,Python,,,Rust,Go
+R3,Somewhere,Python,Java,,,,,,,Java,,,Go
+R4,Somewhere,Python,Java,,,,,,,Java,,,
+R5,Somewhere,Python,,C++,,,,,Python,,,,
+R6,Somewhere,Python,,,Kotlin,,,,,,Kotlin,,Go
+R7,Somewhere,Python,,,,,,,Python,,,,
+R8,Somewhere,Python,,,,,,,,Java,,,
+R9,Somewhere,Python,,,,,,,,Java,,,
+R10,Somewhere,Python,,,,,,,,,,,
+R11,Somewhere,,Java,,Kotlin,,,,,,Kotlin,,
+R12,Somewhere,,Java,,,,,,,,,,
+R13,Somewhere,,,C++,,,,,,,,Rust,
+R14,Somewhere,,,,Kotlin,,,,,,,,
+R15,Somewhere,,,,,Other,,,,,,,
+R16,Somewhere,,,,,,I don't use programming languages,,,,,,
+R17,Somewhere,,,,,,,,Python,,,,Go
+R18,Somewhere,,,,,,,,,,,Rust,
+R19,Somewhere,,,,,,,,,Java,,,
+R20,Somewhere,,,,,,,,,,,,
