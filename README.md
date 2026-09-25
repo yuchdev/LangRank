@@ -34,6 +34,7 @@ The application now includes working providers for:
 - `redmonk`
 - `stackoverflow-survey`
 - `stackoverflow-tags` - monthly question activity per language tag (see [docs/providers.md](/docs/providers.md))
+- `github` - Innovation Graph quarterly pusher data and Octoverse annual rankings (see [docs/providers.md](/docs/providers.md))
 - `demo` (synthetic offline dataset for development)
 
 ```bash

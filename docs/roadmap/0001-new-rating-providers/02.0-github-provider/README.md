@@ -17,7 +17,7 @@
 | 07 | [Octoverse annual rankings dataset](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/07-octoverse-annual-rankings.md) | Python Expert | 04 | ✅ Complete |
 | 08 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/08-validate.md) | Python Expert | 06, 07 | ✅ Complete |
 | 09 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/09-fixtures-and-contract-tests.md) | Testing Expert | 08, 01.0/07 | ⬜ Not started |
-| 10 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/10-docs.md) | Docs Writer | 09 | ⬜ Not started |
+| 10 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/10-docs.md) | Docs Writer | 09 | ✅ Complete |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 

@@ -4,7 +4,7 @@
 
 - [architecture.md](/docs/architecture.md) - System architecture overview.
 - [data-model.md](/docs/data-model.md) - Observation model, derived fields, provenance chain.
-- [providers.md](/docs/providers.md) - Provider reference: demo, stackoverflow-tags, and others.
+- [providers.md](/docs/providers.md) - Provider reference: demo, stackoverflow-tags, github, and others.
 
 ## Source notes
 
@@ -15,10 +15,12 @@ Per-provider acquisition policy, quota limits, terms, and methodology gate verdi
 - [source-notes/pypl.md](/docs/source-notes/pypl.md)
 - [source-notes/redmonk.md](/docs/source-notes/redmonk.md)
 - [source-notes/stackoverflow-survey.md](/docs/source-notes/stackoverflow-survey.md)
+- [source-notes/github.md](/docs/source-notes/github.md)
 
 ## Security
 
 - [security/2026-09-25-stackoverflow-tags-fetch.md](/docs/security/2026-09-25-stackoverflow-tags-fetch.md) - Threat model and re-audit for stackoverflow-tags fetch.
+- [security/2026-09-25-github-fetch.md](/docs/security/2026-09-25-github-fetch.md) - Threat model and re-audit for github fetch (Innovation Graph and Octoverse).
 
 ## Testing
 
