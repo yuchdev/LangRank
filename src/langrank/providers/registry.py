@@ -7,6 +7,7 @@ from langrank.providers.base import RatingProvider
 from langrank.providers.demo import DemoProvider
 from langrank.providers.github import GitHubProvider
 from langrank.providers.ieee_spectrum import IeeeSpectrumProvider
+from langrank.providers.jetbrains import JetBrainsProvider
 from langrank.providers.pypl import PyplProvider
 from langrank.providers.redmonk import RedMonkProvider
 from langrank.providers.stackoverflow_survey import StackOverflowSurveyProvider
@@ -25,6 +26,7 @@ class ProviderRegistry:
             "stackoverflow-tags": StackOverflowTagsProvider(cache_dir),
             "github": GitHubProvider(cache_dir),
             "ieee-spectrum": IeeeSpectrumProvider(cache_dir),
+            "jetbrains": JetBrainsProvider(cache_dir),
         }
 
     def get(self, provider_id: str) -> RatingProvider:

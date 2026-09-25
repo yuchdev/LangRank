@@ -11,7 +11,7 @@
 | 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ✅ Complete |
 | 02 | [Survey question registry](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/02-survey-question-registry.md) | Python Expert | 01 | ✅ Complete |
 | 03 | [JetBrains language aliases](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/03-jetbrains-aliases.md) | Python Expert | 01.0/02 | ✅ Complete |
-| 04 | [Provider metadata & registry entry](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/04-metadata-and-registry.md) | Python Expert | 02, 03 | ⬜ Not started |
+| 04 | [Provider metadata & registry entry](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/04-metadata-and-registry.md) | Python Expert | 02, 03 | ✅ Complete |
 | 05 | [Published-percentages dataset: fetch, parse, normalize](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/05-published-percentages.md) | Python Expert | 04 | ⬜ Not started |
 | 06 | [Raw-data import: derived respondent shares](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/06-raw-data-import.md) | Python Expert | 05 | ⬜ Not started |
 | 07 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/07-validate.md) | Python Expert | 05, 06 | ⬜ Not started |

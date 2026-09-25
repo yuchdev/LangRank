@@ -123,13 +123,20 @@ def test_cli_fetch_all_offline_all_providers_succeed(tmp_path: Path) -> None:
     # completes parse/normalize/validate offline (subtasks 05/06), so the whole
     # pipeline runs with zero network requests and reports SUCCESS like every other
     # provider.
+    #
+    # jetbrains is registered (subtask 04.0/04) but its fetch is still a stub until
+    # subtask 05 lands the curated bundled CSV, so its offline cache cannot be seeded
+    # yet. The run reports jetbrains FAILED with a "lands in subtask" message and
+    # exits non-zero. Provider execution is independent, so every implemented provider
+    # still reports SUCCESS; this assertion flips back to all-SUCCESS once subtask 05
+    # lands the bundled dataset.
     _seed_stackoverflow_tags_cache(cache_path)
     _seed_github_innovation_graph_cache(cache_path)
     result = runner.invoke(
         app,
         ["--db", str(db_path), "--cache", str(cache_path), "fetch", "all", "--offline", "--years", "10"],
     )
-    assert result.exit_code == 0, result.stdout
+    assert result.exit_code == 1, result.stdout
     assert "success tiobe" in result.stdout.lower()
     assert "success pypl" in result.stdout.lower()
     assert "success redmonk" in result.stdout.lower()
@@ -137,8 +144,10 @@ def test_cli_fetch_all_offline_all_providers_succeed(tmp_path: Path) -> None:
     assert "success stackoverflow-tags" in result.stdout.lower()
     assert "success github" in result.stdout.lower()
     assert "success ieee-spectrum" in result.stdout.lower()
-    # A clean offline replay of every provider emits no validation errors and no failures.
-    assert "failed" not in result.stdout.lower()
+    # The jetbrains stub is the only failure and it names the subtask that lands it.
+    assert "failed  jetbrains" in result.stdout.lower()
+    assert "lands in subtask" in result.stdout.lower()
+    # A clean offline replay of the implemented providers emits no validation errors.
     assert "[error]" not in result.stdout.lower()
 
 
