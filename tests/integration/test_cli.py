@@ -116,21 +116,29 @@ def test_cli_fetch_all_offline_all_providers_succeed(tmp_path: Path) -> None:
     # github's innovation-graph pipeline (fetch->parse->normalize->validate) now
     # completes offline (subtasks 05/06/08), so its cache is pre-seeded alongside
     # stackoverflow-tags; --source auto selects innovation-graph (octoverse needs
-    # --source octoverse). Provider execution is independent and every implemented
-    # provider now reports SUCCESS.
+    # --source octoverse).
+    #
+    # ieee-spectrum is registered (subtask 03.0/03) but its fetch is still a stub
+    # until subtask 04 lands the curated bundled CSV, so its offline cache cannot be
+    # seeded yet. The run reports ieee-spectrum FAILED with a "lands in subtask"
+    # message and exits non-zero. Provider execution is independent, so every
+    # implemented provider still reports SUCCESS; this assertion flips back to
+    # all-SUCCESS once subtask 04 lands the bundled dataset.
     _seed_stackoverflow_tags_cache(cache_path)
     _seed_github_innovation_graph_cache(cache_path)
     result = runner.invoke(
         app,
         ["--db", str(db_path), "--cache", str(cache_path), "fetch", "all", "--offline", "--years", "10"],
     )
-    assert result.exit_code == 0, result.stdout
+    assert result.exit_code == 1, result.stdout
     assert "success tiobe" in result.stdout.lower()
     assert "success pypl" in result.stdout.lower()
     assert "success redmonk" in result.stdout.lower()
     assert "success stackoverflow-survey" in result.stdout.lower()
     assert "success stackoverflow-tags" in result.stdout.lower()
     assert "success github" in result.stdout.lower()
-    assert "failed" not in result.stdout.lower()
-    # A clean offline replay of every provider emits no validation errors.
+    # The ieee-spectrum stub is the only failure and it names the subtask that lands it.
+    assert "failed  ieee-spectrum" in result.stdout.lower()
+    assert "lands in subtask" in result.stdout.lower()
+    # A clean offline replay of the implemented providers emits no validation errors.
     assert "[error]" not in result.stdout.lower()
