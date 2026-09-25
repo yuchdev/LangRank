@@ -129,3 +129,12 @@ Editions before 2021 (2014-2019 interactive apps) use the same 11-metric / 8-sou
 Spectrum/Trending/Jobs/Open/Custom presets; they are out of scope for the initial curated dataset and
 can be added later via `langrank import` following the decisions in this note. Every year the curated
 dataset (subtask 04) actually imports must appear as a row above before import.
+- Task-close review (Security Auditor, 2026-09-26): **CLEAR**. Confirmed no HTTP client in
+  `ieee_spectrum.py` (only URL string literals); `langrank import` parse path is hardened
+  (UTF-8/BOM decode with `ParseError`, required-column check, stdlib `csv` - no `eval`,
+  numeric/`rank>0`/`year` validation). Bundled CSV and fixtures carry only the 8 factual columns
+  (no IEEE `Description` prose, no tables-as-text, no images/binaries); golden JSON `metadata_json`
+  holds facts only. Redistribution stance (facts + `source_url` + attribution) reflected. Secrets
+  scan clean. One LOW/informational note: `import` reads the whole CSV into memory
+  (`cli.py: path.read_bytes()`) with no size cap - unbounded memory on a pathological local file;
+  acceptable for a local operator-run CLI, same pattern as bundled `fetch()`.

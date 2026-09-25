@@ -58,6 +58,8 @@ RANK_DERIVATION_METHOD = "rank_by_published_score"
 #: file, stored exactly as published: 2022 is on a 0-100 scale, 2023-2025 on a 0-1
 #: scale. The scale is edition-specific and scores are never comparable across
 #: editions, so no normalization or rescaling is applied - the raw value is stored.
+#: Adding an edition means updating this map, :data:`IEEE_EDITIONS` and the bundled
+#: CSV together; a scored row for a year missing here raises ``ParseError``.
 SCORE_SCALE_BY_YEAR: dict[int, str] = {
     2022: "0-100",
     2023: "0-1",
@@ -718,6 +720,12 @@ def _records_from_row(row: dict[str, Any]) -> list[SourceRecord]:
             score = float(score_raw)
         except ValueError as exc:
             raise ParseError(f"ieee-spectrum score is malformed: {row!r}") from exc
+        scale = SCORE_SCALE_BY_YEAR.get(year)
+        if scale is None:
+            raise ParseError(
+                f"ieee-spectrum edition {year} has no recorded score scale; add it to SCORE_SCALE_BY_YEAR "
+                "(and IEEE_EDITIONS / the source note) before importing its scores."
+            )
         records.append(
             SourceRecord(
                 rating_id=_RATING_ID,
@@ -731,7 +739,7 @@ def _records_from_row(row: dict[str, Any]) -> list[SourceRecord]:
                 value=score,
                 unit="score",
                 source_url=source_url,
-                metadata={**base_metadata, "score_scale": SCORE_SCALE_BY_YEAR.get(year)},
+                metadata={**base_metadata, "score_scale": scale},
             )
         )
     return records

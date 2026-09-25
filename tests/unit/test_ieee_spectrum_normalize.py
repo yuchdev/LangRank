@@ -186,3 +186,12 @@ def test_ieee_bundled_csv_normalizes_with_no_unmapped(tmp_path: Path) -> None:
     )
     assert all(not o.is_derived for o in observations if o.metric_id.endswith("-score"))
     assert payload.content == DATA_PATH.read_bytes()
+
+
+def test_ieee_score_for_unscaled_edition_raises(tmp_path: Path) -> None:
+    content = (
+        b"year,profile,rank,language,score,source_url,published_at,methodology_version\n"
+        b"2021,spectrum,1,Python,100,https://spectrum.ieee.org/x,2021-08-24,ieee-2019-11metrics-8sources\n"
+    )
+    with pytest.raises(ParseError, match="no recorded score scale"):
+        IeeeSpectrumProvider(tmp_path).parse(FetchPayload(artifact=None, content=content))
