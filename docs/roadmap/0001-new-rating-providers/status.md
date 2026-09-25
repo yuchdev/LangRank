@@ -70,6 +70,12 @@ check, ruff format --check, mypy, pytest) is green on that baseline.
   `vb.net` (and re-examining the bootstrap `"visual basic" → vb.net` alias used for TIOBE) is
   deferred to a later milestone with a methodology-break note. Supersedes the 03.0/02 spec row
   `Visual Basic → visual-basic`.
+- **2026-09-26 - Ruling (loop, source interpretation), 03.0 IEEE:** IEEE publishes each edition's
+  full ranking only through an embedded Flourish visualisation. Reading that visualisation's
+  **published data file** (the exact ranks/scores the chart renders) counts as published text, like
+  the Octoverse numbered alt text - it is not chart-geometry/pixel extraction, which stays
+  forbidden. Article prose is the fallback only where no data file exists; values are never
+  estimated.
 
 ## Decomposition tree (as planned)
 
