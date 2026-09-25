@@ -208,3 +208,87 @@ still satisfy the substring assertions in `tests/unit/test_http.py` and
 All three HIGH items (GH-SEC-1/2/3) and both MEDIUM items (GH-SEC-4/5) are implemented and proven by
 unit tests; no CRITICAL or HIGH finding remains. Remaining items are LOW follow-ups. The subtask-05
 diff clears the merge gate.
+
+---
+
+## Task-close review - Task 02.0 (GitHub provider) - 2026-09-25
+
+Scope: `git diff 47c01ab..HEAD` on `milestone/0001-new-rating-providers` (committed
+GitHub provider, `util/http.py`, Octoverse CSV, fixtures, unit/contract tests). Unit +
+contract tests only (77 passed); live tests not run. No product code edited.
+
+### Re-confirmation vs the prior re-audit
+
+- GH-SEC-1 (token header-only, scrubbed, never persisted): PASS, no regression.
+  `_fetch_innovation_graph` reads `GITHUB_TOKEN`, attaches it only as an
+  `Authorization: Bearer` header on the `api.github.com` commits call; the
+  `raw.githubusercontent.com` `get_capped_bytes` call passes no headers
+  (`github.py:485`). Proven by `test_github_innovation_graph.py:142-164` (token absent
+  from raw URL, artifact url/local_path/metadata_json, content, and cache).
+- GH-SEC-2 (40-hex SHA validated before URL build): PASS. `_validate_commit_sha`
+  gates both API-returned and sidecar SHAs (`github.py:875-877, 901, 536`).
+- GH-SEC-3 (raw CSV host-pinned/no-redirect/capped): PASS. `get_capped_bytes`
+  enforces HTTPS + exact `allowed_host`, `follow_redirects=False`, redirect refusal
+  and `IG_MAX_CSV_BYTES` ceiling (`http.py:206-282`).
+- GH-SEC-4 (csv_sha256 + commit_sha recorded and re-verified on replay): PASS.
+  `.meta` sidecar kept out of `_CACHE_EXTENSIONS`; offline replay re-hashes and
+  re-validates (`github.py:510-554`). Residual LOW (cache-owner can rewrite both
+  bytes and sidecar) unchanged and accepted.
+- GH-SEC-5 (CSV shape/numeric validation): PASS. stdlib `csv.DictReader`, named
+  missing-column errors, non-negative `num_pushers`, `quarter` in 1..4, plausible
+  `year`, `ParseError`-wrapped rows, UTF-8 guard (`github.py:904-974`). No SQL
+  injection: `upsert_observations` stays parameterized.
+
+### Prior LOW follow-ups now resolved
+
+- GH-SEC-6: RESOLVED. `_is_transient` (`http.py:22-30`) retries only
+  `_TransientUpstreamError` (429/5xx) and `httpx.TransportError`; 401/403/404, refused
+  redirects and oversized bodies fail fast. Proven by
+  `test_http.py::test_get_json_does_not_retry_client_errors` (401/403/404 -> 1 call),
+  `test_get_json_retries_429_then_succeeds`, `test_get_capped_bytes_does_not_retry_redirect`.
+- GH-SEC-9: RESOLVED. `metadata_json` now carries `requested_since`/`requested_until`
+  plus `commit_sha`, `csv_sha256`, `requests_made` (`github.py:499-503`); asserted by
+  `test_github_innovation_graph.py:99-111`.
+
+### GH-SEC-8 Octoverse (landed in subtask 07)
+
+PASS. `_fetch_octoverse` reads the repo-committed `providers/data/github_octoverse.csv`
+via `read_bytes()` with no network (`github.py:427-453`); `_parse_octoverse` reuses the
+GH-SEC-5 hardening (stdlib csv, named missing-column errors, positive `rank`, plausible
+`year`, known `OctoverseBasis`, `ParseError`-wrapped rows, UTF-8 guard) at
+`github.py:977-1046`. The `octoverse-chart` source is refused with `ProviderError`
+before any resolution (`github.py:413-417`).
+
+### Fixtures, secrets, live gating
+
+- Fixtures contain no token or user content: `innovation_graph_languages.csv` holds only
+  aggregate integer pusher counts + language/`iso2_code`; `octoverse.csv` holds published
+  ranks. Golden JSON is normalized output only.
+- Secret scan of the diff: no real credentials. The only token-shaped strings are
+  synthetic unit-test values (`_FAKE_TOKEN = "ghp_SEKRET..."` and `ghp_liveTOKEN...` scrub
+  inputs) used to assert redaction/non-persistence, not live secrets. Token is read only
+  from `os.environ`; no hard-coded credential.
+- Live test `tests/integration/test_github_live.py` is marked `pytest.mark.live`; the
+  `tests/conftest.py` collection hook skips every `live`-keyworded item unless
+  `LANGRANK_LIVE_TESTS=1`, so plain `uv run pytest`/CI never reaches the network.
+
+### New finding
+
+### [INFO] GH-SEC-10 Dead unhardened `get_bytes` remains a latent trap
+- Vector / evidence: `HttpClientFactory.get_bytes` (`util/http.py:138-153`) still builds
+  its client with `follow_redirects=True`, applies no `allowed_host` pin and no size cap.
+  It has zero callers in `src/` or `tests/` (grep confirmed); the raw CSV correctly uses
+  the hardened `get_capped_bytes`.
+- Impact: none today (unreachable). If a future caller wired it to a download it would
+  reintroduce the original GH-SEC-3 exposure (cross-host redirect / unbounded body;
+  CWE-601, CWE-400).
+- Mitigation (non-blocking follow-up): remove `get_bytes`, or route it through the
+  hardened capped/pinned/no-redirect path. Hand to `python-expert`.
+
+### Task-close verdict: CLEAR (PASS)
+
+No CRITICAL or HIGH finding. All HIGH/MEDIUM mitigations confirmed with no regression;
+the two prior LOW follow-ups (GH-SEC-6, GH-SEC-9) are resolved and tested; Octoverse CSV
+ingestion is safe and offline; fixtures are secret-free; the live test is gated. One
+INFO-level dead-code cleanup (GH-SEC-10) is the only residual. The Task 02.0 diff clears
+the merge gate.

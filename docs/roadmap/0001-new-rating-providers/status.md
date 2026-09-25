@@ -59,6 +59,17 @@ check, ruff format --check, mypy, pytest) is green on that baseline.
   `Go (10)`) count as published text, not chart extraction; chart-geometry/pixel extraction stays
   forbidden. Editions without numbered text (2025 ranks 4+, 2023 and earlier) are omitted, never
   guessed. Recorded per edition in [docs/source-notes/github.md](/docs/source-notes/github.md).
+- **2026-09-26 - Ruling (user), 03.0 data acquisition:** `spectrum.ieee.org/robots.txt` disallows
+  automated crawlers (including AI agents). The user directed one-off, low-volume, user-initiated
+  reads of the individual edition articles to transcribe the curated dataset; no crawling, no
+  scheduled fetch (gate stays `manual-only`, runtime budget 0). Only facts (rank, score, profile,
+  edition URL) are stored - never prose or figures - and only where IEEE presents them as
+  numbered text; chart-geometry extraction stays forbidden.
+- **2026-09-26 - Ruling (user), Visual Basic:** classic `Visual Basic` stays untracked
+  (`IEEE_UNTRACKED_LABELS`, and unmapped VB6 for GitHub) for this milestone; splitting it from
+  `vb.net` (and re-examining the bootstrap `"visual basic" → vb.net` alias used for TIOBE) is
+  deferred to a later milestone with a methodology-break note. Supersedes the 03.0/02 spec row
+  `Visual Basic → visual-basic`.
 
 ## Decomposition tree (as planned)
 
