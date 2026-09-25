@@ -10,7 +10,7 @@ Updated as each task lands.
 | 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
 | 02.0 | GitHub Provider                             | ✅ Complete | `test_github_{metadata,innovation_graph,innovation_graph_normalize,octoverse,validate}.py`, `test_periods.py`, `contract/test_github_provider.py` |
 | 03.0 | IEEE Spectrum Provider                      | ✅ Complete | `test_ieee_spectrum_{metadata,fetch,normalize,validate}.py`, `contract/test_ieee_spectrum_provider.py`, `integration/test_ieee_spectrum_integration.py` |
-| 04.0 | JetBrains Developer Ecosystem Provider      | 🔶 In progress (1/9 subtasks) | -     |
+| 04.0 | JetBrains Developer Ecosystem Provider      | 🔶 In progress (2/9 subtasks) | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -86,6 +86,12 @@ check, ruff format --check, mypy, pytest) is green on that baseline.
   2022-2023 combined category; mapping it would merge two languages). Additive only: no existing
   golden value changed; the GitHub Innovation Graph golden gained `solidity` rows (previously its
   unmapped example - the unmapped contract test now uses a clearly synthetic in-test row).
+- **2026-09-26 - Ruling (loop, source interpretation), 04.0 JetBrains:** published language shares
+  are shown only in JS-rendered chart graphics. Same principle as the Octoverse/IEEE rulings: a
+  percentage JetBrains itself prints (a data label in the chart, or the chart's embedded data if the
+  page ships it) is published text and may be transcribed; estimating a value from bar length or
+  pixel geometry stays forbidden. Unlabelled values are omitted, never guessed. JetBrains robots.txt
+  does not restrict these pages.
 
 ## Decomposition tree (as planned)
 
