@@ -72,7 +72,18 @@ either GitHub variant here.
   text/tables into a curated bundled CSV `src/langrank/providers/data/github_octoverse.csv`
   (`year,rank,language,ranking_basis,source_url,published_at`).
 - Historical availability: per-edition; the note records, for every edition subtask 07 imports, which
-  years expose a top-N list and under which ranking basis.
+  years expose a top-N list and under which ranking basis. Curated in
+  `src/langrank/providers/data/github_octoverse.csv` (verified 2026-09-25):
+  - **2024** (basis `contributors`, published 2024-10-29) - ranks 1-10. #1 Python is in the post
+    prose; ranks 2-10 come from the explicitly numbered labels (`Python (1)` … `Go (10)`) in the
+    ranking chart's published **alt text**. Ruled 2026-09-25: GitHub-authored numbered text counts
+    as published text - it is not chart-geometry/pixel extraction, which stays forbidden.
+  - **2025** (basis `monthly_contributors`, published 2025-10-28) - ranks 1-3 only (numbered in
+    prose and alt text). Ranks 4+ appear only as an unordered "other top languages include …" list
+    and are **omitted**, not guessed.
+  - **2023, 2022, 2021 and earlier - omitted**: prose states at most #1-#2 (2023 skips #2), the
+    rest is chart-only or JS-rendered without numbered text. Adding them would need chart
+    extraction, which is out of scope.
 - Acquisition mechanism: **manual curation only** - no network fetch; values transcribed only from
   text/tables GitHub actually printed. No chart-pixel extraction (`--allow-chart-extraction` is not
   implemented; a `octoverse-chart` source request is a `ProviderError`).

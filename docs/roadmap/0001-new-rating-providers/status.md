@@ -8,7 +8,7 @@ Updated as each task lands.
 | Task | Name                                    | Status         | Tests |
 |------|--------------------------------------------|----------------|-------|
 | 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
-| 02.0 | GitHub Provider                             | 🔶 In progress (6/10 subtasks) | -     |
+| 02.0 | GitHub Provider                             | 🔶 In progress (7/10 subtasks) | -     |
 | 03.0 | IEEE Spectrum Provider                      | ⬜ Not started | -     |
 | 04.0 | JetBrains Developer Ecosystem Provider      | ⬜ Not started | -     |
 
@@ -54,6 +54,11 @@ check, ruff format --check, mypy, pytest) is green on that baseline.
   Classic VB vs VB.NET separation is open: it needs either a distinct canonical key or an
   explicit re-mapping of the bootstrap `"visual basic"` alias (a source-interpretation change for
   TIOBE). Not needed by any 0001 task.
+- **2026-09-25 - 02.0/07 ruling (loop, source interpretation):** GitHub-authored, explicitly
+  numbered ranking labels in an Octoverse chart's published alt text (2024: `Python (1)` …
+  `Go (10)`) count as published text, not chart extraction; chart-geometry/pixel extraction stays
+  forbidden. Editions without numbered text (2025 ranks 4+, 2023 and earlier) are omitted, never
+  guessed. Recorded per edition in [docs/source-notes/github.md](/docs/source-notes/github.md).
 
 ## Decomposition tree (as planned)
 

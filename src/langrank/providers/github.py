@@ -42,6 +42,18 @@ PARSER_VERSION = "github-v1"
 #: Homepage for the GitHub language-data landing page.
 HOMEPAGE = "https://innovationgraph.github.com/global-metrics/programming-languages"
 
+#: Landing page for the annual Octoverse reports; each CSV row carries its own
+#: per-edition ``source_url``, so this is only the artifact-level provenance URL.
+OCTOVERSE_HOMEPAGE = "https://octoverse.github.com/"
+
+#: ``--source`` value that would request experimental chart-pixel extraction. It is
+#: deliberately **not** implemented (``--allow-chart-extraction`` is out of scope);
+#: requesting it is refused with a :class:`ProviderError` (GH-SEC-8).
+OCTOVERSE_CHART_SOURCE = "octoverse-chart"
+
+#: Required columns of the curated Octoverse rankings CSV (GH-SEC-8 shape check).
+_OCTOVERSE_REQUIRED_COLUMNS = ("year", "rank", "language", "ranking_basis", "source_url", "published_at")
+
 #: Commits API endpoint resolving the latest commit that touched the languages CSV.
 IG_COMMITS_API = "https://api.github.com/repos/github/innovationgraph/commits?path=data/languages.csv&per_page=1"
 
@@ -121,6 +133,25 @@ IG_SUPPRESSION_THRESHOLD = 100
 IG_POPULATION = "global (economies ≥100 developers)"
 
 
+class OctoverseBasis(StrEnum):
+    """The ranking basis GitHub used for a given Octoverse edition.
+
+    The basis is **not** constant across editions and must be recorded per edition,
+    because ranks under different bases are not directly comparable (a language ranked
+    by total contributors is not the same measurement as one ranked by distinct
+    monthly contributors). Each distinct basis present in the curated CSV yields one
+    :class:`~langrank.models.MethodologyNote` (see :meth:`GitHubProvider.metadata`).
+
+    :cvar CONTRIBUTORS: Editions ranked by the number of contributors using each
+        language (e.g. Octoverse 2024, "the most used language on GitHub").
+    :cvar MONTHLY_CONTRIBUTORS: Editions ranked by distinct monthly contributors
+        (e.g. Octoverse 2025, TypeScript at #1).
+    """
+
+    CONTRIBUTORS = "contributors"
+    MONTHLY_CONTRIBUTORS = "monthly_contributors"
+
+
 class GitHubSource(StrEnum):
     """The two independently selectable GitHub variants.
 
@@ -198,6 +229,12 @@ class GitHubProvider:
         self._http = http or HttpClientFactory()
         self._normalizer = LanguageNormalizer()
         self._retrieved_at = datetime.now(UTC)
+        #: Curated, repo-committed Octoverse rankings CSV read at ``fetch()`` time
+        #: (manual curation only, no network - GH-SEC-8).
+        self._octoverse_data_path = Path(__file__).parent / "data" / "github_octoverse.csv"
+        #: Variant selected by the last :meth:`fetch`, used to route :meth:`parse`
+        #: when a cached (artifact-less) payload is replayed.
+        self._source: Optional[GitHubSource] = None
         #: Commit SHA of the payload last produced by :meth:`fetch`, carried into
         #: :meth:`parse` when a cached (artifact-less) payload is replayed.
         self._commit_sha: Optional[str] = None
@@ -296,19 +333,47 @@ class GitHubProvider:
                     ),
                     source_url="https://github.com/github/innovationgraph",
                 ),
-                MethodologyNote(
-                    rating_id=self.provider_id,
-                    methodology_version="octoverse-published-rank-v1",
-                    valid_from=date(2014, 1, 1),
-                    valid_to=None,
-                    description=(
-                        "octoverse source: ranks are transcribed from the annual Octoverse blog post; the "
-                        "ranking basis changes between editions and no value is chart-extracted."
-                    ),
-                    source_url="https://github.blog/news-insights/octoverse/",
-                ),
+                *self._octoverse_methodology_notes(),
             ],
         )
+
+    def _octoverse_methodology_notes(self) -> list[MethodologyNote]:
+        """Build one :class:`MethodologyNote` per distinct Octoverse ranking basis.
+
+        Reads the curated rankings CSV (no network) and groups its rows by
+        ``ranking_basis``; each basis yields a single note whose ``valid_from`` /
+        ``valid_to`` span the earliest and latest edition years that used it. This
+        keeps the "ranks are not comparable across bases" caveat traceable to the
+        exact editions it covers, and it stays in lock-step with the CSV rather than
+        being hand-maintained. If the bundled CSV is absent the provider emits no
+        Octoverse note rather than fabricating one.
+
+        :returns: One note per distinct ranking basis, ordered by basis value.
+        """
+        if not self._octoverse_data_path.is_file():
+            return []
+        rows = _parse_octoverse(self._octoverse_data_path.read_bytes())
+        spans: dict[str, tuple[int, int, str]] = {}
+        for record in rows:
+            basis = str(record.metadata["ranking_basis"])
+            year = record.period_start.year
+            low, high, url = spans.get(basis, (year, year, record.source_url))
+            spans[basis] = (min(low, year), max(high, year), url)
+        return [
+            MethodologyNote(
+                rating_id=self.provider_id,
+                methodology_version=f"octoverse-{basis}-v1",
+                valid_from=date(low, 1, 1),
+                valid_to=date(high, 12, 31),
+                description=(
+                    f"octoverse source: ranks transcribed from the annual Octoverse report text/tables, "
+                    f"ranked by {basis.replace('_', ' ')} for editions {low}-{high}; ranks under different "
+                    f"bases are not directly comparable and no value is chart-extracted."
+                ),
+                source_url=url,
+            )
+            for basis, (low, high, url) in sorted(spans.items())
+        ]
 
     def fetch(self, request: FetchRequest) -> FetchPayload:
         """Fetch raw data for the selected variant.
@@ -321,18 +386,52 @@ class GitHubProvider:
 
         :param request: Fetch parameters (date window, source mode, cache flags).
         :returns: The raw fetch payload whose artifact metadata carries the variant.
-        :raises ProviderError: If ``--source`` names an unknown variant.
+        :raises ProviderError: If ``--source`` names an unknown variant or requests
+            unsupported Octoverse chart-pixel extraction.
         :raises FetchError: On a malformed commit SHA, budget overflow, an
             integrity mismatch, or a failed download.
-        :raises NotImplementedError: For the Octoverse variant, until subtask 07.
         """
+        if request.source == OCTOVERSE_CHART_SOURCE:
+            raise ProviderError(
+                "octoverse chart-pixel extraction is not implemented (--allow-chart-extraction is out "
+                "of scope); only ranks printed in the Octoverse text/tables are captured."
+            )
         source = _resolve_source(request.source)
+        self._source = source
         self._request_since = request.since
         self._request_until = request.until
         self._request_years = request.years
         if source is GitHubSource.INNOVATION_GRAPH:
             return self._fetch_innovation_graph(request)
-        raise NotImplementedError("github octoverse fetch lands in subtask 07.")
+        return self._fetch_octoverse(request)
+
+    def _fetch_octoverse(self, request: FetchRequest) -> FetchPayload:
+        """Read the curated Octoverse rankings CSV bundled in the repository.
+
+        Manual curation only: no network request is issued (GH-SEC-8, request budget
+        0), the bytes come from the repo-committed
+        ``providers/data/github_octoverse.csv`` whose integrity is assured by code
+        review. The artifact metadata flags the ``octoverse`` variant and records the
+        ``manual_curation`` provenance so the acquisition mode stays traceable; the
+        per-edition ``source_url`` lives on each parsed record instead.
+
+        :param request: The fetch request (only ``no_cache`` is honoured here).
+        :returns: The raw CSV payload for the Octoverse variant.
+        """
+        content = self._octoverse_data_path.read_bytes()
+        return payload_from_content(
+            provider_id=self.provider_id,
+            cache_dir=self._cache_dir,
+            url=OCTOVERSE_HOMEPAGE,
+            content=content,
+            mime_type="text/csv",
+            metadata_json={
+                "variant": GitHubSource.OCTOVERSE.value,
+                "provenance": "manual_curation",
+                "source_document_id": "github-octoverse",
+            },
+            no_cache=request.no_cache,
+        )
 
     def _fetch_innovation_graph(self, request: FetchRequest) -> FetchPayload:
         """Fetch (or replay) the Innovation Graph ``data/languages.csv`` at a pinned SHA.
@@ -436,17 +535,23 @@ class GitHubProvider:
         )
 
     def parse(self, raw: FetchPayload) -> list[SourceRecord]:
-        """Parse a raw Innovation Graph CSV payload into per-economy source records.
+        """Parse a raw payload into source records for the payload's variant.
 
-        The commit SHA is read from the artifact metadata when present, else from
-        the value stashed by :meth:`fetch` (offline replay). Parsing itself is a
-        pure function of the bytes and SHA; the request window
-        (``since``/``until``/``years``) is applied afterwards by ``period_start``.
+        The variant is read from the artifact metadata when present, else from the
+        value stashed by :meth:`fetch` (offline replay), defaulting to
+        ``innovation-graph``. Octoverse payloads are parsed by :func:`_parse_octoverse`
+        (annual published ranks); Innovation Graph payloads read the pinned commit SHA
+        (from artifact metadata or :meth:`fetch`) and are parsed per economy, then
+        filtered to the request window - Octoverse ranks are annual editions and are
+        never window-filtered.
 
-        :param raw: The raw fetch payload (Innovation Graph CSV).
-        :returns: Source records, one per CSV row, within the request window.
-        :raises ParseError: If the commit SHA is unknown or the CSV is malformed.
+        :param raw: The raw fetch payload.
+        :returns: Source records parsed from the payload.
+        :raises ParseError: If the CSV is malformed, or the Innovation Graph commit
+            SHA is unknown.
         """
+        if self._payload_variant(raw) is GitHubSource.OCTOVERSE:
+            return _parse_octoverse(raw.content)
         commit_sha: Optional[str] = None
         if raw.artifact is not None:
             candidate = raw.artifact.metadata_json.get("commit_sha")
@@ -456,6 +561,24 @@ class GitHubProvider:
             raise ParseError("github payload has no commit sha; parse requires a fetched innovation-graph payload.")
         records = _parse_innovation_graph(raw.content, commit_sha=commit_sha)
         return self._filter_window(records)
+
+    def _payload_variant(self, raw: FetchPayload) -> GitHubSource:
+        """Resolve which variant a raw payload belongs to.
+
+        Prefers the ``variant`` recorded in the artifact metadata (present for a
+        freshly fetched, cached payload); falls back to the variant stashed by
+        :meth:`fetch` for an offline, artifact-less replay; defaults to
+        ``innovation-graph`` when neither is available so a directly constructed
+        Innovation Graph payload keeps parsing as before.
+
+        :param raw: The raw fetch payload.
+        :returns: The :class:`GitHubSource` variant the payload belongs to.
+        """
+        if raw.artifact is not None:
+            recorded = raw.artifact.metadata_json.get("variant")
+            if isinstance(recorded, str):
+                return GitHubSource(recorded)
+        return self._source or GitHubSource.INNOVATION_GRAPH
 
     def _filter_window(self, records: list[SourceRecord]) -> list[SourceRecord]:
         """Filter parsed records to the request window by ``period_start``.
@@ -503,13 +626,19 @@ class GitHubProvider:
         :param records: Parsed Innovation Graph source records from :meth:`parse`.
         :returns: Derived ``pushers`` / ``share`` / ``rank`` observations; empty when
             ``records`` is empty.
-        :raises NotImplementedError: If any record belongs to the Octoverse variant,
-            whose normalization lands in subtask 07.
+        :raises ProviderError: If the records mix the Octoverse and Innovation Graph
+            variants, which are never conflated.
         """
         if not records:
             return []
-        if any(record.metric_id != METRIC_IG_PUSHERS for record in records):
-            raise NotImplementedError("github octoverse normalize lands in subtask 07.")
+        metric_ids = {record.metric_id for record in records}
+        if metric_ids == {METRIC_OCTOVERSE_RANK}:
+            return self._normalize_octoverse(records)
+        if metric_ids != {METRIC_IG_PUSHERS}:
+            raise ProviderError(
+                "github normalize cannot mix variants: expected only innovation-graph pusher records or "
+                f"only octoverse rank records, got metric ids {sorted(metric_ids)}."
+            )
         parser_version = self.metadata().parser_version
         retrieved_at = self._retrieved_at
         aggregated = _aggregate_global(records)
@@ -565,6 +694,52 @@ class GitHubProvider:
                 )
                 shares.append((language_id, share_record))
         observations.extend(_derive_ig_rank(shares, parser_version=parser_version, retrieved_at=retrieved_at))
+        return observations
+
+    def _normalize_octoverse(self, records: Sequence[SourceRecord]) -> list[Observation]:
+        """Normalize Octoverse rank records into raw, non-derived annual observations.
+
+        Each published rank is emitted verbatim (``is_derived=False``,
+        ``derivation_method=None``): Octoverse prints these ranks, so nothing is
+        summed, inferred or interpolated. The printed language name is resolved to a
+        canonical language via the ``github``-scoped alias map; an unmapped name is
+        skipped and recorded in :attr:`last_unmapped` (never guessed), except the
+        documented :data:`GITHUB_NON_LANGUAGES` markup / config / data formats, which
+        are skipped silently. ``source_published_at`` is taken from the edition's
+        ``published_at`` and the per-edition ``source_url`` doubles as
+        ``source_document_id`` so every rank stays traceable to its report. Pure over
+        its inputs: no network, no database.
+
+        :param records: Octoverse ``github-octoverse-rank`` source records.
+        :returns: One raw rank observation per mapped record; empty when none map.
+        """
+        parser_version = self.metadata().parser_version
+        self.last_unmapped = []
+        observations: list[Observation] = []
+        for record in records:
+            language_id = self._normalizer.try_resolve(record.language, rating_id=self.provider_id)
+            if language_id is None:
+                if record.language not in GITHUB_NON_LANGUAGES and record.language not in self.last_unmapped:
+                    self.last_unmapped.append(record.language)
+                continue
+            published_raw = record.metadata.get("published_at")
+            source_published_at = (
+                datetime.combine(date.fromisoformat(str(published_raw)), datetime.min.time(), UTC)
+                if published_raw
+                else None
+            )
+            observations.append(
+                build_observation(
+                    record=record,
+                    language_id=language_id,
+                    parser_version=parser_version,
+                    retrieved_at=self._retrieved_at,
+                    is_derived=False,
+                    derivation_method=None,
+                    source_document_id=record.source_url,
+                    source_published_at=source_published_at,
+                )
+            )
         return observations
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
@@ -706,6 +881,78 @@ def _ig_record_from_row(row: dict[str, Any], *, commit_sha: str, source_url: str
         unit="count",
         source_url=source_url,
         metadata={"iso2_code": iso2_code, "commit_sha": commit_sha, "variant": GitHubSource.INNOVATION_GRAPH.value},
+    )
+
+
+def _parse_octoverse(content: bytes) -> list[SourceRecord]:
+    """Parse the curated Octoverse rankings CSV into one record per published rank.
+
+    Untrusted-input hardening mirrors the Innovation Graph path (GH-SEC-8 reusing
+    GH-SEC-5): the stdlib ``csv`` module is used (never ``eval``); a missing required
+    column raises a :class:`ParseError` naming it; ``rank`` must be a positive integer
+    and ``year`` a plausible integer; ``ranking_basis`` must be a known
+    :class:`OctoverseBasis`; and any per-row ``ValueError`` / ``KeyError`` is wrapped
+    in a :class:`ParseError`. Each record is annual (:attr:`Granularity.YEAR`),
+    carries ``metric_id=METRIC_OCTOVERSE_RANK`` and a raw published ``rank`` /
+    ``value`` (``is_derived`` is decided in normalization), and preserves the printed
+    language string and the edition's ``source_url``.
+
+    :param content: The raw curated CSV bytes.
+    :returns: One :class:`SourceRecord` per rank row, in file order.
+    :raises ParseError: On a decoding error, a missing required column, or a
+        malformed / out-of-range cell.
+    """
+    try:
+        text = content.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise ParseError("github octoverse CSV must be UTF-8 encoded.") from exc
+    reader = csv.DictReader(text.splitlines())
+    fieldnames = reader.fieldnames or []
+    for column in _OCTOVERSE_REQUIRED_COLUMNS:
+        if column not in fieldnames:
+            raise ParseError(f"github octoverse CSV is missing required column {column!r}.")
+    return [_octoverse_record_from_row(row) for row in reader]
+
+
+def _octoverse_record_from_row(row: dict[str, Any]) -> SourceRecord:
+    """Build one annual :class:`SourceRecord` from a validated Octoverse CSV row.
+
+    :param row: A CSV row keyed by column name.
+    :returns: A ``github-octoverse-rank`` source record for one published rank.
+    :raises ParseError: If a numeric cell is malformed, the rank is not positive, the
+        year is implausible, or the ranking basis is unknown.
+    """
+    try:
+        year = int(row["year"])
+        rank = int(row["rank"])
+        language = row["language"]
+        basis = OctoverseBasis(row["ranking_basis"])
+        source_url = row["source_url"]
+        published_at = row["published_at"]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ParseError(f"github octoverse row is malformed: {row!r}") from exc
+    if rank <= 0:
+        raise ParseError(f"github octoverse rank must be positive: {row!r}")
+    if not 2000 <= year <= 2100:
+        raise ParseError(f"github octoverse year is implausible: {row!r}")
+    return SourceRecord(
+        rating_id=_RATING_ID,
+        metric_id=METRIC_OCTOVERSE_RANK,
+        language=language,
+        period_start=date(year, 1, 1),
+        period_end=date(year, 12, 31),
+        period_label=str(year),
+        granularity=Granularity.YEAR,
+        rank=rank,
+        value=float(rank),
+        unit="rank",
+        source_url=source_url,
+        metadata={
+            "ranking_basis": basis.value,
+            "provenance": "manual_curation",
+            "published_at": published_at,
+            "variant": GitHubSource.OCTOVERSE.value,
+        },
     )
 
 
