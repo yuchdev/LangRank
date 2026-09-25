@@ -7,7 +7,7 @@ Updated as each task lands.
 
 | Task | Name                                    | Status         | Tests |
 |------|--------------------------------------------|----------------|-------|
-| 01.0 | Stack Overflow Tags Provider                | 🔶 In progress (7/8 subtasks) | -     |
+| 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
 | 02.0 | GitHub Provider                             | ⬜ Not started | -     |
 | 03.0 | IEEE Spectrum Provider                      | ⬜ Not started | -     |
 | 04.0 | JetBrains Developer Ecosystem Provider      | ⬜ Not started | -     |
@@ -116,6 +116,40 @@ tasks otherwise remain parallelizable.
 
 ## Per-task detail
 
-_Empty until a task lands. Once a task starts, add a `### Task NN.0 - Name
-(status, date)` subsection per task with a **Delivered** list and a
-**Tests / gate** summary._
+### Task 01.0 - Stack Overflow Tags Provider (✅ 2026-09-25)
+
+**Delivered**
+- `stackoverflow-tags` provider (`providers/stackoverflow_tags.py`): metrics
+  `stackoverflow-tags-questions` (raw), `-question-share` and `-rank` (both `is_derived`, with
+  `derivation_method` naming the denominator); `api` fetch + `sede` manual import
+  (`langrank import`), never mixing denominators (`all_questions` vs `tracked_language_union`).
+- Shared helpers reused by 02.0-04.0: rating-scoped aliases + `LanguageNormalizer.try_resolve`
+  (23 new canonical languages, collision guard); `HttpClientFactory.get_json` (host-pinned, no
+  redirects, size-capped, key-scrubbed errors); `common.load_cached_payload` (contained cache
+  read-back); `tests/contract/_golden.py` (`assert_matches_golden`, `LANGRANK_UPDATE_GOLDEN=1`);
+  `live` pytest marker gated on `LANGRANK_LIVE_TESTS=1`.
+- Source note + policy gate (`approved-for-scheduled-fetch`, 5000 req/day keyed / 300 anon),
+  threat model with re-audit and task-close review
+  ([docs/security/2026-09-25-stackoverflow-tags-fetch.md](/docs/security/2026-09-25-stackoverflow-tags-fetch.md)),
+  provider/data-model/test-convention docs.
+
+**Tests / gate**
+- All four CI checks green; 99 tests pass (1 live test skipped by default). Coverage 73.1% → 79.6%
+  (informational).
+- `/verify-subtask`: PASS ×7, PARTIAL ×1 (02 - `visual-basic` deferred, see Notes & decisions).
+- `/pr-review`: feature LGTM, security CLEAR; two non-blocking suggestions fixed in `c63b452`.
+- API fixture captured live 2026-09-25 (unauthenticated, counts only); SEDE fixture hand-built.
+
+**Reconciliation note**
+- 03 temporarily set the fetch-all CLI test to expect failure; 06 restored it as an offline test
+  (`test_cli_fetch_all_offline_all_providers_succeed`). All eight subtask specs *consumed*.
+
+**Follow-ups (not blocking, recorded for later milestones)**
+- Pre-existing: `FetchService` reports SUCCESS / exit 0 when `validate()` rejects a batch (upsert
+  silently skipped) - should surface a validation-failed status.
+- Derived `rank` inherits its share's `raw_record_hash`, so `updated` counts miss rank-only
+  changes (values are still rewritten correctly).
+- Pre-existing: `metric_id == "rank"` comparisons in `db/repository.py` / `services/query.py`
+  don't match suffixed IDs such as `stackoverflow-tags-rank` (deferred to Milestone 0006 Task 01.0).
+- LOW: `langrank import` reads the whole local file without a size guard.
+- SEDE query template in `docs/providers.md` not yet executed against live SEDE (login-gated).
