@@ -86,6 +86,31 @@ def test_ig_fetch_pins_commit_sha(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert "csv_sha256" in payload.artifact.metadata_json
 
 
+# --- GH-SEC-9: requested quarter window recorded in artifact metadata ---------
+
+
+def test_ig_fetch_records_requested_window(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(GITHUB_TOKEN_ENV, raising=False)
+    provider = _provider(tmp_path, _make_transport([]))
+
+    payload = provider.fetch(FetchRequest(since=date(2022, 1, 1), until=date(2024, 12, 31)))
+
+    assert payload.artifact is not None
+    assert payload.artifact.metadata_json["requested_since"] == "2022-01-01"
+    assert payload.artifact.metadata_json["requested_until"] == "2024-12-31"
+
+
+def test_ig_fetch_records_open_window_as_none(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(GITHUB_TOKEN_ENV, raising=False)
+    provider = _provider(tmp_path, _make_transport([]))
+
+    payload = provider.fetch(FetchRequest())
+
+    assert payload.artifact is not None
+    assert payload.artifact.metadata_json["requested_since"] is None
+    assert payload.artifact.metadata_json["requested_until"] is None
+
+
 # --- GH-SEC-6: exactly two requests + budget refusal --------------------------
 
 

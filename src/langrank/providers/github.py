@@ -6,6 +6,7 @@ import json
 import os
 import re
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from enum import StrEnum
 from pathlib import Path
@@ -22,9 +23,14 @@ from langrank.models import (
     SourceRecord,
     ValidationReport,
 )
-from langrank.normalization import LanguageNormalizer
+from langrank.normalization import GITHUB_NON_LANGUAGES, LanguageNormalizer
 from langrank.providers.base import FetchPayload
-from langrank.providers.common import load_cached_payload, payload_from_content, quarter_period
+from langrank.providers.common import (
+    build_observation,
+    load_cached_payload,
+    payload_from_content,
+    quarter_period,
+)
 from langrank.util.http import HttpClientFactory
 
 #: Stable rating id, used across the pipeline and as every metric-id prefix.
@@ -91,6 +97,29 @@ METRIC_IG_SHARE = "github-innovation-graph-share"
 #: Innovation Graph quarterly global rank (derived from the share). Lower is better.
 METRIC_IG_RANK = "github-innovation-graph-rank"
 
+#: Derivation method for the global pusher sum. The ``suppressed_below_100`` suffix
+#: records that GitHub publishes an economy/language cell only when it has >=100
+#: developers, so every global sum is an undercount biased against small languages;
+#: the shortfall is flagged here, never corrected or interpolated.
+IG_SUM_METHOD = "sum_over_economies:suppressed_below_100"
+
+#: Derivation method for the global share. The denominator is the total pushers
+#: across *all* published Linguist languages that quarter, including unmapped and
+#: non-language names, so shares are comparable across quarters.
+IG_SHARE_METHOD = "share_of_all_published_language_pushers"
+
+#: Derivation method for the global rank: competition ranking on the global pusher
+#: share, computed over mapped languages only.
+IG_RANK_METHOD = "rank_by_global_pushers"
+
+#: Per-economy developer floor GitHub applies before publishing a cell; recorded in
+#: aggregate metadata so the undercount stays traceable.
+IG_SUPPRESSION_THRESHOLD = 100
+
+#: Population string stamped on every derived Innovation Graph observation: the
+#: global aggregate sums only cells for economies with >=100 developers.
+IG_POPULATION = "global (economies ≥100 developers)"
+
 
 class GitHubSource(StrEnum):
     """The two independently selectable GitHub variants.
@@ -147,6 +176,10 @@ class GitHubProvider:
     mix the two variants. ``--source auto`` resolves to ``innovation-graph``.
 
     :ivar provider_id: Stable rating ID used across the pipeline.
+    :ivar last_unmapped: Linguist language names the last :meth:`normalize` call
+        could not resolve to a canonical language; skipped rather than guessed
+        (documented :data:`GITHUB_NON_LANGUAGES` names are excluded), and reported
+        by validation (subtask 08).
     """
 
     provider_id = _RATING_ID
@@ -172,6 +205,8 @@ class GitHubProvider:
         self._request_since: Optional[date] = None
         self._request_until: Optional[date] = None
         self._request_years: Optional[int] = None
+        #: Linguist names the last :meth:`normalize` could not map (never guessed).
+        self.last_unmapped: list[str] = []
 
     def metadata(self) -> ProviderMetadata:
         """Return the provider's static metadata: both variants' metrics and caveats.
@@ -195,6 +230,8 @@ class GitHubProvider:
                 "Not RedMonk's GitHub component - a different, separately sourced measure.",
                 "The octoverse and innovation-graph variants measure different things and are never conflated.",
                 "Innovation Graph global values are sums of per-economy cells with >=100 developers (undercount).",
+                "Innovation Graph counts a developer once per economy they push from, so global sums may "
+                "double-count multi-economy developers; not corrected.",
                 "Octoverse ranking basis changes between editions.",
                 "No chart-derived values - only ranks stated in the Octoverse text/tables are captured.",
             ],
@@ -307,11 +344,13 @@ class GitHubProvider:
         is downloaded from ``raw.githubusercontent.com`` host-pinned, no-redirect
         and size-capped, carrying no credential (GH-SEC-3). The commit SHA and the
         CSV sha256 are recorded in the artifact metadata and a cache sidecar
-        (GH-SEC-4). ``--offline`` replays the newest cached CSV.
+        (GH-SEC-4), alongside the requested quarter window (GH-SEC-9).
+        ``--offline`` replays the newest cached CSV.
 
         :param request: The fetch request (window, cache flags).
         :returns: The raw CSV fetch payload; its artifact metadata carries
-            ``commit_sha``, ``csv_sha256`` and ``variant``.
+            ``commit_sha``, ``csv_sha256``, ``variant`` and the
+            ``requested_since`` / ``requested_until`` window.
         :raises FetchError: On budget overflow, a malformed SHA, an integrity
             mismatch, or a failed download.
         """
@@ -341,6 +380,8 @@ class GitHubProvider:
                 "csv_sha256": csv_sha256,
                 "source_document_id": f"github-innovation-graph@{commit_sha}",
                 "requests_made": IG_REQUEST_BUDGET,
+                "requested_since": request.since.isoformat() if request.since else None,
+                "requested_until": request.until.isoformat() if request.until else None,
             },
             no_cache=request.no_cache,
         )
@@ -438,13 +479,93 @@ class GitHubProvider:
         return [record for record in records if since <= record.period_start <= until]
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
-        """Normalize source records into observations (implemented in subtasks 06/07).
+        """Normalize Innovation Graph per-economy records into a derived global series.
 
-        :param records: Parsed source records.
-        :returns: Canonical observations.
-        :raises NotImplementedError: Always, until subtasks 06/07 land normalization.
+        The per-economy pusher rows are first aggregated to one global cell per
+        ``(quarter, Linguist language)`` by :func:`_aggregate_global`; every emitted
+        value is therefore ``is_derived=True``. For each mapped language the method
+        emits a global pusher count (:data:`IG_SUM_METHOD`), a global share
+        (:data:`IG_SHARE_METHOD`) whose denominator is the total pushers across *all*
+        published languages that quarter - including unmapped and non-language names -
+        and, via :func:`_derive_ig_rank`, a competition rank over mapped languages
+        only (:data:`IG_RANK_METHOD`). Unmapped names are skipped and recorded in
+        :attr:`last_unmapped`, except documented :data:`GITHUB_NON_LANGUAGES` markup /
+        config / data formats, which are skipped silently; either way they still
+        count toward the share denominator. The >=100-developer suppression means the
+        global sum undercounts, which the derivation method and the aggregate metadata
+        (``economies_count`` / ``suppression_threshold``) keep traceable. Missing
+        quarters are never interpolated. Pure over its inputs: no network, no database.
+
+        A developer active in two economies in one quarter is counted once per
+        economy by GitHub's own data; that double count is documented as a caveat and
+        deliberately not corrected here.
+
+        :param records: Parsed Innovation Graph source records from :meth:`parse`.
+        :returns: Derived ``pushers`` / ``share`` / ``rank`` observations; empty when
+            ``records`` is empty.
+        :raises NotImplementedError: If any record belongs to the Octoverse variant,
+            whose normalization lands in subtask 07.
         """
-        raise NotImplementedError("github normalize lands in subtasks 06/07.")
+        if not records:
+            return []
+        if any(record.metric_id != METRIC_IG_PUSHERS for record in records):
+            raise NotImplementedError("github octoverse normalize lands in subtask 07.")
+        parser_version = self.metadata().parser_version
+        retrieved_at = self._retrieved_at
+        aggregated = _aggregate_global(records)
+        denominators: dict[date, float] = {}
+        for record in aggregated:
+            denominators[record.period_start] = denominators.get(record.period_start, 0.0) + (record.value or 0.0)
+        self.last_unmapped = []
+        observations: list[Observation] = []
+        shares: list[tuple[str, SourceRecord]] = []
+        for record in aggregated:
+            language_id = self._normalizer.try_resolve(record.language, rating_id=self.provider_id)
+            if language_id is None:
+                if record.language not in GITHUB_NON_LANGUAGES and record.language not in self.last_unmapped:
+                    self.last_unmapped.append(record.language)
+                continue
+            commit_sha = str(record.metadata.get("commit_sha", ""))
+            source_document_id = f"innovationgraph@{commit_sha[:12]}"
+            observations.append(
+                build_observation(
+                    record=record,
+                    language_id=language_id,
+                    parser_version=parser_version,
+                    retrieved_at=retrieved_at,
+                    is_derived=True,
+                    derivation_method=IG_SUM_METHOD,
+                    source_document_id=source_document_id,
+                    source_published_at=None,
+                    population=IG_POPULATION,
+                )
+            )
+            denominator = denominators.get(record.period_start, 0.0)
+            if denominator > 0:
+                share_value = round(100.0 * (record.value or 0.0) / denominator, 4)
+                share_record = replace(
+                    record,
+                    metric_id=METRIC_IG_SHARE,
+                    value=share_value,
+                    unit="percent",
+                    metadata={**record.metadata, "denominator_count": denominator},
+                )
+                observations.append(
+                    build_observation(
+                        record=share_record,
+                        language_id=language_id,
+                        parser_version=parser_version,
+                        retrieved_at=retrieved_at,
+                        is_derived=True,
+                        derivation_method=IG_SHARE_METHOD,
+                        source_document_id=source_document_id,
+                        source_published_at=None,
+                        population=IG_POPULATION,
+                    )
+                )
+                shares.append((language_id, share_record))
+        observations.extend(_derive_ig_rank(shares, parser_version=parser_version, retrieved_at=retrieved_at))
+        return observations
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
         """Validate observations with named codes (implemented in subtask 08).
@@ -586,3 +707,101 @@ def _ig_record_from_row(row: dict[str, Any], *, commit_sha: str, source_url: str
         source_url=source_url,
         metadata={"iso2_code": iso2_code, "commit_sha": commit_sha, "variant": GitHubSource.INNOVATION_GRAPH.value},
     )
+
+
+def _aggregate_global(records: Sequence[SourceRecord]) -> list[SourceRecord]:
+    """Sum per-economy pusher records into one global record per (quarter, language).
+
+    Every ``num_pushers`` cell is summed within its ``(period_start, Linguist
+    language)`` group; the group's economy count is stored as ``economies_count``
+    so the aggregate's ``raw_record_hash`` (a hash of the whole record) changes
+    whenever the contributing economies change - not only when the total does. The
+    per-economy ``iso2_code`` is dropped because the result is global; the pinned
+    ``commit_sha`` and the :data:`IG_SUPPRESSION_THRESHOLD` are kept so the
+    documented >=100-developer undercount stays traceable. The suppression means
+    the sum is a floor, never a corrected or interpolated figure.
+
+    :param records: Per-economy Innovation Graph source records (one economy per
+        ``(quarter, language)``).
+    :returns: One aggregate ``github-innovation-graph-pushers`` record per
+        ``(quarter, language)``, ordered by quarter then Linguist name.
+    """
+    grouped: dict[tuple[date, str], list[SourceRecord]] = {}
+    for record in records:
+        grouped.setdefault((record.period_start, record.language), []).append(record)
+    aggregated: list[SourceRecord] = []
+    for (_period_start, _language), group in sorted(grouped.items(), key=lambda item: item[0]):
+        first = group[0]
+        total = sum(record.value or 0.0 for record in group)
+        commit_sha = str(first.metadata.get("commit_sha", ""))
+        aggregated.append(
+            replace(
+                first,
+                rank=None,
+                value=total,
+                metadata={
+                    "commit_sha": commit_sha,
+                    "economies_count": len(group),
+                    "suppression_threshold": IG_SUPPRESSION_THRESHOLD,
+                    "variant": GitHubSource.INNOVATION_GRAPH.value,
+                },
+            )
+        )
+    return aggregated
+
+
+def _derive_ig_rank(
+    shares: Sequence[tuple[str, SourceRecord]],
+    *,
+    parser_version: str,
+    retrieved_at: datetime,
+) -> list[Observation]:
+    """Derive a global ``rank`` observation from each global ``share`` record.
+
+    Ranking is standard competition ranking on the share within one quarter
+    (highest share is rank 1): equal shares share a rank and the next distinct
+    share skips the tied positions (e.g. ``1, 1, 3``). Rank is computed over mapped
+    languages only. Each rank is built from a synthetic ``rank`` source record whose
+    ``value`` is the rank itself, so its ``raw_record_hash`` reflects the rank and a
+    rank-only change is not masked by the share's hash (the Task 01.0 caveat).
+
+    :param shares: ``(language_id, share_record)`` pairs across any number of
+        quarters.
+    :param parser_version: Parser version stamped onto each observation.
+    :param retrieved_at: Acquisition timestamp stamped onto each observation.
+    :returns: One rank observation per input share.
+    """
+    by_quarter: dict[date, list[tuple[str, SourceRecord]]] = {}
+    for language_id, record in shares:
+        by_quarter.setdefault(record.period_start, []).append((language_id, record))
+    ranked: list[Observation] = []
+    for quarter in sorted(by_quarter):
+        ordered = sorted(by_quarter[quarter], key=lambda item: (-(item[1].value or 0.0), item[0]))
+        current_rank = 0
+        previous_value: Optional[float] = None
+        for index, (language_id, record) in enumerate(ordered, start=1):
+            if previous_value is None or record.value != previous_value:
+                current_rank = index
+                previous_value = record.value
+            commit_sha = str(record.metadata.get("commit_sha", ""))
+            rank_record = replace(
+                record,
+                metric_id=METRIC_IG_RANK,
+                unit="rank",
+                rank=current_rank,
+                value=float(current_rank),
+            )
+            ranked.append(
+                build_observation(
+                    record=rank_record,
+                    language_id=language_id,
+                    parser_version=parser_version,
+                    retrieved_at=retrieved_at,
+                    is_derived=True,
+                    derivation_method=IG_RANK_METHOD,
+                    source_document_id=f"innovationgraph@{commit_sha[:12]}",
+                    source_published_at=None,
+                    population=IG_POPULATION,
+                )
+            )
+    return ranked

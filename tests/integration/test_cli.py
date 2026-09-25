@@ -81,11 +81,11 @@ def _seed_stackoverflow_tags_cache(cache_path: Path) -> None:
 def _seed_github_innovation_graph_cache(cache_path: Path) -> None:
     """Write an offline Innovation Graph CSV artifact plus its commit-sha sidecar.
 
-    With this cache present, ``github`` fetch (--offline) and parse now complete
-    offline; the run still FAILS at normalize, which lands in subtask 06. The
-    sidecar name embeds the CSV sha256 prefix and uses a non-cache extension so
-    ``load_cached_payload`` returns the CSV, not the sidecar (see
-    ``GitHubProvider._replay_innovation_graph_cache``).
+    With this cache present, ``github`` fetch (--offline), parse and normalize
+    (subtask 06) now complete offline; the run still FAILS at validate, which lands
+    in subtask 08. The sidecar name embeds the CSV sha256 prefix and uses a
+    non-cache extension so ``load_cached_payload`` returns the CSV, not the sidecar
+    (see ``GitHubProvider._replay_innovation_graph_cache``).
     """
     provider_dir = cache_path / "github"
     provider_dir.mkdir(parents=True, exist_ok=True)
@@ -113,12 +113,12 @@ def test_cli_fetch_all_offline_every_implemented_provider_succeeds(tmp_path: Pat
     # stays offline. The bootstrap providers ignore --offline and read their bundled
     # CSVs, so CI never touches the network.
     #
-    # github's innovation-graph fetch + parse now complete offline (subtask 05), so
-    # its cache is pre-seeded alongside stackoverflow-tags. The run still reports
-    # github FAILED because normalize is unimplemented until subtask 06 - the error
-    # names the subtask that lands it ("lands in subtask"). Provider execution is
-    # independent, so every implemented provider still reports SUCCESS; this
-    # assertion flips to all-SUCCESS once subtask 06 lands normalization.
+    # github's innovation-graph fetch + parse + normalize now complete offline
+    # (subtasks 05/06), so its cache is pre-seeded alongside stackoverflow-tags. The
+    # run still reports github FAILED because validate() is unimplemented until
+    # subtask 08 - the error names the subtask that lands it ("lands in subtask").
+    # Provider execution is independent, so every implemented provider still reports
+    # SUCCESS; this assertion flips to all-SUCCESS once subtask 08 lands validation.
     _seed_stackoverflow_tags_cache(cache_path)
     _seed_github_innovation_graph_cache(cache_path)
     result = runner.invoke(
