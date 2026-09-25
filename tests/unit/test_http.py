@@ -133,3 +133,43 @@ def test_get_json_accepts_body_at_ceiling() -> None:
     result = factory.get_json(API_URL, params={"site": "stackoverflow"}, allowed_host=API_HOST)
 
     assert result == {"total": 0}
+
+
+# --- GH-SEC-6: only transient failures are retried ----------------------------
+
+
+def _retrying_factory(transport: httpx.MockTransport, monkeypatch: pytest.MonkeyPatch) -> HttpClientFactory:
+    """Build a factory with three attempts and a no-op sleep."""
+    monkeypatch.setattr("langrank.util.http.sleep", lambda _seconds: None)
+    return HttpClientFactory(HttpClientOptions(retries=3), transport=transport)
+
+
+@pytest.mark.parametrize("status", [401, 403, 404])
+def test_get_json_does_not_retry_client_errors(status: int, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[httpx.Request] = []
+    factory = _retrying_factory(_recording_transport(calls, lambda _r: httpx.Response(status)), monkeypatch)
+    with pytest.raises(FetchError):
+        factory.get_json(API_URL, allowed_host="api.stackexchange.com")
+    assert len(calls) == 1
+
+
+def test_get_json_retries_429_then_succeeds(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[httpx.Request] = []
+
+    def answer(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429) if len(calls) < 2 else httpx.Response(200, json={"total": 1})
+
+    factory = _retrying_factory(_recording_transport(calls, answer), monkeypatch)
+    assert factory.get_json(API_URL, allowed_host="api.stackexchange.com") == {"total": 1}
+    assert len(calls) == 2
+
+
+def test_get_capped_bytes_does_not_retry_redirect(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[httpx.Request] = []
+    transport = _recording_transport(
+        calls, lambda _r: httpx.Response(302, headers={"Location": "https://evil.example/x"})
+    )
+    factory = _retrying_factory(transport, monkeypatch)
+    with pytest.raises(FetchError, match="redirect"):
+        factory.get_capped_bytes("https://raw.githubusercontent.com/a/b", allowed_host="raw.githubusercontent.com")
+    assert len(calls) == 1

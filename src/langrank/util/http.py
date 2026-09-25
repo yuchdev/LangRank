@@ -14,6 +14,22 @@ from langrank.errors import FetchError
 #: Retryable upstream status codes (rate limit + transient server errors).
 _RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
+
+class _TransientUpstreamError(FetchError):
+    """A retryable upstream status (429/5xx); every other failure is final."""
+
+
+def _is_transient(error: Exception) -> bool:
+    """Return whether ``error`` is worth retrying on the hardened fetch paths.
+
+    Only retryable statuses and transport-level failures (timeouts, connection
+    resets) are retried. A 4xx such as 401/403, a refused redirect, or an
+    oversized body fails immediately so a bad credential or hostile response is
+    never replayed ``retries`` times.
+    """
+    return isinstance(error, (_TransientUpstreamError, httpx.TransportError))
+
+
 #: Query-parameter names whose values are secrets and must be redacted from any
 #: error text before it can reach a log sink or stack trace (SEC-1).
 _SECRET_QUERY_KEYS = frozenset({"key", "access_token"})
@@ -174,6 +190,8 @@ class HttpClientFactory:
                 try:
                     raw = self._read_capped(client, url, params, headers=headers)
                 except (httpx.HTTPError, FetchError) as exc:
+                    if not _is_transient(exc):
+                        raise (self.map_error(exc) if isinstance(exc, httpx.HTTPError) else exc) from None
                     last_error = exc
                     if attempt < self._options.retries - 1:
                         sleep(self._options.backoff_seconds * (2**attempt))
@@ -222,6 +240,8 @@ class HttpClientFactory:
                 try:
                     return self._read_capped(client, url, None, headers=headers, max_bytes=max_bytes)
                 except (httpx.HTTPError, FetchError) as exc:
+                    if not _is_transient(exc):
+                        raise (self.map_error(exc) if isinstance(exc, httpx.HTTPError) else exc) from None
                     last_error = exc
                     if attempt < self._options.retries - 1:
                         sleep(self._options.backoff_seconds * (2**attempt))
@@ -250,7 +270,7 @@ class HttpClientFactory:
         ceiling = self._options.max_response_bytes if max_bytes is None else max_bytes
         with client.stream("GET", url, params=params, headers=headers) as response:
             if response.status_code in _RETRYABLE_STATUS:
-                raise FetchError(f"temporary upstream status {response.status_code}")
+                raise _TransientUpstreamError(f"temporary upstream status {response.status_code}")
             if response.is_redirect:
                 raise FetchError("refusing to follow cross-host redirect")
             response.raise_for_status()
