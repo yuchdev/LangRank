@@ -8,7 +8,7 @@
 
 | #  | Subtask | Role | Depends on | Status |
 |----|---------|------|------------|--------|
-| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ⬜ Not started |
+| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ✅ Complete |
 | 02 | [Quarterly granularity](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/02-quarterly-granularity.md) | Python Expert | - | ✅ Complete |
 | 03 | [Linguist language aliases](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/03-linguist-aliases.md) | Python Expert | 01.0/02 | ✅ Complete |
 | 04 | [Provider metadata, variants & registry entry](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/04-metadata-variants-and-registry.md) | Python Expert | 02, 03 | ⬜ Not started |

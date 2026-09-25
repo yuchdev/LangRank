@@ -152,3 +152,40 @@ was found. Hand these regression tests to `testing-expert`.
 
 The CRITICAL (SEC-1) is fully implemented and proven by tests; no CRITICAL remains, so the merge gate
 is not blocked. The HIGH/MEDIUM items above are missing-test follow-ups to close within this subtask.
+
+## Task-close review - 2026-09-25 (subtasks 05-08, diff b00835b..HEAD)
+
+Scope: parse of untrusted JSON/CSV (`stackoverflow_tags.py` `_parse_api_json`,
+`_parse_sede_csv`), `langrank import` path, live-test gating, committed fixtures, secret scan.
+
+- Injection into DB: no regression. All writes are parameterized (`repository.py`
+  `upsert_observations` uses `?` placeholders + `ON CONFLICT`); CSV/JSON cells never reach raw
+  SQL. Unresolved tags are skipped (`normalize` -> `last_unmapped`), so only known-alias tags are
+  persisted - a CSV formula string cannot enter stored data. CWE-89 not present.
+- Untrusted parse shape: `_parse_api_json` uses `json.loads` only, rejects non-dict / missing
+  `months`, and wraps `KeyError/TypeError/ValueError` in `ParseError`; `_parse_sede_csv` validates
+  required columns and coerces numerics under the same guard. Backoff clamp intact
+  (`stackoverflow_tags.py:825`, `min(float(backoff), MAX_BACKOFF_SECONDS)`).
+- Int overflow: N/A (Python arbitrary-precision ints); no fixed-width arithmetic.
+- Live-test gating: MET. `tests/conftest.py` `pytest_collection_modifyitems` skips any `live`-marked
+  item unless `LANGRANK_LIVE_TESTS=1`; marker registered in `pyproject.toml`; the only live test
+  (`tests/integration/test_stackoverflow_tags_live.py`) carries `pytest.mark.live`. Plain
+  `uv run pytest` (CI) makes no network call.
+- Fixtures: clean. `api_sample.json`/`sede_sample.csv`/`expected_observations.json` hold aggregate
+  counts and sha256 record hashes only - no app key (captured unauthenticated), no usernames, IDs,
+  titles, or bodies (`filter=total` returns just `{"total": N}`).
+- Secret scan of the diff: no hard-coded credentials; the key is read from
+  `LANGRANK_STACKEXCHANGE_KEY` via `os.environ.get`.
+
+### Residual (LOW, follow-up - not merge-blocking)
+
+- [LOW] `langrank import` reads the whole local file (`cli.py:359` `path.read_bytes()`), and
+  `_parse_sede_csv` additionally does `content.decode().splitlines()` - unbounded memory on a huge
+  local file. Trust boundary is the operator's own filesystem (no network amplification), and the
+  SEC-3 10 MB cap covers only the network fetch path. Acceptable for now; consider a size guard on
+  the import path (CWE-400).
+
+### Task-close verdict: CLEAR
+
+No CRITICAL/HIGH regression in subtasks 05-08. SEC-1..SEC-7 remain met; the one residual is a
+pre-existing LOW self-DoS on the operator-controlled import path.
