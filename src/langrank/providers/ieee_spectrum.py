@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import csv
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
-from langrank.errors import ProviderError
+from langrank.errors import ParseError, ProviderError
 from langrank.models import (
     FetchRequest,
     Granularity,
@@ -18,9 +19,9 @@ from langrank.models import (
     SourceRecord,
     ValidationReport,
 )
-from langrank.normalization import LanguageNormalizer
+from langrank.normalization import IEEE_UNTRACKED_LABELS, LanguageNormalizer
 from langrank.providers.base import FetchPayload
-from langrank.providers.common import payload_from_content
+from langrank.providers.common import build_observation, payload_from_content
 
 #: Stable rating id, used across the pipeline and as every metric-id prefix.
 _RATING_ID = "ieee-spectrum"
@@ -62,6 +63,29 @@ SCORE_SCALE_BY_YEAR: dict[int, str] = {
     2024: "0-1",
     2025: "0-1",
 }
+
+#: Exact curated-CSV header the parser requires; a missing column raises a
+#: :class:`~langrank.errors.ParseError` so a malformed ``langrank import`` file
+#: never lands silently miscolumned.
+_REQUIRED_COLUMNS: tuple[str, ...] = (
+    "year",
+    "profile",
+    "rank",
+    "language",
+    "score",
+    "source_url",
+    "published_at",
+    "methodology_version",
+)
+
+#: ``metadata["provenance"]`` stamped on every record: IEEE ships no machine-readable
+#: dataset, so ranks and scores are manually transcribed from the published edition.
+_PROVENANCE = "manual_transcription"
+
+#: Default look-back (years) applied to parsed editions when the request sets no
+#: ``--since`` / ``--until`` / ``--years`` window (e.g. the ``langrank import`` path).
+#: All curated editions fall inside a decade of the latest, so nothing is dropped.
+_DEFAULT_YEARS = 10
 
 
 class IeeeProfile(StrEnum):
@@ -206,12 +230,16 @@ class IeeeSpectrumProvider:
 
     Acquisition is manual transcription only: there is no downloadable dataset and
     no network fetch (0 requests). :meth:`fetch` reads the curated bundled CSV
-    (:data:`DATA_PATH`); parse/normalize/validate remain honest stubs until
-    subtasks 05-06. One data-integrity note carried for subtask 05: the 2025
-    ``trending`` edition's data file listed ABAP twice with different scores, so both
-    ambiguous rows were dropped from the curated CSV (other ranks unchanged).
+    (:data:`DATA_PATH`), :meth:`parse` and :meth:`normalize` turn it into per-profile
+    rank/score observations, and :meth:`validate` remains an honest stub until subtask
+    06. One data-integrity note: the 2025 ``trending`` edition's data file listed ABAP
+    twice with different scores, so both ambiguous rows were dropped from the curated
+    CSV (other ranks unchanged).
 
     :ivar provider_id: Stable rating ID used across the pipeline.
+    :ivar last_unmapped: IEEE labels the last :meth:`normalize` call could not resolve
+        to a canonical language; skipped rather than guessed (documented
+        :data:`~langrank.normalization.IEEE_UNTRACKED_LABELS` are excluded).
     """
 
     provider_id = _RATING_ID
@@ -227,6 +255,16 @@ class IeeeSpectrumProvider:
         self._cache_dir = cache_dir / self.provider_id
         self._normalizer = LanguageNormalizer()
         self._retrieved_at = datetime.now(UTC)
+        #: Request window stashed by :meth:`fetch` and applied in :meth:`parse`; all
+        #: default to ``None`` so the ``langrank import`` path (which never calls
+        #: :meth:`fetch`) imports every edition in the supplied CSV.
+        self._request_since: Optional[date] = None
+        self._request_until: Optional[date] = None
+        self._request_years: Optional[int] = None
+        #: IEEE labels the last :meth:`normalize` call could not resolve to a canonical
+        #: language (documented :data:`IEEE_UNTRACKED_LABELS` are excluded); skipped
+        #: rather than guessed and surfaced to validation (subtask 06).
+        self.last_unmapped: list[str] = []
 
     def metadata(self) -> ProviderMetadata:
         """Return the provider's static metadata: one metric pair per profile.
@@ -308,8 +346,8 @@ class IeeeSpectrumProvider:
         must be unset, ``auto`` or ``bundled`` - there is no network source, so any
         other value is rejected rather than guessed. The artifact ``url`` is the
         provider homepage; each row carries its own per-edition ``source_url`` for
-        the parser (subtask 05). The ``since`` / ``until`` / ``years`` window is
-        applied after parse (subtask 05), not here.
+        the parser. The ``since`` / ``until`` / ``years`` window is stashed here and
+        applied to the parsed editions in :meth:`parse`, not to the raw bytes.
 
         :param request: Fetch parameters; only ``source`` (validated here) and
             ``no_cache`` are honoured at this stage.
@@ -323,6 +361,9 @@ class IeeeSpectrumProvider:
                 f"unknown --source {request.source!r} for ieee-spectrum; the only source is the bundled, "
                 f"manually transcribed dataset (valid: {valid})."
             )
+        self._request_since = request.since
+        self._request_until = request.until
+        self._request_years = request.years
         content = DATA_PATH.read_bytes()
         return payload_from_content(
             provider_id=self.provider_id,
@@ -340,27 +381,122 @@ class IeeeSpectrumProvider:
         )
 
     def parse(self, raw: FetchPayload) -> list[SourceRecord]:
-        """Parse the curated edition CSV into per-profile source records (subtask 05).
+        """Parse the curated edition CSV into per-profile rank and score records.
+
+        The same parser backs :meth:`fetch` and the ``langrank import`` path, so it
+        hardens the untrusted CSV: the stdlib ``csv`` module is used (never ``eval``);
+        non-UTF-8 bytes raise a :class:`~langrank.errors.ParseError` (a UTF-8 BOM is
+        tolerated); a missing required column (:data:`_REQUIRED_COLUMNS`) raises a
+        ``ParseError`` naming it; and an unknown ``profile``, a non-positive ``rank``,
+        an implausible ``year`` or a malformed numeric cell each raise a ``ParseError``
+        naming the offending row. Each mapped row yields a **rank** record and, when the
+        ``score`` cell is non-empty, a **score** record for the same ``(year, profile,
+        language)`` - an empty ``score`` never fabricates a score record (the rank is
+        still stored). Records are annual (:attr:`Granularity.YEAR`) and preserve the
+        printed language string, the per-edition ``source_url`` and ``published_at``,
+        the ``methodology_version`` and the edition's :data:`SCORE_SCALE_BY_YEAR` scale;
+        ``is_derived`` is decided in :meth:`normalize`. Parsed records are finally
+        trimmed to the request window (:meth:`_filter_window`).
 
         :param raw: The raw curated-CSV fetch payload.
-        :returns: One source record per published rank/score.
-        :raises NotImplementedError: Until subtask 05 lands the parser.
+        :returns: One rank record per published rank and one score record per non-empty
+            published score, within the request window.
+        :raises ParseError: On a decoding error, a missing required column, an unknown
+            profile, or a malformed / out-of-range cell.
         """
-        raise NotImplementedError("ieee-spectrum parse lands in subtask 05.")
+        try:
+            text = raw.content.decode("utf-8-sig")
+        except UnicodeDecodeError as exc:
+            raise ParseError("ieee-spectrum CSV must be UTF-8 encoded.") from exc
+        reader = csv.DictReader(text.splitlines())
+        fieldnames = reader.fieldnames or []
+        for column in _REQUIRED_COLUMNS:
+            if column not in fieldnames:
+                raise ParseError(f"ieee-spectrum CSV is missing required column {column!r}.")
+        records: list[SourceRecord] = []
+        for row in reader:
+            records.extend(_records_from_row(row))
+        return self._filter_window(records)
+
+    def _filter_window(self, records: list[SourceRecord]) -> list[SourceRecord]:
+        """Trim parsed edition records to the request window by ``period_start``.
+
+        With no explicit ``--until`` the window ends at the latest edition present;
+        with no explicit ``--since`` it spans ``--years`` (default
+        :data:`_DEFAULT_YEARS`) back from that end. The ``langrank import`` path leaves
+        every stashed bound at ``None``, so a decade-wide default keeps every curated
+        edition. Missing editions are never synthesised - only present rows are kept.
+
+        :param records: Records built from the curated CSV.
+        :returns: The subset whose ``period_start`` falls in ``[since, until]``.
+        """
+        if not records:
+            return records
+        until = self._request_until or max(record.period_start for record in records)
+        if self._request_since is not None:
+            since = self._request_since
+        else:
+            span = self._request_years or _DEFAULT_YEARS
+            since = date(until.year - span, 1, 1)
+        return [record for record in records if since <= record.period_start <= until]
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
-        """Normalize per-profile records into observations (lands in subtask 05).
+        """Normalize per-profile records into observations with full provenance.
 
-        The normalizer will consult :data:`~langrank.normalization.IEEE_UNTRACKED_LABELS`
-        **before** attempting resolution so documented markup / hardware labels (and
-        IEEE's classic-VB ``Visual Basic``) are skipped without emitting an
-        ``unmapped_language`` warning and without folding into ``vb.net``.
+        :data:`~langrank.normalization.IEEE_UNTRACKED_LABELS` are consulted **before**
+        resolution, so documented markup / hardware labels (and IEEE's classic-VB
+        ``Visual Basic``) are skipped silently - no observation and no
+        ``unmapped_language`` warning - and never fold into ``vb.net`` via the global
+        alias. Any other label that resolves to no canonical language is skipped and
+        recorded in :attr:`last_unmapped` (never guessed) for validation (subtask 06).
 
-        :param records: Parsed per-profile source records.
-        :returns: One observation per mapped record.
-        :raises NotImplementedError: Until subtask 05 lands normalization.
+        The published ``score`` is IEEE's own figure, emitted verbatim
+        (``is_derived=False``, ``derivation_method=None``) with its edition-specific
+        :data:`SCORE_SCALE_BY_YEAR` scale carried in ``metadata_json['score_scale']``
+        and never rescaled. IEEE's data file publishes no rank column, so every
+        **rank** is computed by this project from the published scores and is therefore
+        ``is_derived=True`` with ``derivation_method=`` :data:`RANK_DERIVATION_METHOD`.
+        ``source_document_id`` identifies the edition **and** profile
+        (``ieee-tpl-{year}-{profile}``) so a query never conflates profiles, and
+        ``source_published_at`` comes from the row's ``published_at``. Pure over its
+        inputs: no network, no database.
+
+        :param records: Parsed per-profile rank and score source records.
+        :returns: One observation per mapped record; empty when none map.
         """
-        raise NotImplementedError("ieee-spectrum normalize lands in subtask 05.")
+        self.last_unmapped = []
+        observations: list[Observation] = []
+        for record in records:
+            label = record.language
+            if label in IEEE_UNTRACKED_LABELS:
+                continue
+            language_id = self._normalizer.try_resolve(label, rating_id=self.provider_id)
+            if language_id is None:
+                if label not in self.last_unmapped:
+                    self.last_unmapped.append(label)
+                continue
+            is_rank = record.metric_id.endswith("-rank")
+            profile = str(record.metadata.get("profile", ""))
+            source_document_id = f"ieee-tpl-{record.period_start.year}-{profile}"
+            published_raw = record.metadata.get("published_at")
+            source_published_at = (
+                datetime.combine(date.fromisoformat(str(published_raw)), datetime.min.time(), UTC)
+                if published_raw
+                else None
+            )
+            observations.append(
+                build_observation(
+                    record=record,
+                    language_id=language_id,
+                    parser_version=PARSER_VERSION,
+                    retrieved_at=self._retrieved_at,
+                    is_derived=is_rank,
+                    derivation_method=RANK_DERIVATION_METHOD if is_rank else None,
+                    source_document_id=source_document_id,
+                    source_published_at=source_published_at,
+                )
+            )
+        return observations
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
         """Validate observations against named codes (lands in subtask 06).
@@ -370,3 +506,83 @@ class IeeeSpectrumProvider:
         :raises NotImplementedError: Until subtask 06 lands validation.
         """
         raise NotImplementedError("ieee-spectrum validate lands in subtask 06.")
+
+
+def _records_from_row(row: dict[str, Any]) -> list[SourceRecord]:
+    """Build the rank record and optional score record for one curated CSV row.
+
+    One row is one ``(year, profile, language)`` cell. It always yields a **rank**
+    record (metric ``ieee-spectrum-{profile}-rank``); it additionally yields a
+    **score** record (metric ``ieee-spectrum-{profile}-score``) only when the ``score``
+    cell is non-empty - an empty score is left missing, never fabricated. The score
+    record carries no ``rank`` (the two metrics stay independent) and both records
+    carry the edition's provenance so ``is_derived`` can be decided in
+    :meth:`IeeeSpectrumProvider.normalize`.
+
+    :param row: A curated CSV row keyed by column name.
+    :returns: ``[rank_record]`` or ``[rank_record, score_record]``.
+    :raises ParseError: If the profile is unknown, the rank is not a positive integer,
+        the year is implausible, or a numeric cell is malformed.
+    """
+    try:
+        year = int(row["year"])
+        profile = IeeeProfile(row["profile"])
+        rank = int(row["rank"])
+        language = row["language"]
+        score_raw = (row["score"] or "").strip()
+        source_url = row["source_url"]
+        published_at = row["published_at"]
+        methodology_version = row["methodology_version"]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ParseError(f"ieee-spectrum row is malformed: {row!r}") from exc
+    if rank <= 0:
+        raise ParseError(f"ieee-spectrum rank must be positive: {row!r}")
+    if not 2000 <= year <= 2100:
+        raise ParseError(f"ieee-spectrum year is implausible: {row!r}")
+    period_start = date(year, 1, 1)
+    period_end = date(year, 12, 31)
+    period_label = str(year)
+    base_metadata: dict[str, Any] = {
+        "profile": profile.value,
+        "methodology_version": methodology_version,
+        "provenance": _PROVENANCE,
+        "published_at": published_at,
+    }
+    records = [
+        SourceRecord(
+            rating_id=_RATING_ID,
+            metric_id=rank_metric_id(profile),
+            language=language,
+            period_start=period_start,
+            period_end=period_end,
+            period_label=period_label,
+            granularity=Granularity.YEAR,
+            rank=rank,
+            value=float(rank),
+            unit="rank",
+            source_url=source_url,
+            metadata=dict(base_metadata),
+        )
+    ]
+    if score_raw:
+        try:
+            score = float(score_raw)
+        except ValueError as exc:
+            raise ParseError(f"ieee-spectrum score is malformed: {row!r}") from exc
+        records.append(
+            SourceRecord(
+                rating_id=_RATING_ID,
+                metric_id=score_metric_id(profile),
+                language=language,
+                period_start=period_start,
+                period_end=period_end,
+                period_label=period_label,
+                granularity=Granularity.YEAR,
+                rank=None,
+                value=score,
+                unit="score",
+                source_url=source_url,
+                metadata={**base_metadata, "score_scale": SCORE_SCALE_BY_YEAR.get(year)},
+            )
+        )
+    return records
