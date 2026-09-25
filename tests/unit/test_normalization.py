@@ -4,7 +4,17 @@ import pytest
 
 from langrank.db import Database
 from langrank.errors import UnknownLanguageError
-from langrank.normalization import LanguageNormalizer
+from langrank.normalization import GITHUB_NON_LANGUAGES, LanguageNormalizer
+
+#: GitHub Linguist display names that must resolve under ``rating_id="github"``.
+GITHUB_LINGUIST_ALIASES: tuple[tuple[str, str], ...] = (
+    ("C++", "c++"),
+    ("C#", "c#"),
+    ("Shell", "shell"),
+    ("PowerShell", "powershell"),
+    ("Visual Basic .NET", "vb.net"),
+    ("Objective-C", "objective-c"),
+)
 
 #: Every global alias that existed before rating-scoped aliases were introduced,
 #: paired with the canonical language it must keep resolving to.
@@ -116,6 +126,19 @@ def test_new_catalog_languages_present() -> None:
         "delphi",
     }
     assert expected <= ids
+
+
+def test_github_linguist_aliases_resolve() -> None:
+    normalizer = LanguageNormalizer()
+    for name, canonical in GITHUB_LINGUIST_ALIASES:
+        assert normalizer.resolve(name, rating_id="github") == canonical
+
+
+def test_github_non_languages_not_mapped() -> None:
+    normalizer = LanguageNormalizer()
+    assert normalizer.try_resolve("Jupyter Notebook", rating_id="github") is None
+    for name in GITHUB_NON_LANGUAGES:
+        assert normalizer.try_resolve(name, rating_id="github") is None
 
 
 def test_seed_languages_persists_rating_scoped_alias(database: Database) -> None:

@@ -47,6 +47,23 @@ class RatingAlias:
     notes: Optional[str] = None
 
 
+#: GitHub Linguist "language" names that are markup, config, data, or notebook
+#: formats rather than programming languages tracked by this project. They are
+#: deliberately left unmapped; a genuinely new (unlisted) Linguist name should
+#: still raise an ``unmapped_language`` warning downstream, so this set exists to
+#: suppress the warning only for these documented exclusions.
+GITHUB_NON_LANGUAGES: frozenset[str] = frozenset(
+    {
+        "Jupyter Notebook",
+        "HCL",
+        "Dockerfile",
+        "Makefile",
+        "HTML",
+        "CSS",
+    }
+)
+
+
 #: Source-specific aliases shared by the new rating providers (Tasks 01.0-04.0).
 #: Rating-scoped entries win over the global alias table in :meth:`resolve`.
 RATING_ALIASES: tuple[RatingAlias, ...] = (
@@ -59,6 +76,12 @@ RATING_ALIASES: tuple[RatingAlias, ...] = (
     RatingAlias("stackoverflow-tags", "bash", "shell", notes="Stack Overflow bash tag"),
     RatingAlias("stackoverflow-tags", "vb.net", "vb.net", notes="Stack Overflow vb.net tag"),
     RatingAlias("stackoverflow-tags", "typescript", "typescript", notes="Stack Overflow typescript tag"),
+    RatingAlias("github", "C++", "c++", notes="GitHub Linguist C++ name"),
+    RatingAlias("github", "C#", "c#", notes="GitHub Linguist C# name"),
+    RatingAlias("github", "Shell", "shell", notes="GitHub Linguist Shell name"),
+    RatingAlias("github", "PowerShell", "powershell", notes="GitHub Linguist PowerShell name"),
+    RatingAlias("github", "Visual Basic .NET", "vb.net", notes="GitHub Linguist Visual Basic .NET name"),
+    RatingAlias("github", "Objective-C", "objective-c", notes="GitHub Linguist Objective-C name"),
 )
 
 
