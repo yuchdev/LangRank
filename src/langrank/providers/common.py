@@ -2,17 +2,80 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import re
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 
+from langrank.errors import FetchError
 from langrank.models import Observation, RawArtifact, SourceRecord
 from langrank.providers.base import FetchPayload
+
+#: Cache filename extensions written by :func:`payload_from_content`, newest-first
+#: preference order is irrelevant (mtime decides) but the set bounds the glob.
+_CACHE_EXTENSIONS = (".json", ".csv", ".bin")
+
+#: A provider id safe to interpolate into a cache glob: no path separators or
+#: traversal segments (SEC-5).
+_PROVIDER_ID_RE = re.compile(r"^[a-z0-9-]+$")
 
 
 def build_observation_hash(record: SourceRecord) -> str:
     return hashlib.sha256(json.dumps(asdict(record), sort_keys=True, default=str).encode("utf-8")).hexdigest()
+
+
+def _extension_for(mime_type: str) -> str:
+    """Map a MIME type to the cache-file extension used on disk.
+
+    :param mime_type: The artifact MIME type.
+    :returns: ``.csv``, ``.json`` or ``.bin``.
+    """
+    if mime_type == "text/csv":
+        return ".csv"
+    if mime_type == "application/json":
+        return ".json"
+    return ".bin"
+
+
+def load_cached_payload(*, provider_id: str, cache_dir: Path) -> FetchPayload:
+    """Return the newest cached artifact for ``provider_id`` for offline replay.
+
+    Used by ``--offline`` to replay the last cached bytes without any network. The
+    lookup is confined to ``cache_dir``: ``provider_id`` is constrained to
+    ``[a-z0-9-]``, only ``{provider_id}-*`` files with a known extension are
+    considered, symlinks are rejected, and each candidate must resolve to a
+    regular file under ``cache_dir`` (SEC-5).
+
+    :param provider_id: The rating id whose cache subdirectory is being read.
+    :param cache_dir: The provider's own cache directory.
+    :returns: A :class:`FetchPayload` with the cached bytes and no artifact (a
+        replay does not mint a new :class:`RawArtifact`).
+    :raises FetchError: If ``provider_id`` is unsafe or no cached artifact exists.
+    """
+    if not _PROVIDER_ID_RE.match(provider_id):
+        raise FetchError(f"invalid provider id for cache lookup: {provider_id!r}")
+    base = cache_dir.resolve()
+    if not base.is_dir():
+        raise FetchError(f"no cached artifact for provider {provider_id!r}; run without --offline first")
+
+    prefix = str(base) + os.sep
+    candidates: list[Path] = []
+    for extension in _CACHE_EXTENSIONS:
+        for path in base.glob(f"{provider_id}-*{extension}"):
+            if path.is_symlink():
+                continue
+            resolved = path.resolve()
+            if not str(resolved).startswith(prefix) or not resolved.is_file():
+                continue
+            candidates.append(resolved)
+    if not candidates:
+        raise FetchError(f"no cached artifact for provider {provider_id!r}; run without --offline first")
+
+    newest = max(candidates, key=lambda path: path.stat().st_mtime)
+    return FetchPayload(artifact=None, content=newest.read_bytes())
 
 
 def payload_from_content(
@@ -30,7 +93,7 @@ def payload_from_content(
     artifact = None
     if not no_cache:
         cache_dir.mkdir(parents=True, exist_ok=True)
-        ext = ".csv" if mime_type == "text/csv" else ".bin"
+        ext = _extension_for(mime_type)
         file_path = cache_dir / f"{provider_id}-{sha256[:12]}{ext}"
         file_path.write_bytes(content)
         artifact = RawArtifact(
@@ -59,11 +122,11 @@ def build_observation(
     parser_version: str,
     retrieved_at: datetime,
     is_derived: bool,
-    derivation_method: str | None,
-    source_document_id: str | None,
-    source_published_at: datetime | None,
-    sample_size: int | None = None,
-    population: str | None = None,
+    derivation_method: Optional[str],
+    source_document_id: Optional[str],
+    source_published_at: Optional[datetime],
+    sample_size: Optional[int] = None,
+    population: Optional[str] = None,
 ) -> Observation:
     return Observation(
         rating_id=record.rating_id,

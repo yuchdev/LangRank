@@ -97,3 +97,58 @@ is absent from error messages, `RawArtifact.url`, `metadata_json`, and the cache
 fixes to `python-expert` and the regression tests to `testing-expert`; re-audit before the merge
 gate clears. Findings SEC-3..SEC-7 are follow-up requirements to satisfy within the same subtask.
 </content>
+
+## Re-audit - 2026-09-25 (implementation of subtask 04)
+
+Scope re-audited: uncommitted `src/langrank/util/http.py`, `src/langrank/providers/common.py`,
+`src/langrank/providers/stackoverflow_tags.py`, `tests/unit/test_stackoverflow_tags_fetch.py`
+(`git diff HEAD`). Unit tests run: `uv run pytest tests/unit/test_stackoverflow_tags_fetch.py -q`
+-> 10 passed. Live integration tests not run (per scope).
+
+### Per-SEC verdict
+
+- SEC-1 (key never in error/logs/artifact/cache): MET. Key passed only via httpx `params`
+  (`stackoverflow_tags.py` `count_questions`); `RawArtifact.url`/`metadata_json` built from
+  secret-free `API_URL`; `map_error` -> `_scrub_message`/`_scrub_url` redact `key`/`access_token`
+  from error text (`util/http.py`). Tests `test_api_key_not_persisted`,
+  `test_api_key_scrubbed_from_error_message` both assert presence of REDACTED and absence of key.
+- SEC-2 (redirect/host exfiltration): MET in code, UNTESTED. `get_json` enforces `scheme == https`,
+  `netloc == allowed_host`, builds client with `follow_redirects=False`, and `_read_capped` raises
+  on `response.is_redirect`. No dedicated test for off-host / non-HTTPS / 3xx refusal.
+- SEC-3 (unbounded / decompression bomb): MET in code, UNTESTED. `_read_capped` streams via
+  `iter_bytes` and aborts past `max_response_bytes` (10 MB, post-decompression). No test exercising
+  an oversized body.
+- SEC-4 (untrusted JSON shape + backoff clamp): MET in code, PARTIALLY TESTED. `count_questions`
+  rejects non-dict, and `total` that is bool/non-int/negative; `json.loads` only, JSONDecodeError ->
+  FetchError; `_honour_backoff` clamps to `MAX_BACKOFF_SECONDS` (300s) and ignores bool/non-numeric.
+  `test_fetch_honours_backoff` covers a valid backoff=2 only; no test for the 300s clamp, malformed
+  `total`, or non-JSON body.
+- SEC-5 (cache traversal/symlink on read-back): MET in code, PARTIALLY TESTED. `load_cached_payload`
+  enforces `_PROVIDER_ID_RE` (`[a-z0-9-]`), single-level glob within `cache_dir.resolve()`, skips
+  symlinks, requires containment (`startswith(prefix)`) and regular file. Only happy-path
+  (`test_offline_uses_cached_payload`) and empty-cache (`test_offline_without_cache_raises`) tested;
+  no test for symlink rejection, out-of-tree containment, or invalid provider_id.
+- SEC-6 (daily budget + backoff): MET, TESTED. `StackExchangeClient.ensure_budget` raises before the
+  first call; `test_fetch_budget_exceeded_raises_before_requests` asserts `calls == []`. Backoff
+  honoured per SEC-4.
+- SEC-7 (audit trail): MET (LOW). `metadata_json` records `source`, `denominator`, `month_count`,
+  `requests_made`; no user content, no key. FetchService `fetch_runs` recording is downstream
+  (subtask 05+), out of this diff.
+
+### Required follow-ups (severity)
+
+- [HIGH] Add regression tests for SEC-2: off-host URL, non-HTTPS URL, and a 3xx response all raise
+  FetchError and issue no cross-host request (assert on MockTransport call log).
+- [HIGH] Add SEC-3 test: response body exceeding `max_response_bytes` raises FetchError.
+- [MEDIUM] Add SEC-4 tests: backoff far above 300 sleeps exactly `MAX_BACKOFF_SECONDS`; malformed
+  `total` (string/negative/bool) and non-JSON body each raise FetchError.
+- [MEDIUM] Add SEC-5 tests: symlinked cache entry is skipped; a candidate resolving outside
+  `cache_dir` is rejected; unsafe `provider_id` raises FetchError.
+
+All follow-ups are test-coverage gaps against code that is already correct; no product-code defect
+was found. Hand these regression tests to `testing-expert`.
+
+### Re-audit verdict: PASS_WITH_FOLLOWUP (CLEAR)
+
+The CRITICAL (SEC-1) is fully implemented and proven by tests; no CRITICAL remains, so the merge gate
+is not blocked. The HIGH/MEDIUM items above are missing-test follow-ups to close within this subtask.
