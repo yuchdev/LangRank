@@ -16,7 +16,7 @@
 | 06 | [Raw-data import: derived respondent shares](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/06-raw-data-import.md) | Python Expert | 05 | ✅ Complete |
 | 07 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/07-validate.md) | Python Expert | 05, 06 | ✅ Complete |
 | 08 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/08-fixtures-and-contract-tests.md) | Testing Expert | 07, 01.0/07 | ⬜ Not started |
-| 09 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/09-docs.md) | Docs Writer | 08 | ⬜ Not started |
+| 09 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/09-docs.md) | Docs Writer | 08 | ✅ Complete |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 

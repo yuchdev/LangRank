@@ -4,6 +4,38 @@ Providers implement the fetch -> parse -> normalize -> validate pipeline and mus
 
 See [/docs/source-notes/](/docs/source-notes/) for per-provider acquisition policy, quota limits, and terms notes.
 
+## Provider contract
+
+Every provider implements the `RatingProvider` protocol (`src/langrank/providers/base.py`) with
+five methods: `metadata()`, `fetch(request)`, `parse(payload)`, `normalize(records)`, and
+`validate(observations)`. Providers must never write to SQLite; persistence is the service
+layer's responsibility via `Database`.
+
+### Optional capability: SupportsRawImport
+
+`SupportsRawImport` (`src/langrank/providers/base.py`) is an additional, optional,
+runtime-checkable protocol for providers that must ingest a large, untrusted, operator-supplied
+local file under explicit size and row caps:
+
+```python
+class SupportsRawImport(Protocol):
+    def import_path(self, path: Path) -> list[SourceRecord]:
+        """Stream path and return the parsed source records (capped, no full read)."""
+        ...
+```
+
+`langrank import` dispatches at runtime via `isinstance(provider, SupportsRawImport)`:
+
+- **Provider implements `SupportsRawImport`:** the CLI calls `provider.import_path(path)`. The
+  method owns all streaming, size-capping, CSV-robustness, and parsing logic. The default
+  whole-file `path.read_bytes()` → `provider.parse()` path is **not** used for this provider.
+- **Provider does not implement `SupportsRawImport`:** the CLI calls `path.read_bytes()` and
+  passes the bytes to `provider.parse()` (existing behaviour, unchanged).
+
+The `jetbrains` provider currently implements `SupportsRawImport` because the JetBrains raw-data
+dump is hundreds of MB uncompressed and must not be loaded into memory whole (see
+[JB-SEC-1](/docs/security/2026-09-26-jetbrains-import.md)).
+
 ## Demo provider
 
 `demo` ships with LangRank and produces deterministic synthetic annual history for a small language set and two metrics:
@@ -533,3 +565,208 @@ uv run langrank import --rating ieee-spectrum path/to/2026_edition.csv
   ranks beyond N stay missing (no interpolation, no fabricated values).
 - For terms, robots.txt status, and the full Flourish data file acquisition ruling see the
   [source note](/docs/source-notes/ieee-spectrum.md).
+
+## JetBrains Developer Ecosystem provider
+
+**Rating ID:** `jetbrains`
+**Source note:** [/docs/source-notes/jetbrains.md](/docs/source-notes/jetbrains.md)
+**Threat model:** [/docs/security/2026-09-26-jetbrains-import.md](/docs/security/2026-09-26-jetbrains-import.md)
+**Gate verdict:** `manual-only` for both modes — 0 automated network requests.
+
+JetBrains runs an annual *State of Developer Ecosystem* survey (first edition 2017) and
+publishes **weighted** language-usage figures. This provider stores three metrics that are
+**never merged**: past-12-month usage, primary language, and planned adoption. These are
+distinct questions on different denominators and must not be plotted or compared on a
+shared axis.
+
+Two acquisition modes exist and own separate metric families:
+
+- **published** (default): reads JetBrains' own **weighted** percentages from a bundled
+  curated CSV (`src/langrank/providers/data/jetbrains.csv`); `is_derived=False`; 0 network
+  requests.
+- **raw-data** (import): operator imports the anonymized response dump; LangRank computes
+  **unweighted** respondent shares; `is_derived=True`; `-raw` metric IDs.
+
+> **Weighted and unweighted values are not comparable and never share a series.**
+> Each published metric and its `-raw` counterpart are permanently separate series.
+> `primary_language` and `used_last_12_months` answer **different** survey questions on
+> different denominators and are never merged. Shares **may sum above 100 %** because the
+> usage and planned-adoption questions are multi-select; the 2017 primary-language question
+> was single-choice, so its values do sum to 100 %.
+
+**Data origin (published values):** every percentage in the bundled CSV (723 rows, 2017-2025)
+comes from chart data JetBrains ships with each rendered edition page — chart configurations
+bundled in the page bundle (2017, 2018) or data files on `resources.jetbrains.com` (2019-2025).
+No value was estimated from bar length or pixel geometry. The used-last-12-months history was
+cross-checked against JetBrains' own multi-year retrospective charts (2021-2025 editions):
+648 year × language comparisons, 2 disagreements (`2022 HTML/CSS` 55 vs 54 and `Lua` 4 vs 3 —
+the edition's own data-file values are kept). See the
+[source note](/docs/source-notes/jetbrains.md) for the full acquisition narrative and gate ruling.
+
+### Metrics
+
+| Metric ID | Unit | Derived? | Acquisition mode | Notes |
+|---|---|---|---|---|
+| `jetbrains-used-last-12-months` | percent | No | published | JetBrains' weighted %; multi-select (may sum >100 %). |
+| `jetbrains-primary-language` | percent | No | published | JetBrains' weighted %; single-choice in 2017, up to 3 from 2019. |
+| `jetbrains-planned-adoption` | percent | No | published | JetBrains' weighted %; multi-select (may sum >100 %). |
+| `jetbrains-used-last-12-months-raw` | percent | Yes | raw-data import | Unweighted respondent share; `derivation_method="unweighted_respondent_share"`. |
+| `jetbrains-primary-language-raw` | percent | Yes | raw-data import | Unweighted respondent share; `derivation_method="unweighted_respondent_share"`. |
+| `jetbrains-planned-adoption-raw` | percent | Yes | raw-data import | Unweighted respondent share; `derivation_method="unweighted_respondent_share"`. |
+
+Published metrics store `is_derived=False`. Raw (`-raw`) metrics store `is_derived=True` with
+`derivation_method="unweighted_respondent_share"`. Raw values differ from JetBrains' published
+weighted figures and are never presented as equivalent.
+
+See [/docs/data-model.md#derived-observations](/docs/data-model.md#derived-observations) for
+the `is_derived` / `derivation_method` field semantics.
+
+### Question wording registry
+
+The provider maintains a `QUESTION_REGISTRY` (`src/langrank/providers/jetbrains_questions.py`)
+with one `SurveyQuestion` entry per survey year and metric. Each observation carries the
+question it answers in `metadata_json["question_wording"]`.
+
+Wording discipline: only the **verbatim** question text JetBrains actually published is stored
+as verified wording (`wording_verified=True`); chart legends and group headings are kept
+separately as `chart_legend` and **never** treated as question wording. When JetBrains'
+verbatim string has not been confirmed for a year, `wording=None` and `wording_verified=False`
+— wording is never invented. A `MethodologyNote` is emitted for each confirmed wording change
+between consecutive verified years; unverified years are skipped in change detection so
+fabricated wording never feeds a methodology note.
+
+Currently verified verbatim wordings:
+
+| Year | Metric | Verified verbatim wording |
+|------|--------|---------------------------|
+| 2018 | used-last-12-months | "What programming language(s) do you regularly use?" |
+| 2018 | planned-adoption | "Do you plan to adopt / migrate to other language(s) in the next 12 months? If so, to which one(s)?" |
+| 2019 | used-last-12-months | "What programming languages have you used in the last 12 months?" |
+| 2019 | primary-language | "What are your primary programming languages? Choose no more than 3 languages." |
+| 2023 | used-last-12-months | "Which programming, scripting, and markup languages have you used in the last 12 months?" |
+| 2024 | used-last-12-months | "Which programming languages have you used in the last 12 months?" |
+
+### Coverage
+
+| Year | used-last-12-months | primary-language | planned-adoption | Notes |
+|------|---------------------|-----------------|-----------------|-------|
+| 2017 | Yes | Yes (single-choice) | Yes | "used regularly" wording; all three wording unverified. |
+| 2018 | Yes | **Omitted** | Yes | Primary rendered as rank podium only — no percentages published. |
+| 2019 | Yes | Yes | Yes | |
+| 2020 | Yes | Yes | Yes | |
+| 2021 | Yes | Yes | Yes | |
+| 2022 | Yes | Yes | Yes | |
+| 2023 | Yes | Yes | Yes | |
+| 2024 | Yes (top-20 only) | Yes | Yes | Usage published only as a top-20 history chart. |
+| 2025 | Yes (top-20 only) | Yes | Yes | Planned adoption: all rows from data file (chart shows top 5). |
+
+`sample_size` is the edition's total respondent count; JetBrains publishes no per-question
+counts. 2017 and 2018 totals are approximate ("over 5,000", "6,000") and those editions do
+not state weighting methodology.
+
+### Acquisition modes
+
+| Mode | Network requests | How triggered |
+|------|-----------------|---------------|
+| `published` (bundled CSV) | 0 | `langrank fetch jetbrains` or `langrank fetch all` |
+| `raw-data` (manual import) | 0 | `langrank import --rating jetbrains <raw.csv>` |
+
+`langrank fetch jetbrains` reads the curated bundled CSV with 0 network requests. The
+`--source` flag accepts `auto` (default), `published`, or `raw-data`; passing `raw-data` to
+`fetch` raises `NotImplementedError` — use `langrank import` instead.
+
+### Raw-data import
+
+The operator obtains the anonymized response dump out-of-band (LangRank makes no automated
+download), extracts the CSV from the zip, and runs:
+
+```bash
+uv run langrank import --rating jetbrains /path/to/raw.csv
+```
+
+**Edition downloads and licences:**
+
+| Year | Raw data | Licence |
+|------|----------|---------|
+| 2025 | [`DevEco2025/RawData.zip`](https://resources.jetbrains.com/storage/products/research/DevEco2025/RawData.zip) (~98 MB) | CC BY-NC-SA 4.0 — non-commercial, share-alike, attribution required |
+| 2024 | [`DevEco2024/RawData.zip`](https://resources.jetbrains.com/storage/products/research/DevEco2024/RawData.zip) (~87 MB) | CC BY-NC-SA 4.0 — non-commercial, share-alike, attribution required |
+| 2023 | [Google Drive folder](https://drive.google.com/drive/folders/1w-uI4-G2eWn_eqUe69IoT8McuJCENB3O) (browser; no login) | Attribution-only |
+| 2022 | [Google Drive folder](https://drive.google.com/drive/folders/1nlvy45tE4gFX_oWNxG_UTC1-tLZBTcbR) (browser; no login) | Attribution-only |
+| 2017-2021 | None published | n/a |
+
+**Only the 2024 raw layout is supported for import.** The 2025 dump reuses identical
+column-name prefixes (`proglang::`, `primary_lang::`, `adopt_proglang::`), making year
+detection permanently ambiguous; `import` rejects 2025 files with a clear error. 2022 and
+2023 raw layouts have not yet been transcribed into the question registry.
+
+**Import limits** (per [JB-SEC-1..3](/docs/security/2026-09-26-jetbrains-import.md)):
+
+| Limit | Value | Reason |
+|-------|-------|--------|
+| Max file size | 600 MB | Byte cap; checked via `st_size` before any read. |
+| Max rows | 2,000,000 | Row cap during streaming parse. |
+| Max line length | 16 MiB | Per-line cap before full row materialisation. |
+| Max columns | 50,000 | Header column count cap. |
+| File type | Regular file only | FIFOs / char-devices report `st_size = 0` and bypass the byte cap. |
+| Zip files | Rejected | Pre-extract the CSV first; 4-byte magic check rejects zip. |
+
+**What is stored:** only per-language aggregate counts and the respondent denominator
+(`sample_size` and `metadata["denominator"]`). Language columns are identified by the survey
+year's `QUESTION_REGISTRY` column-name prefixes; every other column — including free-text
+answers — is ignored and never persisted. Raw files (zip or extracted CSV) are **never written
+to the repo, shared cache, or any published location**; they stay on the operator's local disk
+only. Test fixtures are tiny synthetic rows; no verbatim JetBrains response data is committed.
+
+**Licence obligations for `-raw` series:** the derived series carry the source licence in
+release metadata. CC BY-NC-SA 4.0 (2024/2025) restricts commercial use and requires
+share-alike attribution. Do not redistribute raw data or `-raw` derived values commercially.
+
+### Example commands
+
+```bash
+# Fetch the bundled published (weighted) percentages (no network):
+uv run langrank fetch jetbrains
+
+# Plot used-last-12-months for three languages over 10 years (published, weighted):
+uv run langrank plot --rating jetbrains \
+    --metric jetbrains-used-last-12-months \
+    --languages python,java,kotlin \
+    --years 10
+
+# Plot primary language over 8 years:
+uv run langrank plot --rating jetbrains \
+    --metric jetbrains-primary-language \
+    --languages python,java,kotlin \
+    --years 8
+
+# Import the 2024 raw dump (extract DevEco2024/RawData.zip first):
+uv run langrank import --rating jetbrains /path/to/2024_sharing_data_outside.csv
+
+# Query the unweighted (raw) used-last-12-months series:
+uv run langrank query --rating jetbrains \
+    --metric jetbrains-used-last-12-months-raw \
+    --language python
+
+# Export all JetBrains metrics to CSV:
+uv run langrank export csv --ratings jetbrains --since 2017 --output jetbrains.csv
+```
+
+### Caveats
+
+- `used_last_12_months`, `primary_language`, and `planned_adoption` are **different questions**
+  on different denominators. Never merge or plot them on a shared axis.
+- Published (weighted) and raw (unweighted) values are not comparable; they are permanently
+  separate metric IDs and must never share a series.
+- Shares **may sum above 100 %** because usage and planned-adoption are multi-select; the 2017
+  primary-language question was single-choice.
+- 2018 primary language is omitted (no published percentages; rendered as a rank podium only).
+- 2024 and 2025 usage lists are top-20 only; languages outside the top 20 stay missing.
+- Only the 2024 raw-dump layout is supported for import. 2025 is refused (ambiguous year
+  detection); 2022/2023 layouts are not yet transcribed.
+- Raw imports are local-file-only with no automated download. Raw files must never be
+  committed to the repo, shared cache, or published exports.
+- JetBrains corrects for audience skew (JetBrains-tool users are down-weighted), but the
+  correction is editorial. See the [source note](/docs/source-notes/jetbrains.md) for details.
+- Acquisition is manual-only in both modes (0 automated network requests). `langrank fetch all`
+  fetches only the published bundled CSV; raw-data import requires a separate `langrank import`
+  call.
