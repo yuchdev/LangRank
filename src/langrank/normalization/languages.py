@@ -97,6 +97,28 @@ IEEE_UNTRACKED_LABELS: frozenset[str] = frozenset(
 )
 
 
+#: JetBrains *State of Developer Ecosystem* survey answer labels that are
+#: deliberately not tracked as canonical languages. ``HTML / CSS`` is markup;
+#: ``Other`` and ``I don't use programming languages`` are survey meta-answers,
+#: not languages. ``Visual Basic`` is JetBrains' classic-VB answer: per the
+#: 2026-09-26 user ruling (recorded in
+#: ``docs/roadmap/0001-new-rating-providers/status.md``) classic Visual Basic
+#: stays untracked and is *not* folded into ``vb.net`` for this milestone;
+#: because the bootstrap global alias ``"visual basic" -> vb.net`` (used by
+#: TIOBE) still resolves it, a provider must consult this set *before* calling
+#: :meth:`LanguageNormalizer.try_resolve` - exactly like ``IEEE_UNTRACKED_LABELS``
+#: - so the label is skipped rather than silently mapped. Answers not in this set
+#: and not resolvable should still warn downstream.
+JETBRAINS_NON_LANGUAGE_ANSWERS: frozenset[str] = frozenset(
+    {
+        "HTML / CSS",
+        "Visual Basic",
+        "Other",
+        "I don't use programming languages",
+    }
+)
+
+
 #: Source-specific aliases shared by the new rating providers (Tasks 01.0-04.0).
 #: Rating-scoped entries win over the global alias table in :meth:`resolve`.
 RATING_ALIASES: tuple[RatingAlias, ...] = (
@@ -118,6 +140,24 @@ RATING_ALIASES: tuple[RatingAlias, ...] = (
     RatingAlias("ieee-spectrum", "Shell", "shell", notes="IEEE Spectrum Shell label"),
     RatingAlias("ieee-spectrum", "Assembly", "assembly", notes="IEEE Spectrum Assembly label"),
     RatingAlias("ieee-spectrum", "SQL", "sql", notes="IEEE Spectrum ranks SQL as a language"),
+    RatingAlias(
+        "jetbrains",
+        "Shell scripting languages",
+        "shell",
+        notes="JetBrains survey grouping for bash/shell/PowerShell scripting",
+    ),
+    RatingAlias(
+        "jetbrains",
+        "SQL(PL/SQL, T-SQL and other programming extensions of SQL)",
+        "sql",
+        notes="JetBrains verbose SQL answer label",
+    ),
+    RatingAlias(
+        "jetbrains",
+        "C/C++",
+        "c-cpp",
+        notes="JetBrains combined C/C++ answer in pre-split editions; never split into two languages",
+    ),
 )
 
 

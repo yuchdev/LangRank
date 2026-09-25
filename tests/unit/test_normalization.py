@@ -10,7 +10,26 @@ from langrank.errors import UnknownLanguageError
 from langrank.normalization import (
     GITHUB_NON_LANGUAGES,
     IEEE_UNTRACKED_LABELS,
+    JETBRAINS_NON_LANGUAGE_ANSWERS,
     LanguageNormalizer,
+)
+
+#: JetBrains survey answer labels that must resolve under ``rating_id="jetbrains"``.
+#: Only labels needing a scoped alias appear here; plain names (``Python``,
+#: ``Kotlin`` ...) already resolve globally against the shared catalog.
+JETBRAINS_ALIASES: tuple[tuple[str, str], ...] = (
+    ("Shell scripting languages", "shell"),
+    ("SQL(PL/SQL, T-SQL and other programming extensions of SQL)", "sql"),
+    ("C/C++", "c-cpp"),
+)
+
+#: JetBrains meta-answers and markup that ``try_resolve`` must reject outright
+#: (``Visual Basic`` is handled separately - see the test - because the bootstrap
+#: TIOBE alias still resolves it globally to ``vb.net``).
+JETBRAINS_UNMAPPED_ANSWERS: tuple[str, ...] = (
+    "HTML / CSS",
+    "Other",
+    "I don't use programming languages",
 )
 
 #: GitHub Linguist display names that must resolve under ``rating_id="github"``.
@@ -236,6 +255,44 @@ def test_ieee_untracked_labels_expected_contents() -> None:
             "LabView",
             "Ladder Logic",
             "Pascal/Delphi",
+        }
+    )
+
+
+def test_jetbrains_aliases_resolve() -> None:
+    normalizer = LanguageNormalizer()
+    for name, canonical in JETBRAINS_ALIASES:
+        assert normalizer.resolve(name, rating_id="jetbrains") == canonical
+
+
+def test_jetbrains_non_language_answers_unmapped() -> None:
+    normalizer = LanguageNormalizer()
+    # Markup and survey meta-answers never resolve as a language.
+    for answer in JETBRAINS_UNMAPPED_ANSWERS:
+        assert answer in JETBRAINS_NON_LANGUAGE_ANSWERS
+        assert normalizer.try_resolve(answer, rating_id="jetbrains") is None
+
+    # Classic Visual Basic resolves to ``vb.net`` via the bootstrap TIOBE alias,
+    # so the provider must consult ``JETBRAINS_NON_LANGUAGE_ANSWERS`` *before*
+    # resolving (mirroring ``IEEE_UNTRACKED_LABELS``); it is listed to be skipped,
+    # not mapped, and must not be folded into ``vb.net`` for this milestone.
+    assert "Visual Basic" in JETBRAINS_NON_LANGUAGE_ANSWERS
+
+
+def test_jetbrains_combined_answer_not_split() -> None:
+    normalizer = LanguageNormalizer()
+    # A combined C/C++ answer maps to the single ``c-cpp`` canonical language and
+    # is never split into ``c`` and ``c++``.
+    assert normalizer.resolve("C/C++", rating_id="jetbrains") == "c-cpp"
+
+
+def test_jetbrains_non_language_answers_expected_contents() -> None:
+    assert JETBRAINS_NON_LANGUAGE_ANSWERS == frozenset(
+        {
+            "HTML / CSS",
+            "Visual Basic",
+            "Other",
+            "I don't use programming languages",
         }
     )
 

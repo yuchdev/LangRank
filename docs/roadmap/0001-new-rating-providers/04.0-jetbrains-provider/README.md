@@ -10,7 +10,7 @@
 |----|---------|------|------------|--------|
 | 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ⬜ Not started |
 | 02 | [Survey question registry](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/02-survey-question-registry.md) | Python Expert | 01 | ⬜ Not started |
-| 03 | [JetBrains language aliases](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/03-jetbrains-aliases.md) | Python Expert | 01.0/02 | ⬜ Not started |
+| 03 | [JetBrains language aliases](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/03-jetbrains-aliases.md) | Python Expert | 01.0/02 | ✅ Complete |
 | 04 | [Provider metadata & registry entry](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/04-metadata-and-registry.md) | Python Expert | 02, 03 | ⬜ Not started |
 | 05 | [Published-percentages dataset: fetch, parse, normalize](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/05-published-percentages.md) | Python Expert | 04 | ⬜ Not started |
 | 06 | [Raw-data import: derived respondent shares](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/06-raw-data-import.md) | Python Expert | 05 | ⬜ Not started |
