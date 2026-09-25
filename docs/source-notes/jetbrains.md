@@ -39,6 +39,22 @@ respondent shares stored under distinct `-raw` metric IDs).
   the raw dump (2022/2023 dumps live behind Google Drive folders needing browser navigation;
   2024/2025 are large direct-download zips). No scraping of the SPA, no chart-pixel/geometry
   extraction.
+- Published-data origin (curated 2026-09-26, 36 slow single requests, ruling in
+  [status.md](/docs/roadmap/0001-new-rating-providers/status.md#notes--decisions)): every value in
+  `providers/data/jetbrains.csv` (723 rows, 2017-2025) comes from the chart data JetBrains ships with
+  a rendered chart - chart configs in the page bundle (2017, 2018) or the report's data files on
+  `resources.jetbrains.com` / the edition's `/_data/*.csv` (2019-2025). No value was read from bar
+  length. The used-last-12-months history was cross-checked against JetBrains' own multi-year
+  retrospective charts (2021-2025 editions): 648 year × language comparisons, 2 disagreements
+  (2022 `HTML / CSS` 55 vs 54 and `Lua` 4 vs 3 - the edition's own values are kept).
+- Coverage caveats: 2017/2018 "used" is labelled "used regularly" (JetBrains' later retrospective
+  series reproduces those values as "used in the last 12 months"); 2018 planned adoption only offered
+  languages *not* already selected as used; primary language is single-choice in 2017 and "up to 3"
+  from 2019; 2018 primary is omitted (podium graphic without percentages); 2024/2025 usage is
+  published only as a top-20 history; 2025 planned adoption includes all rows of the chart's data
+  file although the chart displays the top five. `sample_size` is the edition's total respondent
+  count (JetBrains prints no per-question counts); 2017/2018 totals are approximate ("over 5,000",
+  "6,000") and those editions do not state weighting.
 - Survey year vs period: `period` = survey year; `source_published_at` = report publication date
   (e.g. the 2025 survey ran Apr-Jun 2025, published later in 2025).
 - Language normalization rules: map each JetBrains language label to the canonical language via the
@@ -84,7 +100,7 @@ credited". Sizes are HEAD-only (`Content-Length`); zips were **not** downloaded.
 | 2020 | <https://www.jetbrains.com/lp/devecosystem-2020/> | none published | n/a | ~19,700 | 2020 | used last 12 months; main; planning to adopt |
 | 2019 | <https://www.jetbrains.com/lp/devecosystem-2019/> | none published | n/a | ~7,000 | 2019 | used last 12 months; main; planning to adopt |
 | 2018 | <https://www.jetbrains.com/lp/devecosystem-2018/> | none published | n/a | ~6,000 | 2018 | used last 12 months; main; planning to adopt |
-| 2017 | <https://www.jetbrains.com/lp/devecosystem-2017/> | none published | n/a | ~5,000 | 2017 | used last 12 months; main language (first edition) |
+| 2017 | <https://www.jetbrains.com/lp/devecosystem-2017/> | none published | n/a | ~5,000 | 2017 | used regularly (≙ used last 12 months); primary language (single-choice); to be adopted / migrated to soon |
 
 Notes on the table: exact per-year question wording is only reproduced verbatim by JetBrains in some
 methodology pages (2024 confirms *"Which programming languages have you used in the last 12
