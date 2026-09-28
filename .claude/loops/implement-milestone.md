@@ -1,6 +1,6 @@
 ---
 name: implement-milestone
-description: Drives an entire milestone to completion. Cold-starts with a deep research phase - reads the milestone plan.md and status.md, reconciles the spec against as-built code, and authors specs for any decomposition gaps - then executes every task in dependency order through the implement-subtasks iteration algorithm, one subtask per iteration. Updates status.md after every completed subtask and appends a per-task detail record at each task close. Self-terminates when every task row in status.md shows ✅ Complete (or a ratified deferral) and the milestone exit gates pass.
+description: Drives an entire milestone to completion. Cold-starts with a deep research phase - reads the milestone plan.md and status.md, reconciles the spec against as-built code, and authors specs for any decomposition gaps - then executes every task in dependency order through the implement-task iteration algorithm, one subtask per iteration. Updates status.md after every completed subtask and appends a per-task detail record at each task close. Self-terminates when every task row in status.md shows ✅ Complete (or a ratified deferral) and the milestone exit gates pass.
 invoke: /loop implement-milestone <milestone>
 terminates-when: Every task row in the milestone status.md shows ✅ Complete (or a ratified deferral) AND the milestone exit gates have passed
 ---
@@ -8,13 +8,13 @@ terminates-when: Every task row in the milestone status.md shows ✅ Complete (o
 # implement-milestone - milestone-level execution loop
 
 This loop drives **one whole milestone** (e.g. `docs/roadmap/0002-notification-delivery/`) to
-completion. It is the level above [implement-subtasks.md](implement-subtasks.md): that
+completion. It is the level above [implement-task.md](implement-task.md): that
 loop builds one task; this one researches the milestone, sequences its tasks by their
-dependency graph, and executes each task *through* the implement-subtasks algorithm -
+dependency graph, and executes each task *through* the implement-task algorithm -
 still exactly **one subtask per iteration**, because the subtask is the atomic unit of
 verified progress at every level.
 
-The navigation chain, one level up from implement-subtasks:
+The navigation chain, one level up from implement-task:
 
 ```
 docs/roadmap/{NNNN}-{milestone-slug}/plan.md      → tasks, dependency graph, shared contracts
@@ -46,29 +46,29 @@ job, not an execution loop's.
 
 ---
 
-## Composition contract with implement-subtasks
+## Composition contract with implement-task
 
-**This loop embeds the implement-subtasks algorithm; it never spawns it.** A loop owns
-its own `ScheduleWakeup`: if this loop rescheduled with `/loop implement-subtasks
-<task>`, control would pass to the task loop permanently - implement-subtasks
+**This loop embeds the implement-task algorithm; it never spawns it.** A loop owns
+its own `ScheduleWakeup`: if this loop rescheduled with `/loop implement-task
+<task>`, control would pass to the task loop permanently - implement-task
 terminate by *not* rescheduling, so there is no wakeup left to return to the
 milestone. Instead, each iteration of this loop executes **Steps 2-6 of
-[implement-subtasks.md](implement-subtasks.md) verbatim, by reference** (pick subtask →
+[implement-task.md](implement-task.md) verbatim, by reference** (pick subtask →
 delegate to the fleet → stop-and-ask on forks → verification gate → `/verify-subtask` +
-quality gates), and overrides only the boundary steps that implement-subtasks defines
+quality gates), and overrides only the boundary steps that implement-task defines
 for a *single-task* run:
 
-| implement-subtasks step  | Milestone-run override                                                                                       |
+| implement-task step  | Milestone-run override                                                                                       |
 |--------------------------|--------------------------------------------------------------------------------------------------------------|
-| Step 1 (cursor)          | The cursor is milestone-level (below); the task-level fields implement-subtasks needs are embedded in it     |
+| Step 1 (cursor)          | The cursor is milestone-level (below); the task-level fields implement-task needs are embedded in it     |
 | Step 7, "task complete"  | Do **not** stop: run the task-close gate, record the task, advance the task queue (Step M4 below)            |
 | Step 7.1-7.2 (recording) | Additionally update `status.md` after **every** subtask, not only at task close (Step M3 below)              |
 | Step 8 (reschedule)      | Reschedule with `/loop implement-milestone <milestone>` - always the milestone prompt, never the task prompt |
 
-Everything else in implement-subtasks - the fleet routing table, briefing discipline
+Everything else in implement-task - the fleet routing table, briefing discipline
 (paths and anchors, never pasted bodies), return discipline, stop-and-ask rules, the
 verification and spec-compliance gates - applies unchanged and is **not** duplicated
-here. If the two files ever disagree about a per-subtask mechanic, implement-subtasks
+here. If the two files ever disagree about a per-subtask mechanic, implement-task
 win; if they disagree about task sequencing or milestone state, this file wins.
 
 ---
@@ -114,7 +114,7 @@ Resolve once, then never re-read `plan.md`/`status.md` wholesale in the main loo
 ```
 
 The cursor is a **derived cache**; `plan.md`, `status.md`, and the task READMEs remain
-the source of truth. `current_task` is the embedded implement-subtasks cursor for the
+the source of truth. `current_task` is the embedded implement-task cursor for the
 in-flight task. `research_digest` holds one-line pointers (anchor and label), never
 copied contract text - agents are briefed with the anchors and read the plan
 themselves. Refresh the cursor only at subtask close (M3) and task close (M4).
@@ -230,23 +230,23 @@ If `current_task` is in flight, continue it. Otherwise, pick the first `task_que
 entry whose status is pending and whose `depends_on` are all `complete` - plan order
 within a parallel-eligible group (this loop is one conversation, so "parallel" tasks
 still execute serially; parallelism lives *inside* a subtask, at the agent level, per
-implement-subtasks Step 3). If no task is eligible but pending tasks remain, the
+implement-task Step 3). If no task is eligible but pending tasks remain, the
 dependency graph is cyclic or blocked on a deferral - **stop** and surface it.
 
 On first entering a task: build `current_task` from the task README (via a cheap
-subagent, as implement-subtasks Step 1 does); and if the task is flagged
+subagent, as implement-task Step 1 does); and if the task is flagged
 `security_sensitive`, spawn `security-auditor` on the task's spec **before the first
 subtask** - its threat model becomes a standing input for every coder briefing in
-this task (implement-subtasks' per-subtask trigger still applies on top).
+this task (implement-task' per-subtask trigger still applies on top).
 
 ### Step M3 - execute ONE subtask
 
-Run implement-subtasks **Steps 2-6** against `current_task`, with one milestone-run
+Run implement-task **Steps 2-6** against `current_task`, with one milestone-run
 addition to the briefing: include the plan's shared-contracts anchor
 (`research_digest.contracts_anchor`) plus the names of the contracts this task
 touches, so every agent reads the authoritative contract instead of re-deriving it.
 
-Then close the subtask with implement-subtasks Step 7.1-7.2 (task README row edit and
+Then close the subtask with implement-task Step 7.1-7.2 (task README row edit and
 cursor refresh) **plus the milestone addendum - a `status.md` update after every
 completed subtask** (this is a hard rule of this loop, not an option): a targeted
 edit of the task's row in `## Current status`, e.g. Status cell
@@ -254,7 +254,7 @@ edit of the task's row in `## Current status`, e.g. Status cell
 
 ### Step M4 - task close
 
-When the task's completion condition holds (implement-subtasks Step 7's rule: core
+When the task's completion condition holds (implement-task Step 7's rule: core
 feature delivered and green; 1-2 *minor* subtasks may be explicitly deferred), run
 that step's task-complete actions - full suite once, `/pr-review` to LGTM, targeted
 `status.md` row flip to `✅ Complete` - but **do not stop**. Additionally:
@@ -314,7 +314,7 @@ abandons the plan. When R3 or an in-flight subtask discovers a material departur
 4. Re-audit downstream `task_queue` entries whose specs referenced the superseded
    design; author spec amendments via `app-architect` where the ruling changed them.
 
-Minor deviations (a field default, a file path) stay at the implement-subtasks level:
+Minor deviations (a field default, a file path) stay at the implement-task level:
 its `/verify-subtask` PARTIAL flow already logs them. This protocol is for
 *contract-level* departures only.
 
@@ -340,7 +340,7 @@ appended `(version, sql)` tuple in `db/migrations.py`, never an edit to an appli
 
 ## Token-economy invariants
 
-All five implement-subtasks invariants hold per subtask. At milestone level, three
+All five implement-task invariants hold per subtask. At milestone level, three
 more compounds across the (much longer) run:
 
 1. **Research once, digest forever.** Phase R is the only wholesale read of the plan,
@@ -363,15 +363,15 @@ more compounds across the (much longer) run:
 | Argument matches zero or >1 milestone / no plan.md   | Stop, ask the user                                                               |
 | Dependency cycle, or pending tasks all blocked       | Stop, surface the graph                                                          |
 | Divergence fork the user declines to resolve         | Stop; record the open fork in Notes & decisions                                  |
-| Any implement-subtasks stop condition fires mid-task | Stop the whole loop, surface it - never skip to the next task over a failed gate |
+| Any implement-task stop condition fires mid-task | Stop the whole loop, surface it - never skip to the next task over a failed gate |
 | Exit gate fails at M5                                | Stop, surface the failing gate; do not flip status.md to complete                |
 
-An implement-subtasks-level failure (verification red after retries, `/verify-subtask`
+An implement-task-level failure (verification red after retries, `/verify-subtask`
 FAIL, CRITICAL security finding, `/pr-review` unresolved) stops the **milestone**
 loop, not just the task: a milestone must never advance past a task that could not
 pass its own gates.
 
-This project's bar differs from the implement-subtasks default in three ways, already reflected
+This project's bar differs from the implement-task default in three ways, already reflected
 in the M4/M5 gate lists above. First, "full suite green" here means **all four CI checks**
 (`ruff check`, `ruff format --check`, `pytest`), not `pytest` alone - a formatting or
 typing failure fails CI just as hard as a red test. Second, `pytest` already runs the whole tree:
@@ -388,7 +388,7 @@ package. Report the coverage delta as information; never block a task or milesto
 ## Loop ↔ loop ↔ skill relationship
 
 Three levels, same vocabulary: this loop *sequences tasks*;
-[implement-subtasks.md](implement-subtasks.md) *builds one task* (and remains
+[implement-task.md](implement-task.md) *builds one task* (and remains
 independently invocable for single-task work - this loop reuses its algorithm rather
 than wrapping its invocation); the skills - `/verify-subtask`, `/test-gap`,
 `/dep-audit`, `/secret-scan`, `/link-check`, `/pr-review` - are the per-checkpoint

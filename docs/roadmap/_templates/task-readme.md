@@ -6,7 +6,7 @@
 
 > Template - copy to `docs/roadmap/{NNNN}-{milestone-slug}/{TT.t}-{task-slug}/README.md`.
 > The `## Subtasks` table must stay the first `##` section after the header: the
-> `implement-subtasks` loop parses it (columns `#`, `Subtask`, `Role`, `Depends on`, `Status`).
+> `implement-task` loop parses it (columns `#`, `Subtask`, `Role`, `Depends on`, `Status`).
 > `Role` uses the loop's roster keywords: `Architect`, `Python Expert`, `Testing Expert`,
 > `Security Auditor`, `Docs Writer`.
 

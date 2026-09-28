@@ -11,7 +11,7 @@ confirm with the user, apply, then point at the implement loop.
 ## Baseline
 
 - Skill format: `.claude/skills/*/SKILL.md` front matter + `## Steps` + `## Completion checklist`.
-- `.claude/loops/implement-subtasks.md` drives a decomposed task.
+- `../../../../.claude/loops/implement-task.md` drives a decomposed task.
 
 ## Files
 
@@ -37,7 +37,7 @@ Steps:
 2. Run the script with `--dry-run` and show the plan.
 3. Ask the user to confirm. This is the only point where files get created.
 4. Apply, then print the registry/alias hints and the milestone table rows verbatim.
-5. Suggest `/loop implement-subtasks <milestone>/<task>` as the next step.
+5. Suggest `/loop implement-task <milestone>/<task>` as the next step.
 
 Checklist:
 
@@ -62,4 +62,4 @@ Task 03.0 folder exists. Expected result: every file `SKIP`s except the missing 
 
 ## Out of scope
 
-- Implementing the provider (the `implement-subtasks` loop and `python-expert` do that).
+- Implementing the provider (the `implement-task` loop and `python-expert` do that).

@@ -1,11 +1,11 @@
 ---
-name: implement-subtasks
+name: implement-task
 description: Drives one task to completion, implementing exactly one subtask per iteration. Resolves the task from a milestone's plan.md, gates on status.md, then walks the task README's subtask queue - implementing, verifying, and running quality gates per subtask. Updates the task README after each subtask and status.md when the task lands. Self-terminates when the task reaches ✅ Complete.
-invoke: /loop implement-subtasks <task>
+invoke: /loop implement-task <task>
 terminates-when: The target task's row in the milestone status.md shows ✅ Complete
 ---
 
-# implement-subtasks - per-subtask implementation loop for one task
+# implement-task - per-subtask implementation loop for one task
 
 This loop takes **one task** (e.g. "Hello World Endpoint", task `1.0`) and drives it to
 completion. Each iteration implements **exactly one** pending subtask, verifies it against
@@ -51,7 +51,7 @@ and subtask queue do **not** change within a run - reparsing the ~500-line `plan
 Instead, resolve once and persist a small cursor:
 
 ```
-.claude/state/implement-subtasks-{task-slug}.json
+.claude/state/implement-task-{task-slug}.json
 ```
 ```json
 {
@@ -84,7 +84,7 @@ Check for the cursor file.
   cheap subagent**, not in the main loop, so the large file bodies never enter the persistent
   conversation context. Spawn an `Explore` agent (Haiku-tier) with this instruction:
 
-  > Resolve task `<task>` for the implement-subtasks loop. (1) In each
+  > Resolve task `<task>` for the implement-task loop. (1) In each
   > `docs/roadmap/{NNNN}-*/plan.md` `## Tasks` table, find the row matching the task number or
   > name; record milestone path, task number `{TT.t}`, and name. Number→folder: pad to two
   > digits before the dot (`3.2 → 03.2`); resolve `…/{TT.t}-{task-slug}/`. (2) In that
@@ -223,7 +223,7 @@ do not spawn an agent that can only find nothing.** Each gate is module-scoped, 
 1. Edit the task README `{task_folder}/README.md` - set **only this subtask's** row Status
    cell to `✅ Complete` (or `🔶`/deferred with a one-line note if only partially done). A
    targeted row edit, not a rewrite.
-2. **Refresh the cursor** (`.claude/state/implement-subtasks-{task-slug}.json`): update
+2. **Refresh the cursor** (`.claude/state/implement-task-{task-slug}.json`): update
    this subtask's `status` and advance `next_index`. This keeps the next iteration on the warm
    path - it never has to re-read the README.
 
@@ -245,7 +245,7 @@ do not spawn an agent that can only find nothing.** Each gate is module-scoped, 
   - Append/extend the `## Task N - <Name>` summary paragraph: what was delivered, key
     implementation decisions, coverage numbers, and any deferred items.
   - Run `/link-check docs/roadmap/` to confirm the edits keep every link/anchor resolving.
-  - **Delete the cursor** `.claude/state/implement-subtasks-{task-slug}.json` (the run
+  - **Delete the cursor** `.claude/state/implement-task-{task-slug}.json` (the run
     is over; a stale cursor would mislead a future invocation).
   - **Stop** (do NOT reschedule) - the task is done.
 
@@ -253,7 +253,7 @@ do not spawn an agent that can only find nothing.** Each gate is module-scoped, 
 
 Call `ScheduleWakeup` with:
 
-- `prompt`: the literal `/loop implement-subtasks <task>` (the **same** `<task>` argument).
+- `prompt`: the literal `/loop implement-task <task>` (the **same** `<task>` argument).
 - `delaySeconds`: `270` - under the 300 s prompt-cache TTL, so the cached prefix (system
   prompt + this loop file + `CLAUDE.md`) is reused at ~10× lower cost on the next wakeup.
 - `reason`: "advancing to next pending subtask of task {TT.t} <Name> after completing

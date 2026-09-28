@@ -44,7 +44,7 @@ New task folders and subtask specs start from the templates in `docs/roadmap/_te
 
 - [task-readme.md](/docs/roadmap/_templates/task-readme.md) - task `README.md`; the `## Subtasks`
   table (columns `#`, `Subtask`, `Role`, `Depends on`, `Status`) is what the
-  `implement-subtasks` loop parses.
+  `implement-task` loop parses.
 - [subtask.md](/docs/roadmap/_templates/subtask.md) - subtask spec; its sections (Files,
   Symbols / fields, Behaviour & validators, Tests, Success criteria, Constraints) map 1:1 onto
   the `subtask-verifier` agent's compliance matrix.

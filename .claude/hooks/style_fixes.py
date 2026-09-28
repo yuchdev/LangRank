@@ -12,7 +12,7 @@ Three modes:
 1. **PostToolUse(Write|Edit|MultiEdit) hook** (no argv): auto-fixes the
    edited `.py` file in place, alongside `post_edit_format.py`.
 2. **``--check <path> ...``**: reports rule violations without modifying
-   anything, exit 1 if any found - used by the `implement-subtasks` loop's
+   anything, exit 1 if any found - used by the `implement-task` loop's
    Step 5 gate.
 3. **``<path> ...``** (no `--check`): applies all fixes to every `.py` file
    under the given path(s), like running the hook manually.

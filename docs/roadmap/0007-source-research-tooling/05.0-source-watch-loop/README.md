@@ -28,7 +28,7 @@ default branch, and never closes or merges anything.
 
 - Loop format: `.claude/loops/*.md` with front matter `name`, `description`, `invoke` and
   `terminates-when`, numbered steps, and `ScheduleWakeup` rescheduling. See
-  `.claude/loops/update-docs.md` and `implement-subtasks.md`.
+  `.claude/loops/update-docs.md` and `implement-task.md`.
 - `.mcp.json` registers the `github` MCP server, and `.claude/hooks/github_audit.py` audits
   every `mcp__github__*` call.
 - `src/langrank/services/status.py:StatusService.statuses()` gives `upstream_latest_period`,
