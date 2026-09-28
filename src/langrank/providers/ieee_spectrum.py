@@ -328,7 +328,7 @@ class IeeeSpectrumProvider:
                     unit="score",
                     higher_is_better=True,
                     description=(
-                        f"IEEE Spectrum {weighting} profile relative score (top language = 100), as published "
+                        f"IEEE Spectrum {weighting} profile relative score on the edition-specific published scale "
                         "(raw, not derived). The score is renormalized per edition, so scores are not "
                         "comparable across editions or profiles."
                     ),
