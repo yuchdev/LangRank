@@ -47,7 +47,7 @@ languages stay legible without a spaghetti chart.
 ## Success criteria
 
 - [ ] `langrank plot --rating tiobe --metric rank --top 8 --facet --output f.png` writes a grid.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

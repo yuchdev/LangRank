@@ -69,7 +69,7 @@ Add a `jetbrains` provider for the annual *State of Developer Ecosystem* survey,
 - [ ] At least `jetbrains-used-last-12-months` has a validated multi-year history (2017+
       where published).
 - [ ] `primary_language` and `used_last_12_months` are distinct metrics (test).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

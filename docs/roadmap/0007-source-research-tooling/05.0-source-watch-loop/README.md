@@ -65,7 +65,7 @@ default branch, and never closes or merges anything.
 - [ ] `/loop source-watch --dry-run` produces issue drafts without calling GitHub.
 - [ ] Two runs on the same day file no duplicate issues.
 - [ ] The incident-analyst review shows every transition has a success and a failure exit.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

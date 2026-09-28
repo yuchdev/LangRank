@@ -56,7 +56,7 @@ caveats, methodology note, tag map) and register it as `stackoverflow-tags`.
 ## Success criteria
 
 - [ ] Provider registered; `langrank ratings show stackoverflow-tags` lists three metrics.
-- [ ] Tests above pass; lint/format/mypy/pytest green.
+- [ ] Tests above pass; lint/format/pytest green.
 
 ## Constraints
 

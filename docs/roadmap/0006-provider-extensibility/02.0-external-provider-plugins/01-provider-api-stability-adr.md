@@ -74,7 +74,7 @@ The ADR must decide (each as a numbered decision with rejected alternatives):
 
 - [ ] ADR status **Accepted**, with Context / Decision / Consequences per `docs/adr/template.md`.
 - [ ] `langrank.providers.api` exists and every name in `__all__` imports.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

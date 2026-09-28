@@ -62,7 +62,7 @@ weights, missing-data policy - and every output row shows its contributions and 
       usage error (exit 2), not a silent default.
 - [ ] Every output row (table, JSON, CSV) carries `derived composite` and its contributions.
 - [ ] Nothing composite-related is persisted to SQLite.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

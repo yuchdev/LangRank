@@ -53,7 +53,7 @@ indirectly.
 ## Success criteria
 
 - [ ] `src/langrank/db/repository.py` ≥ 88%, `src/langrank/exports/json_export.py` ≥ 90%.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

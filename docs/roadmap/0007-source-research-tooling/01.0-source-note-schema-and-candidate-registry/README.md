@@ -37,7 +37,7 @@ and the watch loop (Task 05.0) all read.
   - `file:line` messages.
 - `.claude/hooks/doc_link_check.py` is the model for a non-blocking PostToolUse hook: it
   exits 0 and surfaces problems as a reminder.
-- `.github/workflows/ci.yml` runs ruff, format, mypy and pytest. It has no doc checks yet.
+- `.github/workflows/ci.yml` runs ruff, format and pytest. It has no doc checks yet.
 - The seed survey is [docs/research/language-ranking-sources.md](/docs/research/language-ranking-sources.md).
   It is authored separately and this task does not edit it.
 
@@ -74,7 +74,7 @@ and the watch loop (Task 05.0) all read.
 - [ ] `python scripts/check_source_notes.py --check` exits 0 on the repo, and exits 1 on each
       seeded defect fixture.
 - [ ] `docs/research/source-candidates.md` is generated, and CI fails when it is stale.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

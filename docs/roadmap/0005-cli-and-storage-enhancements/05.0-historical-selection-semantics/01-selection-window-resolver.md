@@ -62,7 +62,7 @@ period(s) into a concrete date window per rating - the single source of truth fo
 ## Success criteria
 
 - [ ] `resolve_window` is pure and fully unit-tested.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

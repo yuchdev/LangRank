@@ -63,7 +63,7 @@ Tasks 02.0-04.0.
 - [ ] `try_resolve` and `resolve(..., rating_id=)` exist and are typed.
 - [ ] Catalog covers every language in the tag table of subtask 03.
 - [ ] All four tests pass; existing tests unchanged.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

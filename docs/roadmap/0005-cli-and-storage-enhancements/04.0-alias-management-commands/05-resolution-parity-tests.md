@@ -44,7 +44,7 @@ two key-normalisation functions stay identical.
 ## Success criteria
 
 - [ ] Suite fails if either normalisation function changes alone.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

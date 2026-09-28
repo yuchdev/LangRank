@@ -61,7 +61,7 @@ are [subtask 03](/docs/roadmap/0006-provider-extensibility/02.0-external-provide
 
 - [ ] `grep -n "langrank.providers" src/langrank/providers/plugins.py` finds `ENTRY_POINT_GROUP`.
 - [ ] No new runtime dependency in `pyproject.toml`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

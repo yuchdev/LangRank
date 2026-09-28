@@ -67,7 +67,7 @@ to the canonical SQLite store.
       (plan.md success criterion), using only streaming/chunking/batching.
 - [ ] No new runtime dependency in `pyproject.toml` (milestone exit criterion).
 - [ ] Default `uv run pytest` does **not** run benchmarks.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

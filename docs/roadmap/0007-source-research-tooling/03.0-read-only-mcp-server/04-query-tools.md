@@ -74,7 +74,7 @@ Covered in [subtask 06](/docs/roadmap/0007-source-research-tooling/03.0-read-onl
 - [ ] Seven tools are registered unconditionally. `compare_normalized` is registered only
       when its dependency exists.
 - [ ] `grep -nE "upsert|create_fetch_run|FetchService|httpx|\.fetch\(" src/langrank/mcp/` has no matches.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

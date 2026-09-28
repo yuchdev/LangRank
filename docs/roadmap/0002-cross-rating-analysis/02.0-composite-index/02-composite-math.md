@@ -64,7 +64,7 @@ chosen missing-data policy and recording each cell's full contribution breakdown
 ## Success criteria
 
 - [ ] All three policies behave as specified; no imputed values.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

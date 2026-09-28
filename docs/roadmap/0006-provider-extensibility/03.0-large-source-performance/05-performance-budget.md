@@ -12,16 +12,16 @@ on a schedule/manual trigger in CI (not on every push).
 ## Baseline
 
 - Harness + baseline numbers in `docs/dev/performance.md` ([subtask 01](/docs/roadmap/0006-provider-extensibility/03.0-large-source-performance/01-benchmark-fixture-harness.md)).
-- `.github/workflows/ci.yml` runs ruff, ruff format, mypy, pytest on 3.12/3.13.
+- `.github/workflows/ci.yml` runs ruff, ruff format, pytest on 3.12/3.13.
 
 ## Files
 
-| Action | Path                                           | Purpose |
-|--------|------------------------------------------------|---------|
-| Modify | `tests/benchmarks/test_pipeline_benchmark.py`  | Budget assertions |
-| Create | `tests/benchmarks/budget.toml`                 | Budget numbers (single source of truth) |
-| Modify | `docs/dev/performance.md`                      | Budget table, before/after results, how to update the budget |
-| Create | `.github/workflows/benchmark.yml`              | `workflow_dispatch` + weekly `schedule`; runs `uv run pytest -m benchmark` on 3.12 |
+| Action | Path                                          | Purpose                                                                            |
+|--------|-----------------------------------------------|------------------------------------------------------------------------------------|
+| Modify | `tests/benchmarks/test_pipeline_benchmark.py` | Budget assertions                                                                  |
+| Create | `tests/benchmarks/budget.toml`                | Budget numbers (single source of truth)                                            |
+| Modify | `docs/dev/performance.md`                     | Budget table, before/after results, how to update the budget                       |
+| Create | `.github/workflows/benchmark.yml`             | `workflow_dispatch` + weekly `schedule`; runs `uv run pytest -m benchmark` on 3.12 |
 
 ## Symbols / fields
 
@@ -60,7 +60,7 @@ Initial budget (confirm/adjust from measured results, then freeze):
 - [ ] `uv run pytest -m benchmark` passes locally within budget; workflow run green once.
 - [ ] `docs/dev/performance.md` shows baseline vs. optimised numbers per stage.
 - [ ] Milestone exit: no new runtime dependency (`git diff pyproject.toml` touches only markers/dev config).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

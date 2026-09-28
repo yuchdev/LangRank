@@ -101,7 +101,7 @@ test fixture every Milestone 0002 subtask uses.
 - [ ] `resolve_rank_metric` returns `tiobe-rank`, `pypl-rank`, `redmonk-rank`,
       `stackoverflow-survey-rank`, `rank` for the five registered providers.
 - [ ] `multi_rating_database` fixture is available to all tests and needs no network.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

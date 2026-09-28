@@ -58,11 +58,11 @@ Task 01.0 provider contract, and round-trips through `fetch → query`.
 - [ ] Plan success criterion demonstrated: registration with **no change to `langrank` core** (the fixture lives entirely under `tests/fixtures/plugins/`).
 - [ ] Tests are offline and fast (<1 s total), so they are **not** marked `integration` and run in
       the default suite, including `pytest -m "not integration"`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 
-- `mypy src` scope unchanged (fixture package is under `tests/`); ruff still lints it.
+- `ruff` still lints it.
 - No test writes outside `tmp_path`.
 
 ## Out of scope

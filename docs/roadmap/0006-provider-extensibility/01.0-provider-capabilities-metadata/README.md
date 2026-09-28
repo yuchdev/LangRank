@@ -90,7 +90,7 @@ doing that for built-ins first.
 - [ ] No bare `"rank"`/`'rank'` metric-ID literal remains in `services/`, `db/repository.py`,
       `plotting/`, or `cli.py`; `--top`, `invalid_ranks`, and rank-axis inversion work for
       `tiobe`, `pypl`, `redmonk`, `stackoverflow-survey`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

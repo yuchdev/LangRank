@@ -67,7 +67,7 @@ tell raw from derived values at a glance.
 - [ ] Each of the five views answers `sqlite3 <db-path> "select * from <view> limit 5"` with no
       application code running.
 - [ ] Views are added as versioned entries in `db/migrations.py`; migration 1 is unchanged.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

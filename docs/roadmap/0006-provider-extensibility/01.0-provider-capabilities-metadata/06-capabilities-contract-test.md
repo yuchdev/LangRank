@@ -60,7 +60,7 @@ The helper asserts, for each provider:
 
 - [ ] Suite passes for all five built-ins; the negative stub test proves the helper actually checks.
 - [ ] Runs under `pytest -m "not integration"` (no network).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

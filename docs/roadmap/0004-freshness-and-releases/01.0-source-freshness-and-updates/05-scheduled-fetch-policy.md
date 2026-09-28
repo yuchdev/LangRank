@@ -72,7 +72,7 @@ until a source's legal/source-policy review says otherwise.
 
 - [ ] `SourcePolicy` declared by all providers; source notes updated consistently.
 - [ ] Override precedence documented in `docs/ops/scheduled-updates.md` (written in 08).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

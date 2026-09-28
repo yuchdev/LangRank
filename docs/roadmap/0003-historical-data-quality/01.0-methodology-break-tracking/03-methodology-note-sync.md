@@ -52,7 +52,7 @@ note's bounds in provider metadata updates it instead of leaving a stale duplica
 
 - [ ] No two rows share `(rating_id, methodology_version)` after any sequence of upserts.
 - [ ] All four tests pass.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

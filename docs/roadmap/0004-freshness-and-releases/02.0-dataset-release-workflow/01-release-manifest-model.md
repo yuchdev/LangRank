@@ -55,7 +55,7 @@ Define the typed `metadata.json` schema as frozen dataclasses with a determinist
 ## Success criteria
 
 - [ ] All dataclasses exist with the listed fields.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

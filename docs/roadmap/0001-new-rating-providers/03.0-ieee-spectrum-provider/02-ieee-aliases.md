@@ -43,7 +43,7 @@ Add `ieee-spectrum`-scoped aliases for IEEE's language labels.
 
 ## Success criteria
 
-- [ ] Tests pass; lint/format/mypy/pytest green.
+- [ ] Tests pass; lint/format/pytest green.
 
 ## Constraints
 

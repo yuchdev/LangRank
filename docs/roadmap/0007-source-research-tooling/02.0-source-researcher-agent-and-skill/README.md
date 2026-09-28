@@ -64,7 +64,7 @@ made repeatable.
 - [ ] `/source-research "job-posting based language demand indices"` creates ≥ 1 new
       `status: candidate` note, with every factual field cited or marked `(unverified)`.
 - [ ] The security review has no open CRITICAL findings.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

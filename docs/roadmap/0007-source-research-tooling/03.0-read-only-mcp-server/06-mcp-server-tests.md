@@ -69,7 +69,7 @@ skip cleanly when the `mcp` extra is not installed.
 - [ ] All tests pass with `--extra mcp`, and the module is reported as skipped without it.
 - [ ] Run `/document-tests tests/unit/test_mcp_server.py`, so each test has a Scenario /
       Boundaries / On-failure docstring.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

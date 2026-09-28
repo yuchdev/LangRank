@@ -46,7 +46,7 @@ users (and later plugin authors) can see what a provider supports without readin
 ## Success criteria
 
 - [ ] Both tests pass; `docs/providers.md` has a "Capabilities" section listing every field.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

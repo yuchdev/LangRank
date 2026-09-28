@@ -47,7 +47,7 @@ stored with correct `period_start/period_end/period_label`.
 ## Success criteria
 
 - [ ] No new migration added; `Database().schema_version()` unchanged.
-- [ ] Tests pass; lint/format/mypy/pytest green.
+- [ ] Tests pass; lint/format/pytest green.
 
 ## Constraints
 

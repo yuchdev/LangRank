@@ -65,7 +65,7 @@ never mixes profiles into one series.
 - [ ] Every subtask above is ✅.
 - [ ] Each profile round-trips `fetch → parse → normalize → validate` as its own metric pair.
 - [ ] Querying one profile never returns another profile's rows (test).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

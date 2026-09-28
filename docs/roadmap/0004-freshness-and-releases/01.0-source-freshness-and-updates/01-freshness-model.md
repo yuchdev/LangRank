@@ -80,7 +80,7 @@ replaces `hasattr` special-casing.
 
 - [ ] All symbols above exist with the listed types and defaults.
 - [ ] No existing call sites change behaviour in this subtask (pure addition).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

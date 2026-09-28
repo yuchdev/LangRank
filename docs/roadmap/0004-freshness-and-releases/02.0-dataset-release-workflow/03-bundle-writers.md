@@ -51,7 +51,7 @@ Write each bundle file deterministically from `ReleaseRow`s and the manifest, an
 ## Success criteria
 
 - [ ] Missing values stay missing in every format ([CLAUDE.md](/CLAUDE.md)).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

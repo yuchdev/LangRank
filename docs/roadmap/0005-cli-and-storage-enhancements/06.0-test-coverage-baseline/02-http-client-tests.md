@@ -53,7 +53,7 @@ milestones 0001/0004 will build on is pinned before they change it.
 
 - [ ] `src/langrank/util/http.py` coverage ≥ 90%.
 - [ ] No test performs a real network call.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

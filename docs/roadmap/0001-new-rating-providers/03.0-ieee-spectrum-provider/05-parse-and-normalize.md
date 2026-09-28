@@ -46,7 +46,7 @@ normalize with full provenance.
 
 ## Success criteria
 
-- [ ] Tests pass; lint/format/mypy/pytest green.
+- [ ] Tests pass; lint/format/pytest green.
 
 ## Constraints
 

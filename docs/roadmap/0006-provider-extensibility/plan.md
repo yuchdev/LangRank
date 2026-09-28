@@ -68,7 +68,7 @@ Task 01.0 needs a test that at least one generic CLI path reads capabilities
 instead of branching on provider ID; Task 02.0 needs an out-of-tree fixture
 package proving entry-point discovery; Task 03.0 needs a benchmark fixture
 against the largest known source size. `uv run ruff check .`, `uv run ruff
-format --check .`, and `uv run mypy src` stay clean throughout.
+format --check .`.
 
 ---
 

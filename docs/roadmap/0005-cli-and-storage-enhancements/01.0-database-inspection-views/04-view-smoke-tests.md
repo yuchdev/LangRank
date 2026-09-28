@@ -48,7 +48,7 @@ available) via the `sqlite3` command-line shell.
 - [ ] All five views pass both checks locally (shell check may skip in CI).
 - [ ] Tests use no network; the module sets `pytestmark = pytest.mark.integration`, matching
       `tests/integration/test_cli.py`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

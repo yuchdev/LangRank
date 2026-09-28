@@ -55,7 +55,7 @@ Exercise every Typer command in `src/langrank/cli.py` (43.8% today) end to end t
 
 - [ ] `src/langrank/cli.py` ≥ 80%.
 - [ ] No test calls `plt.show()` (every `plot` test passes `--output`).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

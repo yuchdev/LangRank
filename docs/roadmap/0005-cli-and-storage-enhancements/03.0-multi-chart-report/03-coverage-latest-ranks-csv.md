@@ -50,7 +50,7 @@ coverage for the selected languages, and each rating's latest ranks for them.
 ## Success criteria
 
 - [ ] All three CSVs written and deterministic (sorted).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

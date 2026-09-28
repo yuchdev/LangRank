@@ -48,7 +48,7 @@ where they differ - each on its own axes.
 ## Success criteria
 
 - [ ] No report chart ever contains two ratings.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

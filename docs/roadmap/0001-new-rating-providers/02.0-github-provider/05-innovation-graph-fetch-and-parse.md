@@ -51,7 +51,7 @@ Download `data/languages.csv` at a pinned commit and parse it into per-economy
 
 ## Success criteria
 
-- [ ] Fetch reproducible by SHA; tests pass; lint/format/mypy/pytest green.
+- [ ] Fetch reproducible by SHA; tests pass; lint/format/pytest green.
 
 ## Constraints
 

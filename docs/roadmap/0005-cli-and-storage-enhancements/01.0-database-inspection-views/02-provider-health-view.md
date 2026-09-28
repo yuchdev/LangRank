@@ -63,7 +63,7 @@ empty?".
 
 - [ ] `sqlite3 <db> "select * from provider_health"` returns one row per `ratings` row.
 - [ ] Counts agree with the `Database` methods `StatusService` uses.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

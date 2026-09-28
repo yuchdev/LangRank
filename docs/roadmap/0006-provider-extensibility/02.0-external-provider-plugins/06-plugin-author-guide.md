@@ -53,7 +53,7 @@ _Docs-only subtask - no code symbols._
 
 - [ ] All eight sections present; every reason code from 02.0/03 documented.
 - [ ] Link check clean; snippet test passes.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

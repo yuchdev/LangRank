@@ -85,7 +85,7 @@ RedMonk's GitHub-derived component.
 - [ ] Every subtask above is ✅.
 - [ ] Both variants independently selectable via `--source`; each writes only its own metric IDs.
 - [ ] No chart-derived value reaches the DB; every aggregated value has `is_derived=True`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

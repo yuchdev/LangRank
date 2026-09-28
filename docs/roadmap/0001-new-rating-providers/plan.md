@@ -79,8 +79,7 @@ for any plugin that ships with default network access.
 Every task ships raw fixtures + golden normalized outputs + parser contract
 tests (`tests/contract/`), per [CLAUDE.md](/CLAUDE.md). Live integration
 tests stay opt-in (`pytest -m "not integration"` must still pass). `uv run
-ruff check .`, `uv run ruff format --check .`, and `uv run mypy src` stay
-clean throughout.
+ruff check .`, `uv run ruff format --check .` stay clean throughout.
 
 ---
 

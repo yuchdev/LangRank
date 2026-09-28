@@ -75,7 +75,7 @@ metadata instead of comparing against the bare string `"rank"`.
 
 - [ ] The milestone example `plot --rating redmonk --metric rank --languages python,c++,rust --years 10` plots three lines on an inverted axis.
 - [ ] Existing `test_top_current_filters_latest_snapshot` still passes.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

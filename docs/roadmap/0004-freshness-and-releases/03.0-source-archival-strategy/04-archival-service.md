@@ -60,7 +60,7 @@ rows consistently, support dry-run, and report bytes freed.
 ## Success criteria
 
 - [ ] Provenance (`sha256`, `url`, `retrieved_at`) preserved for every pruned artifact.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

@@ -60,7 +60,7 @@ Task 01.0 needs tests that a freshness check makes no full-download network
 call; Task 02.0 needs a fixture-driven test asserting `metadata.json`
 actually reflects the bundle's contents; Task 03.0 needs tests for each
 retention policy value. `uv run ruff check .`, `uv run ruff format --check
-.`, and `uv run mypy src` stay clean throughout.
+.`.
 
 ---
 

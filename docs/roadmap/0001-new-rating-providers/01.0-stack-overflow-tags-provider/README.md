@@ -101,7 +101,7 @@ comparison because total Stack Overflow volume has fallen sharply since ~2022) a
       observations whose `derivation_method` names the denominator, and the denominator is
       documented in `docs/source-notes/stackoverflow-tags.md`.
 - [ ] Contract tests cover multi-tag questions (SEDE fixture) and tag rename aliases.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

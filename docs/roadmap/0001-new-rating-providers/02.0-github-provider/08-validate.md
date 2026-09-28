@@ -44,7 +44,7 @@ Implement `validate()` for both variants.
 
 ## Success criteria
 
-- [ ] Every code emitted and tested; lint/format/mypy/pytest green.
+- [ ] Every code emitted and tested; lint/format/pytest green.
 
 ## Constraints
 

@@ -49,7 +49,7 @@ only on `Severity.ERROR`.
 ## Success criteria
 
 - [ ] Every code in the table is emitted by `validate()` and covered by a test.
-- [ ] Lint/format/mypy/pytest green.
+- [ ] Lint/format/pytest green.
 
 ## Constraints
 

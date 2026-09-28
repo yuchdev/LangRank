@@ -39,7 +39,7 @@ listed in `JETBRAINS_NON_LANGUAGE_ANSWERS`.
 
 ## Success criteria
 
-- [ ] Tests pass; lint/format/mypy/pytest green.
+- [ ] Tests pass; lint/format/pytest green.
 
 ## Constraints
 

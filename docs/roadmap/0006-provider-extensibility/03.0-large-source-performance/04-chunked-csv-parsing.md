@@ -59,7 +59,7 @@ while `parse()` keeps its `list[SourceRecord]` return type (API v1, per the
 
 - [ ] `grep -rn "splitlines()" src/langrank/providers` returns nothing.
 - [ ] Golden-hash contract test passes for all four production providers.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

@@ -69,7 +69,7 @@ every column's true observation date is printed.
 
 - [ ] `langrank snapshot 2020` and `langrank snapshot latest` work in all three formats.
 - [ ] Every non-blank cell's date is recoverable from every format; blanks are never `0`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

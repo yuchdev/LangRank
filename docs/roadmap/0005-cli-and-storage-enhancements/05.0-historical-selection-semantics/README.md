@@ -68,7 +68,7 @@ multi-rating commands.
 - [ ] `QueryService`/`export`/`plot` all resolve `--years N` identically per the documented rule.
 - [ ] A regression test pins the endpoint behaviour for a source with a stale current year.
 - [ ] Rule and policy documented in each command's `--help`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

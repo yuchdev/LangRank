@@ -44,7 +44,7 @@ fixture-driven acceptance test.
 ## Success criteria
 
 - [ ] `langrank report --languages python,c++,rust --years 10 --output report/` works on a populated DB.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

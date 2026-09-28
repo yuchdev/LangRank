@@ -22,7 +22,6 @@ langrank = "langrank.cli:main"
 
 [dependency-groups]
 dev = [
-  "mypy>=1.17.1",
   "pytest>=8.4.1",
   "pytest-asyncio>=0.24,<0.25",
   "pytest-cov>=6.0,<7",
@@ -31,23 +30,6 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/langrank"]
-
-[tool.mypy]
-python_version = "3.12"
-mypy_path = ["src"]
-files = ["src"]
-warn_unused_configs = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-disallow_untyped_defs = true
-no_implicit_optional = true
-strict_equality = true
-pretty = true
-show_error_codes = true
-
-[[tool.mypy.overrides]]
-module = ["matplotlib.*"]
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "-q"

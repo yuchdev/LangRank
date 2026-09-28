@@ -49,7 +49,7 @@ the same `--endpoint` option, and records the resolved windows in its metadata s
 ## Success criteria
 
 - [ ] All four commands share one rule and one help string.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

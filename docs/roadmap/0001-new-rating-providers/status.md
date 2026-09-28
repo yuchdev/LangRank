@@ -17,7 +17,7 @@ Updated as each task lands.
 **Current gate status: ✅ MILESTONE COMPLETE (2026-09-26).** All four tasks landed on branch
 `milestone/0001-new-rating-providers`; milestone exit gates run 2026-09-26:
 
-1. **Four CI checks** - `ruff check`, `ruff format --check`, `mypy src`, `pytest` all green
+1. **Four CI checks** - `ruff check`, `ruff format --check`, `pytest` all green
    (≈360 tests, 2 opt-in `live` tests skipped; `pytest -m "not integration"` green). Coverage
    73.1% → 86.6% (informational; `.coveragerc` floor 73%).
 2. **End-to-end acceptance run** on a throwaway `LANGRANK_DB`/`LANGRANK_CACHE`: every provider

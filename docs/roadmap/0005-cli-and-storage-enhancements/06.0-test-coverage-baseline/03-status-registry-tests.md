@@ -50,7 +50,7 @@ Pin `StatusService.statuses()` state derivation and `ProviderRegistry` lookup er
 ## Success criteria
 
 - [ ] `src/langrank/services/status.py` ≥ 90%, `src/langrank/providers/registry.py` 100%.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

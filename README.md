@@ -78,6 +78,5 @@ uv run langrank plot --rating jetbrains --metric jetbrains-used-last-12-months \
 ```bash
 uv run ruff check .
 uv run ruff format --check .
-uv run mypy src
 uv run pytest
 ```

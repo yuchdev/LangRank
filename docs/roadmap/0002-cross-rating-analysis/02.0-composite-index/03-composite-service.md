@@ -65,7 +65,7 @@ year with the snapshot selection rule, and hand the aligned inputs to `compute_c
 
 - [ ] Composite inputs trace to single stored observations (period visible per contribution).
 - [ ] 01.0/03 tests still pass unchanged after the helper extraction.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

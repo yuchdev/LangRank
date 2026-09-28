@@ -80,7 +80,7 @@ Every place that decides "is this a rank metric?" by comparing a metric ID to th
 
 - [ ] `grep -rnE "metric_id *(==|=) *['\"]rank['\"]" src/langrank` returns nothing.
 - [ ] Existing tests in `tests/unit/test_query_service.py` and `tests/integration/` still pass unmodified (or are updated only to add `kind`).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

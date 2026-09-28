@@ -65,7 +65,7 @@ Rebuild `StatusService` on top of `FreshnessCheck`, and add `--json` and `--onli
 
 - [ ] `langrank status --json` emits the documented schema.
 - [ ] No `hasattr` in `services/status.py`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

@@ -22,14 +22,14 @@ imported lazily.
 
 ## Files
 
-| Action | Path                                  | Purpose |
-|--------|---------------------------------------|---------|
-| Modify | `pyproject.toml`                      | `[project.optional-dependencies] mcp = ["mcp>=2.2,<3"]`; mypy override `module = ["mcp.*"]` only if stubs are missing |
-| Modify | `uv.lock`                             | `uv lock` |
-| Create | `src/langrank/mcp/__init__.py`        | Exports `build_server` lazily (no top-level `import mcp`) |
-| Create | `src/langrank/mcp/server.py`          | `build_server(database, registry, notes_dir) -> MCPServer` |
-| Modify | `src/langrank/cli.py`                 | `mcp_app = typer.Typer(help="Model Context Protocol server")`; `mcp serve` command |
-| Modify | `.github/workflows/ci.yml`            | Add a matrix dimension or extra job running `uv sync --frozen --extra mcp` + pytest |
+| Action | Path                           | Purpose                                                                             |
+|--------|--------------------------------|-------------------------------------------------------------------------------------|
+| Modify | `pyproject.toml`               | `[project.optional-dependencies] mcp = ["mcp>=2.2,<3"]`                             |
+| Modify | `uv.lock`                      | `uv lock`                                                                           |
+| Create | `src/langrank/mcp/__init__.py` | Exports `build_server` lazily (no top-level `import mcp`)                           |
+| Create | `src/langrank/mcp/server.py`   | `build_server(database, registry, notes_dir) -> MCPServer`                          |
+| Modify | `src/langrank/cli.py`          | `mcp_app = typer.Typer(help="Model Context Protocol server")`; `mcp serve` command  |
+| Modify | `.github/workflows/ci.yml`     | Add a matrix dimension or extra job running `uv sync --frozen --extra mcp` + pytest |
 
 ## Symbols / fields
 
@@ -66,7 +66,7 @@ imported lazily.
 - [ ] `uv sync --frozen` (no extra) + `uv run pytest` is green, and MCP tests are skipped.
 - [ ] `uv sync --frozen --extra mcp` + `uv run pytest` is green.
 - [ ] `uv run langrank mcp serve --help` lists `--db` and `--notes-dir`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .` green.
 
 ## Constraints
 

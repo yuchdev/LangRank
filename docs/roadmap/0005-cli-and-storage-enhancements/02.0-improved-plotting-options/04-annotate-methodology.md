@@ -54,7 +54,7 @@ range, so a reader never mistakes a methodology break for a real trend change.
 ## Success criteria
 
 - [ ] `langrank plot --rating tiobe --metric rating --languages python --annotate-methodology` draws the provider's documented boundaries within range.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

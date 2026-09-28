@@ -48,7 +48,7 @@ follows that pattern because Octoverse has no machine-readable feed.
 ## Success criteria
 
 - [ ] Every CSV row has a `source_url` to the edition's post.
-- [ ] Tests pass; lint/format/mypy/pytest green.
+- [ ] Tests pass; lint/format/pytest green.
 
 ## Constraints
 

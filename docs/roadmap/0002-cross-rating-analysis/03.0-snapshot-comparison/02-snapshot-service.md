@@ -76,7 +76,7 @@ with explicit blank cells, per-column reference dates, and a deterministic row o
 
 - [ ] `SnapshotService.snapshot` produces only stored values or `None` cells, each with its true
       period.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

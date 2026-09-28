@@ -61,7 +61,7 @@ the report iterates over whatever `ProviderRegistry.all()` returns that has data
 - [ ] Report directory is self-contained and its Markdown summary quotes the same methodology notes
       stored in the DB (Milestone 0003 table / current `methodology_notes`).
 - [ ] Fixture-driven acceptance test of the report directory passes.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

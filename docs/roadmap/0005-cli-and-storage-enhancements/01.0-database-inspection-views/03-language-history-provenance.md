@@ -61,7 +61,7 @@ period_end, value, rank, unit`. Appended columns:
 
 - [ ] `sqlite3 <db> "select language, is_derived, parser_version from language_history limit 5"` works.
 - [ ] An existing v2 database upgrades cleanly.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

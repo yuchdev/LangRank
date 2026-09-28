@@ -29,8 +29,6 @@ This style guide is a list of *dos and don'ts* for Python programs.
 <a id="s1-lint"></a>
 ### 1. Lint
 
-<!-- TODO: describe ruff, mypy, Flake8 -->
-
 <a id="s2-imports"></a>
 ### 2. Imports
 

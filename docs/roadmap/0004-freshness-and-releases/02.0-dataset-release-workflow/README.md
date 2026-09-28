@@ -74,7 +74,7 @@ produced (source, parser version, acquisition mode, methodology notes, warnings)
 - [ ] Two runs with the same DB and `--generated-at` produce identical checksums for CSV,
       JSON, and `metadata.json`.
 - [ ] `sha256sum -c checksums.txt` passes inside the bundle.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

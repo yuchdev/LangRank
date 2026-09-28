@@ -58,7 +58,7 @@ filtered SQLite snapshot - keeping all SQL inside `repository.py`.
 ## Success criteria
 
 - [ ] All SQL lives in `repository.py`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

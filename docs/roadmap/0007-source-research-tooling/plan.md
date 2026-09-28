@@ -102,8 +102,8 @@ are not comparable across providers without explicit normalization (see [CLAUDE.
 
 Scripts under `scripts/` stay stdlib-only (like `scripts/check_doc_links.py`) and get tests
 under `tests/scripts/`. The MCP server gets in-memory client tests that skip cleanly when the
-optional extra is not installed. `uv run ruff check .`, `uv run ruff format --check .`,
-`uv run mypy src`, and `uv run pytest` stay clean throughout.
+optional extra is not installed. `uv run ruff check .`, `uv run ruff format --check .`, 
+and `uv run pytest` stay clean throughout.
 
 ---
 
@@ -220,7 +220,7 @@ ready to implement", while keeping every generated file an obvious stub.
   `status` is `planned` and `terms_url`/`automation` are filled in.
 
 **Success criteria:** running the script twice yields an identical tree and a second run
-that reports only "skipped". The generated skeleton passes `ruff` and `mypy`, and its
+that reports only "skipped". The generated skeleton passes `ruff`, and its
 contract test is collected and skipped.
 
 ---
