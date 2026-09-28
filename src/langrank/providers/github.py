@@ -480,7 +480,7 @@ class GitHubProvider:
         ceiling = IG_KEYED_HOURLY if token else IG_ANON_HOURLY
         _ensure_request_budget(IG_REQUEST_BUDGET, ceiling=ceiling, has_token=token is not None)
 
-headers = {"Authorization": f"Bearer {token}"} if token else None
+        headers = {"Authorization": f"Bearer {token}"} if token else None
         commit_sha = _resolve_commit_sha(self._http, headers=headers)
         raw_url = IG_RAW_URL.format(sha=commit_sha)
         content = self._http.get_capped_bytes(raw_url, allowed_host=RAW_HOST, max_bytes=IG_MAX_CSV_BYTES)
