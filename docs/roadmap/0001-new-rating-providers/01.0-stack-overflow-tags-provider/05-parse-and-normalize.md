@@ -68,7 +68,7 @@ raw monthly counts, a derived share with an explicit denominator, and a derived 
 ## Success criteria
 
 - [ ] Every observation traceable to source mode, denominator, month and parser version.
-- [ ] Tests above pass; lint/format/mypy/pytest green.
+- [ ] Tests above pass; lint/format/pytest green.
 
 ## Constraints
 

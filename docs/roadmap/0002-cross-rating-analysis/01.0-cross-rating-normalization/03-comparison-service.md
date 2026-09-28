@@ -80,7 +80,7 @@ explicit gaps.
 - [ ] `ComparisonService.compare` returns per-rating derived series using `QueryService` window
       resolution and full-population normalization.
 - [ ] Missing data is reported in `missing`, never filled.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

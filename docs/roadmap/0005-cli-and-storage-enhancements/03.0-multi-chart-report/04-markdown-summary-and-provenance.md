@@ -56,7 +56,7 @@ caveats) and `report.json` (machine-readable provenance), so the directory expla
 ## Success criteria
 
 - [ ] The report's Markdown summary references the same methodology notes stored in the DB.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

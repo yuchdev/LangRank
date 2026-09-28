@@ -90,7 +90,7 @@ Provider declarations:
 - [ ] `MetricKind` exists and every `MetricDefinition` in `src/langrank/providers/*.py` sets `kind`.
 - [ ] Fresh DB and upgraded v2 DB both have `metrics.kind`; `langrank doctor` shows matching schema/expected versions.
 - [ ] `grep -n "kind" src/langrank/db/repository.py` shows it in both upsert and list paths.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

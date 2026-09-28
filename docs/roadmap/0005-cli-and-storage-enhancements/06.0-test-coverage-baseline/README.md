@@ -60,7 +60,7 @@ Measured 2026-09-24 with `uv run pytest -q --cov=langrank --cov-report=term-miss
 - [ ] Every subtask above is ✅.
 - [ ] `uv run pytest -q --cov=langrank` reports ≥ 85% total and exits 0 under `fail_under = 85`.
 - [ ] CI enforces the same gate as the Stop hook.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

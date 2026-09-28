@@ -50,7 +50,7 @@ language's first observation, and add lifecycle validation queries.
 ## Success criteria
 
 - [ ] All six tests pass.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

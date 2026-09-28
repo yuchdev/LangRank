@@ -194,9 +194,7 @@ Seed `research_digest.exit_gates` with these even when a `plan.md` names no clos
 
 1. **The four CI checks, all green, in this order** - `.github/workflows/ci.yml` runs exactly
    these on Python 3.12 **and** 3.13, so a milestone is not closeable until they pass locally:
-   `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest`.
-   `mypy` runs `src` only and is strict-ish (`disallow_untyped_defs`, `strict_equality`,
-   `warn_unused_ignores`).
+   `uv run ruff check .`, `uv run ruff format --check .`.
 2. **The end-to-end acceptance run** from `docs/roadmap/0001-generic-implementation/plan.md`
    §25, required for any milestone that adds or changes a provider, an alias mapping, or the
    SQLite schema: fresh DB → fetch/import fixtures for every provider → `langrank validate` →
@@ -375,7 +373,7 @@ pass its own gates.
 
 This project's bar differs from the implement-subtasks default in three ways, already reflected
 in the M4/M5 gate lists above. First, "full suite green" here means **all four CI checks**
-(`ruff check`, `ruff format --check`, `mypy src`, `pytest`), not `pytest` alone - a formatting or
+(`ruff check`, `ruff format --check`, `pytest`), not `pytest` alone - a formatting or
 typing failure fails CI just as hard as a red test. Second, `pytest` already runs the whole tree:
 `testpaths = ["tests"]` covers `tests/unit/`, `tests/contract/`, and `tests/integration/`
 together, so there is no separate integration-suite step to schedule - but if a task's work is

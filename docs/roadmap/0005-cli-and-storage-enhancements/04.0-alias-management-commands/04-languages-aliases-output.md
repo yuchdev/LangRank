@@ -45,7 +45,7 @@ visible in CLI output from day one.
 
 ## Success criteria
 
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

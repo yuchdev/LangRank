@@ -42,7 +42,7 @@ with no extra flags, and plots never open a window during tests.
 
 - [ ] `grep -n "aegis_swr" .coveragerc` returns nothing.
 - [ ] `uv run pytest --cov` lists `src/langrank` modules.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

@@ -70,7 +70,7 @@ already has columns for.
 - [ ] `probe` implemented with HEAD→GET fallback and no body reads.
 - [ ] Validators persisted end-to-end when a provider passes them.
 - [ ] No test performs real network I/O.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

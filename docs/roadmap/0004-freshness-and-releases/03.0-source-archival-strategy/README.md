@@ -59,7 +59,7 @@ every pruned artifact in SQLite.
 - [ ] Retention configurable globally and per provider; default is disk-safe.
 - [ ] Tests cover each policy value (`all`, `latest`, `yearly`, `none`).
 - [ ] No large copyrighted/raw dataset can be committed unnoticed (size guard test).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

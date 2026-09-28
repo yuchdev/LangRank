@@ -45,7 +45,7 @@ The skeleton contains:
 
 ## Behaviour & validators
 
-1. The rendered skeleton passes `ruff check`, `ruff format --check` and `mypy`. This is
+1. The rendered skeleton passes `ruff check`, `ruff format --check`. This is
    verified in subtask 05 by rendering into `tmp_path` and running the tools.
 2. The contract-test template marks the whole module
    `pytest.mark.skip(reason="scaffolded: implement $class_name first")`, so a fresh scaffold

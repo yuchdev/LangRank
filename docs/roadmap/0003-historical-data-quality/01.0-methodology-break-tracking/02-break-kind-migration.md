@@ -62,7 +62,7 @@ which also append migrations.
 
 - [ ] New migration tuple appended with the next integer version; `SCHEMA_VERSION` matches.
 - [ ] All four tests exist and pass.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

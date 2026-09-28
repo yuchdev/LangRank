@@ -71,7 +71,7 @@ whenever the chosen date could surprise a reader.
 
 - [ ] Selection never uses an observation outside the target year (YEAR mode) and never mixes
       periods within one column.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

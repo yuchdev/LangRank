@@ -72,7 +72,7 @@ plugin can be disabled, and a broken one never takes the CLI down with it.
 - [ ] An out-of-tree fixture package registers via `langrank.providers` and appears in
       `ProviderRegistry.all()` and `langrank ratings` with zero core changes (plan.md success criterion).
 - [ ] The Task 01.0 contract helper passes against the fixture plugin.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

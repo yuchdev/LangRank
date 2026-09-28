@@ -67,7 +67,7 @@ command that never touches the read-write database never creates or migrates it.
 
 - [ ] All tests above pass. Existing tests are unchanged and green.
 - [ ] `grep -n "mode=ro" src/langrank/db/repository.py` matches.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

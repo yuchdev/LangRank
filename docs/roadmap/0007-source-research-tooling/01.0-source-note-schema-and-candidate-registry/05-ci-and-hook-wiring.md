@@ -10,7 +10,7 @@ gate. A PostToolUse hook runs them as a non-blocking reminder when a note is edi
 
 ## Baseline
 
-- `.github/workflows/ci.yml` runs `uv run ruff check .`, `ruff format --check`, `mypy src`
+- `.github/workflows/ci.yml` runs `uv run ruff check .`, `ruff format --check`
   and `pytest` on 3.12/3.13.
 - `.claude/settings.json` PostToolUse `Write|Edit|MultiEdit` already chains
   `post_edit_format.py`, `style_fixes.py`, `dep_audit.py` and `doc_link_check.py`.
@@ -54,7 +54,7 @@ gate. A PostToolUse hook runs them as a non-blocking reminder when a note is edi
 - [ ] CI has the new step, and a deliberately broken note fails CI locally with `act` or an
       equivalent dry run (manual check, recorded in the PR).
 - [ ] The hook is registered in `.claude/settings.json` and documented in `docs/agent/hooks.md`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

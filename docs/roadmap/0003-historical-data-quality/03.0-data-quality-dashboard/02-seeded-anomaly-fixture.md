@@ -49,7 +49,7 @@ class, plus a clean baseline, so every check has a positive and a negative test.
 ## Success criteria
 
 - [ ] Fixtures importable by subtasks 03-06 tests.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

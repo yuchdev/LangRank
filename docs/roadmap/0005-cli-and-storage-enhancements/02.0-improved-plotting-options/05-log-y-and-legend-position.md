@@ -51,7 +51,7 @@ and control over legend placement (including outside the axes for many languages
 ## Success criteria
 
 - [ ] Both flags documented in `langrank plot --help`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

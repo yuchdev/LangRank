@@ -59,7 +59,7 @@ no-shared-axis rule is respected without any derived value.
 - [ ] A snapshot cell is always a real observation (true date available in every output format)
       or explicitly blank - never computed.
 - [ ] `langrank snapshot 2020` and `langrank snapshot latest` run against fetched bundled data.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

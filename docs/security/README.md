@@ -79,8 +79,8 @@ for point-in-time reviews.
 >
 > **5. Mitigations - present.** All SQL values are `?`-bound (`db/repository.py` concatenates
 > fragments but never interpolates data); no `eval`, no `shell=True`, no subprocess anywhere;
-> providers are barred from touching SQL; `PRAGMA foreign_keys = ON`; frozen dataclasses; strict-ish
-> `mypy` on `src`. **Mitigations - open gaps.** No size or MIME limit on ingested content; malformed
+> providers are barred from touching SQL; `PRAGMA foreign_keys = ON`; frozen dataclasses;
+> **Mitigations - open gaps.** No size or MIME limit on ingested content; malformed
 > CSV surfaces as a raw `KeyError`/`ValueError`/`UnicodeDecodeError` rather than a `LangRankError`;
 > no artifact authenticity check; no cache-poisoning defense (cached files are re-read and trusted);
 > `import` bypasses artifact recording; §22's source-policy review (API availability, robots policy,

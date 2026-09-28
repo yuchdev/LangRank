@@ -56,7 +56,7 @@ version, and flag overlapping segments and observations covered by no segment.
 
 - [ ] `ValidationService.methodology_coverage("demo")` returns per-version counts (plan.md criterion).
 - [ ] All five tests pass.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

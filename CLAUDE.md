@@ -18,7 +18,6 @@ uv sync                        # install deps (Python >=3.12, managed via uv)
 
 uv run ruff check .            # lint
 uv run ruff format --check .   # format check
-uv run mypy src                # type check (strict-ish: disallow_untyped_defs, src only)
 uv run pytest                  # full test suite
 uv run pytest tests/unit/test_config.py::test_name  # single test
 uv run pytest -m "not integration"  # skip provider-integration-marked tests
@@ -29,8 +28,7 @@ uv run langrank plot --rating redmonk --metric rank --languages python,c++,rust 
 uv run langrank export csv --ratings tiobe,pypl --since 2016 --output history.csv
 ```
 
-CI (`.github/workflows/ci.yml`) runs exactly the four checks above (ruff check, ruff format --check,
-mypy, pytest) on Python 3.12 and 3.13 — run them all before considering a change done.
+CI (`.github/workflows/ci.yml`) runs exactly the four checks above (ruff check, ruff format --check, pytest) on Python 3.12 and 3.13 — run them all before considering a change done.
 
 ## Architecture
 

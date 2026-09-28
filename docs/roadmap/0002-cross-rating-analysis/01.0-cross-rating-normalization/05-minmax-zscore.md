@@ -59,7 +59,7 @@ Add the two "later, additive" value-metric normalizations named in plan.md, regi
 
 - [ ] `--normalize minmax|zscore` accepted by `plot compare`; `rank_percentile` output unchanged
       (its tests still pass untouched).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

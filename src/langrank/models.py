@@ -3,11 +3,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Optional
 
 
 class Granularity(StrEnum):
     YEAR = "year"
+    QUARTER = "quarter"
     MONTH = "month"
 
 
@@ -36,10 +37,10 @@ class MetricDefinition:
 class MethodologyNote:
     rating_id: str
     methodology_version: str
-    valid_from: date | None
-    valid_to: date | None
+    valid_from: Optional[date]
+    valid_to: Optional[date]
     description: str
-    source_url: str | None = None
+    source_url: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -47,7 +48,7 @@ class ProviderMetadata:
     provider_id: str
     display_name: str
     description: str
-    homepage: str | None
+    homepage: Optional[str]
     default_metric: str
     native_granularity: Granularity
     caveats: list[str]
@@ -58,16 +59,16 @@ class ProviderMetadata:
 
 @dataclass(frozen=True)
 class FetchRequest:
-    since: date | None = None
-    until: date | None = None
-    years: int | None = None
+    since: Optional[date] = None
+    until: Optional[date] = None
+    years: Optional[int] = None
     force: bool = False
     refresh: bool = False
     offline: bool = False
     no_cache: bool = False
     dry_run: bool = False
     verbose: int = 0
-    source: str | None = None
+    source: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -79,8 +80,8 @@ class RawArtifact:
     sha256: str
     mime_type: str
     local_path: str
-    http_etag: str | None = None
-    http_last_modified: str | None = None
+    http_etag: Optional[str] = None
+    http_last_modified: Optional[str] = None
     metadata_json: dict[str, Any] = field(default_factory=dict)
 
 
@@ -93,8 +94,8 @@ class SourceRecord:
     period_end: date
     period_label: str
     granularity: Granularity
-    rank: int | None
-    value: float | None
+    rank: Optional[int]
+    value: Optional[float]
     unit: str
     source_url: str
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -109,21 +110,21 @@ class Observation:
     period_end: date
     period_label: str
     granularity: Granularity
-    rank: int | None
-    value: float | None
+    rank: Optional[int]
+    value: Optional[float]
     unit: str
     source_language_name: str
     source_url: str
-    source_document_id: str | None
+    source_document_id: Optional[str]
     is_derived: bool
-    derivation_method: str | None
+    derivation_method: Optional[str]
     retrieved_at: datetime
-    source_published_at: datetime | None
+    source_published_at: Optional[datetime]
     parser_version: str
     raw_record_hash: str
     metadata_json: dict[str, Any] = field(default_factory=dict)
-    sample_size: int | None = None
-    population: str | None = None
+    sample_size: Optional[int] = None
+    population: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -147,23 +148,23 @@ class LanguageAlias:
     rating_id: str
     source_name: str
     language_id: str
-    valid_from: date | None = None
-    valid_to: date | None = None
-    notes: str | None = None
+    valid_from: Optional[date] = None
+    valid_to: Optional[date] = None
+    notes: Optional[str] = None
 
 
 @dataclass(frozen=True)
 class QueryFilters:
-    rating_id: str | None = None
-    metric_id: str | None = None
+    rating_id: Optional[str] = None
+    metric_id: Optional[str] = None
     language_ids: list[str] = field(default_factory=list)
     all_languages: bool = False
-    since: date | None = None
-    until: date | None = None
-    years: int | None = None
-    year: int | None = None
-    top: int | None = None
-    top_current: int | None = None
+    since: Optional[date] = None
+    until: Optional[date] = None
+    years: Optional[int] = None
+    year: Optional[int] = None
+    top: Optional[int] = None
+    top_current: Optional[int] = None
 
 
 @dataclass(frozen=True)

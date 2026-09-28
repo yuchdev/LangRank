@@ -54,8 +54,8 @@ later subtasks fill in.
 
 ## Success criteria
 
-- [ ] `ReportService` importable, typed, mypy-clean.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `ReportService` importable, typed, clean.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

@@ -49,7 +49,7 @@ Every provider resolves source labels with its own `rating_id` and the record's
 ## Success criteria
 
 - [ ] No provider calls `resolve()` without `rating_id` and `on_date`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

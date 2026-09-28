@@ -5,7 +5,7 @@
 - Annotation and typing, Union, Optional
 - Exceptions
 - Test documentation
-- ruff, mypy, Flake8
+- ruff, Flake8
 - Imports formatting - compare to Ruff
 - Getters and Setters - check in Python course
 

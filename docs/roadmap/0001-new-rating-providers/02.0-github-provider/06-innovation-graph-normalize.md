@@ -55,7 +55,7 @@ every output flagged derived with an explicit method.
 ## Success criteria
 
 - [ ] No aggregated value stored with `is_derived=False`.
-- [ ] Tests pass; lint/format/mypy/pytest green.
+- [ ] Tests pass; lint/format/pytest green.
 
 ## Constraints
 

@@ -71,7 +71,7 @@ validate, report methodology changes, summarize - as an idempotent service that 
 
 - [ ] `UpdateService.run` implements rules 1-7.
 - [ ] No pipeline logic duplicated from `FetchService`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

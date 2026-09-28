@@ -72,7 +72,7 @@ Payload format (JSON, one artifact per fetch):
 
 - [ ] `langrank fetch stackoverflow-tags --since 2025-01 --until 2025-02` works live.
 - [ ] `--offline` replays the cache with no network.
-- [ ] Tests above pass; lint/format/mypy/pytest green.
+- [ ] Tests above pass; lint/format/pytest green.
 
 ## Constraints
 

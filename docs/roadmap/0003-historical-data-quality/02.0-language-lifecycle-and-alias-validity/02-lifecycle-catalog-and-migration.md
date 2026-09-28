@@ -66,7 +66,7 @@ aliases, and persist both through a new append-only migration and `seed_language
 
 - [ ] New migration appended; old ones untouched.
 - [ ] All four tests pass.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

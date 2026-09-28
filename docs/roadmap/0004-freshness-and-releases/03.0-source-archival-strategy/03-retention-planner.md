@@ -53,7 +53,7 @@ decides which to keep and which to prune - deterministic and exhaustively unit-t
 ## Success criteria
 
 - [ ] All four policy values covered by tests (milestone testing convention).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

@@ -72,24 +72,22 @@ contract test in subtask 06 pins it.)
    - never hand-typed - so they cannot drift from metric kinds.
 2. `native_granularity` is read from `self.metadata().native_granularity`, not repeated as a literal.
 3. `capabilities()` is pure (no I/O, no DB, no network) and cheap enough to call per CLI invocation.
-4. The `hasattr` check in `StatusService` is **not** removed here (that is subtask 04), but after
-   this subtask mypy must accept `provider.upstream_latest_period()` directly on `RatingProvider`.
+4. The `hasattr` check in `StatusService` is **not** removed here (that is subtask 04).
 
 ## Tests
 
-| Test function                                         | File                                        | Type | Asserts |
-|-------------------------------------------------------|---------------------------------------------|------|---------|
-| `test_capabilities_is_frozen`                         | `tests/unit/test_provider_capabilities.py`  | Unit | Assigning a field raises `FrozenInstanceError` |
-| `test_derive_value_capabilities_rank_only`            | `tests/unit/test_provider_capabilities.py`  | Unit | Metadata with only a RANK metric → `(True, False)` |
-| `test_derive_value_capabilities_mixed`                | `tests/unit/test_provider_capabilities.py`  | Unit | RANK + SHARE → `(True, True)` |
-| `test_builtin_providers_implement_capabilities`       | `tests/unit/test_provider_capabilities.py`  | Unit | For each `ProviderRegistry(tmp).all()`, `capabilities()` returns `ProviderCapabilities` |
-| `test_upstream_latest_period_is_protocol_member`      | `tests/unit/test_provider_capabilities.py`  | Unit | `"upstream_latest_period" in RatingProvider.__dict__` (protocol attribute) |
+| Test function                                    | File                                       | Type | Asserts                                                                                 |
+|--------------------------------------------------|--------------------------------------------|------|-----------------------------------------------------------------------------------------|
+| `test_capabilities_is_frozen`                    | `tests/unit/test_provider_capabilities.py` | Unit | Assigning a field raises `FrozenInstanceError`                                          |
+| `test_derive_value_capabilities_rank_only`       | `tests/unit/test_provider_capabilities.py` | Unit | Metadata with only a RANK metric → `(True, False)`                                      |
+| `test_derive_value_capabilities_mixed`           | `tests/unit/test_provider_capabilities.py` | Unit | RANK + SHARE → `(True, True)`                                                           |
+| `test_builtin_providers_implement_capabilities`  | `tests/unit/test_provider_capabilities.py` | Unit | For each `ProviderRegistry(tmp).all()`, `capabilities()` returns `ProviderCapabilities` |
+| `test_upstream_latest_period_is_protocol_member` | `tests/unit/test_provider_capabilities.py` | Unit | `"upstream_latest_period" in RatingProvider.__dict__` (protocol attribute)              |
 
 ## Success criteria
 
 - [ ] `grep -n "def capabilities" src/langrank/providers/*.py` lists all five providers.
-- [ ] `uv run mypy src` passes with `StatusService` still unchanged (proves protocol typing).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

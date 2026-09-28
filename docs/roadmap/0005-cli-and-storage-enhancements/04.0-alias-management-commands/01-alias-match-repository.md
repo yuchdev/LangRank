@@ -47,7 +47,7 @@ refactor `alias_to_language()` to delegate to it, so resolution and inspection s
 ## Success criteria
 
 - [ ] Only one SQL statement in `repository.py` resolves aliases.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

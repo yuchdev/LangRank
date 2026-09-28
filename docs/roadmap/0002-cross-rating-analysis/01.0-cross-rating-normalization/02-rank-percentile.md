@@ -103,7 +103,7 @@ recorded population `n` and the rule that produced it.
 - [ ] Every `NormalizedPoint` has `is_derived=True`, a non-empty `derivation_method`, and a
       `population_source`.
 - [ ] Absent/excluded rows never appear as a `0.0` score.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

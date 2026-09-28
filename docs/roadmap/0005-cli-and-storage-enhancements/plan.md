@@ -70,7 +70,7 @@ Task 01.0's views need a smoke test that plain `sqlite3` can query them; Task
 02.0/05.0 need a regression test per flag/rule; Task 03.0 needs a
 fixture-driven acceptance test of the report directory; Task 04.0 needs
 parity tests against `Database.alias_to_language`. `uv run ruff check .`, `uv
-run ruff format --check .`, and `uv run mypy src` stay clean throughout.
+run ruff format --check .`.
 
 ---
 

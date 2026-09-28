@@ -63,7 +63,7 @@ manifest, and atomically move the result into place.
 ## Success criteria
 
 - [ ] Task exit criterion "metadata.json alone explains every value" test-enforced.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

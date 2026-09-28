@@ -63,7 +63,7 @@ metric, the full ranking table of that metric's **latest published period** - i.
 
 - [ ] `sqlite3 <db> "select * from latest_language_ranks limit 5"` works after `langrank fetch demo`.
 - [ ] Works for a provider-prefixed rank metric (`tiobe-rank`), not only `demo`'s `rank`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

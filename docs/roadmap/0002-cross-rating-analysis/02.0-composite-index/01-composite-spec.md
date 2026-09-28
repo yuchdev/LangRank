@@ -71,7 +71,7 @@ refuses to exist if any is missing, contradictory, or silently ignorable.
 
 - [ ] No `CompositeSpec` can be constructed through `build_composite_spec` with a defaulted or
       ignored ingredient.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

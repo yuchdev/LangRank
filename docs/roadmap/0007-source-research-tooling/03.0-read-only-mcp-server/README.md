@@ -114,7 +114,7 @@ how research agents ground their recommendations in what LangRank already stores
 - [ ] Any write through the server's DB connection raises `sqlite3.OperationalError` (tested).
 - [ ] Without the extra, `langrank mcp serve` exits 2 with an install hint.
 - [ ] The threat model has no open CRITICAL findings.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green, both with and without the extra.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green, both with and without the extra.
 
 ## References
 

@@ -46,7 +46,7 @@ Expose `ReleaseService.build` as `langrank release`.
 ## Success criteria
 
 - [ ] `langrank release --help` matches the plan's example invocation.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

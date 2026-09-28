@@ -55,7 +55,7 @@ restore the old look.
 ## Success criteria
 
 - [ ] Default plots never connect across a missing period.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

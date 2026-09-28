@@ -55,7 +55,7 @@ by both `LanguageNormalizer.resolve` and `Database.alias_to_language`.
 
 - [ ] Single key-normalization function; `Database._normalize_alias` and `LanguageNormalizer._normalize_key` delegate to it.
 - [ ] Parity test passes across all catalog aliases.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

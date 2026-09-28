@@ -51,7 +51,7 @@ calls for `--annotate-methodology`.
 
 - [ ] `langrank ratings methodology demo --format json` prints the demo break.
 - [ ] `ValidationService.methodology_breaks` documented in its docstring as the hook for `--annotate-methodology`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

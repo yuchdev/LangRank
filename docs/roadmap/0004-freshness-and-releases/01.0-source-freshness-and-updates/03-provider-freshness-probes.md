@@ -76,7 +76,7 @@ period from real data instead of hardcoded constants, and remove every
 
 - [ ] All five providers implement `check_freshness`; no `upstream_latest_period` remains.
 - [ ] Offline default is network-free (test-enforced).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

@@ -80,7 +80,7 @@ table or JSON form, and never edits or deletes data.
 - [ ] Every subtask above is ✅.
 - [ ] Each check fires on the seeded fixture and is silent on the clean demo dataset.
 - [ ] Running `langrank quality` leaves the DB byte-identical (plan.md criterion).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

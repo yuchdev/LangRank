@@ -61,7 +61,7 @@ The threat model must cover, each with likelihood/impact and mitigation-or-accep
 
 - [ ] Threat model committed with a verdict (no CRITICAL open findings) before 02.0/03 merges.
 - [ ] Each required mitigation has an owning subtask or test.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

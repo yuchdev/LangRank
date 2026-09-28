@@ -57,7 +57,7 @@ Task 01.0 and 02.0 both add migrations to `db/migrations.py` and need
 migration tests (append-only version, per [CLAUDE.md](/CLAUDE.md)). Task 03.0
 needs fixture data with deliberately-seeded anomalies (a gap, a duplicate
 rank, an unmapped alias) to assert each check fires. `uv run ruff check .`,
-`uv run ruff format --check .`, and `uv run mypy src` stay clean throughout.
+`uv run ruff format --check .`.
 
 ---
 

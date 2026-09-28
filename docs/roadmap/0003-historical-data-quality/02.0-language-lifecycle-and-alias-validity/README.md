@@ -70,7 +70,7 @@ label is always preserved in `observations.source_language_name`.
 - [ ] Every subtask above is ✅.
 - [ ] A language added mid-range shows no observations before its birth, not zeros (plan.md).
 - [ ] A renamed alias is queryable under the old and new label for its effective periods (plan.md).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

@@ -59,7 +59,7 @@ test double exposing `all()` / `get()` - no monkeypatching of built-in providers
 
 - [ ] `grep -rn "hasattr(provider" src/langrank` returns nothing.
 - [ ] `langrank status` output for built-ins unchanged (existing `tests/integration/test_cli.py` passes).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

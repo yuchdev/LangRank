@@ -19,19 +19,18 @@ and the calendar (Task 05.0).
   - positional paths;
   - exit 1 on findings;
   - a trailing "N file(s) scanned, M problem(s) found." summary.
-- `scripts/` has no tests yet. `pyproject.toml` sets `testpaths = ["tests"]`, and mypy
-  covers `src` only.
+- `scripts/` has no tests yet. `pyproject.toml` sets `testpaths = ["tests"]`
 
 ## Files
 
-| Action | Path                                         | Purpose                                      |
-|--------|----------------------------------------------|----------------------------------------------|
-| Create | `scripts/check_source_notes.py`              | Parser, schema model, validator, CLI         |
-| Create | `tests/scripts/__init__.py`                  | Test package                                 |
-| Create | `tests/scripts/conftest.py`                  | Load `scripts/*.py` modules through `importlib` (no `sys.path` hacks in tests) |
-| Create | `tests/scripts/test_check_source_notes.py`   | Validator tests                              |
-| Create | `tests/fixtures/source-notes/valid/*.md`     | ≥ 2 valid notes (one `existing`, one `candidate`) |
-| Create | `tests/fixtures/source-notes/invalid/*.md`   | One file per defect class                    |
+| Action | Path                                       | Purpose                                                                        |
+|--------|--------------------------------------------|--------------------------------------------------------------------------------|
+| Create | `scripts/check_source_notes.py`            | Parser, schema model, validator, CLI                                           |
+| Create | `tests/scripts/__init__.py`                | Test package                                                                   |
+| Create | `tests/scripts/conftest.py`                | Load `scripts/*.py` modules through `importlib` (no `sys.path` hacks in tests) |
+| Create | `tests/scripts/test_check_source_notes.py` | Validator tests                                                                |
+| Create | `tests/fixtures/source-notes/valid/*.md`   | ≥ 2 valid notes (one `existing`, one `candidate`)                              |
+| Create | `tests/fixtures/source-notes/invalid/*.md` | One file per defect class                                                      |
 
 ## Symbols / fields
 
@@ -96,12 +95,11 @@ Behavior:
 - [ ] All 14 problem codes have an invalid fixture and a passing test.
 - [ ] `python scripts/check_source_notes.py tests/fixtures/source-notes/valid` exits 0.
 - [ ] The script imports only the standard library (`grep -E "^(import|from) " scripts/check_source_notes.py` shows stdlib modules only).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 
-- Stdlib only and Python ≥ 3.12, with full type annotations: the same standard as `src/`,
-  even though mypy's `files` is `src`.
+- Stdlib only and Python ≥ 3.12, with full type annotations.
 - No bare `except:`. Parse errors become `Problem`s; they never produce a traceback.
 - Coding standard: [docs/dev/python_coding_standard.md](/docs/dev/python_coding_standard.md).
 

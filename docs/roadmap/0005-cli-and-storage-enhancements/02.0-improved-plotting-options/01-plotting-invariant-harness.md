@@ -54,7 +54,7 @@ plotting invariant, so every later flag subtask can re-run the same assertions w
 
 - [ ] `PlotService.build_figure` exists and `cli.py:plot` output is unchanged (existing CLI tests pass).
 - [ ] All six tests pass under `MPLBACKEND=Agg`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

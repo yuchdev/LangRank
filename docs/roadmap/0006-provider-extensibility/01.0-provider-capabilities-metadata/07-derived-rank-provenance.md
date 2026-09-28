@@ -60,7 +60,7 @@ Fixes the one existing violation of the project's "derived values are flagged" i
 
 - [ ] `sqlite3 <db> "select count(*) from observations where metric_id='stackoverflow-survey-rank' and is_derived=0"` returns 0 after `langrank fetch stackoverflow-survey`.
 - [ ] `langrank ratings show stackoverflow-survey` shows the rank metric as derived from `worked_with_percent`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

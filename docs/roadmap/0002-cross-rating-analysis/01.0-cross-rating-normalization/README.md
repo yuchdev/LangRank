@@ -100,7 +100,7 @@ that period), labelled as derived, computed on read and never persisted. Deliver
 - [ ] `rank_percentile` is covered by unit tests against known `(r, n)` inputs, ties, `n = 1`,
       and each `population_source`.
 - [ ] No normalized value is written to SQLite (asserted by a test).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

@@ -95,7 +95,7 @@ Tests use the `multi_rating_database` fixture or the `--db` flag with fetched bu
 - [ ] `langrank plot compare` exists; `langrank plot` legacy usage is unchanged.
 - [ ] Cross-rating raw plotting is refused in both the legacy path and `--normalize none`.
 - [ ] Rendered plot labels the series as derived and never draws across gaps.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

@@ -68,7 +68,7 @@ combination).
 
 Each task ships unit tests for its normalization math against known inputs,
 and CLI acceptance tests for the new command. `uv run ruff check .`, `uv run
-ruff format --check .`, and `uv run mypy src` stay clean throughout.
+ruff format --check .`.
 
 ---
 

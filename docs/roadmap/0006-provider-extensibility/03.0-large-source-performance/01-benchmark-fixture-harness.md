@@ -59,7 +59,7 @@ from the default test run. Establishes the baseline numbers the other subtasks i
 
 - [ ] `uv run pytest` collects zero `benchmark` tests; `uv run pytest -m benchmark` runs them.
 - [ ] `docs/dev/performance.md` records baseline seconds/MiB per stage for both shapes.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

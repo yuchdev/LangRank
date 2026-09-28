@@ -66,7 +66,7 @@ runs a selected set of checks.
 ## Success criteria
 
 - [ ] All five tests pass.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

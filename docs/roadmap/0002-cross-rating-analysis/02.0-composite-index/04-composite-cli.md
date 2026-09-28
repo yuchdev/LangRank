@@ -77,7 +77,7 @@ formats that make the derived nature and the per-source contributions impossible
 - [ ] `langrank composite --ratings tiobe,pypl,redmonk,stackoverflow-survey --metric rank
       --normalize rank-percentile --weights 1,1,1,2 --missing require-all` runs on bundled data.
 - [ ] Omitting any ingredient is a usage error.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

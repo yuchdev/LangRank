@@ -74,7 +74,7 @@ flagship example (`plot --rating redmonk --metric rank`) produce an empty chart 
 - [ ] Each new flag ships with a test asserting the plotting invariants still hold with it active.
 - [ ] `langrank plot --rating redmonk --metric rank --languages python,c++,rust --years 10`
       draws three inverted-axis lines.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

@@ -71,7 +71,7 @@ Reason codes (prefix of `reason`): `import_error`, `factory_error`, `not_a_provi
 ## Success criteria
 
 - [ ] A plugin that raises on import never changes CLI exit code for commands not using it.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

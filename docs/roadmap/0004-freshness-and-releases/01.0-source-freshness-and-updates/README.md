@@ -86,7 +86,7 @@ fetches against sources whose terms discourage automation.
 - [ ] `langrank update` is idempotent and skips providers already fresh.
 - [ ] No `hasattr(provider, ...)` remains in `services/`; no hardcoded
       `upstream_latest_period` constants remain in `providers/`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

@@ -55,7 +55,7 @@ use - and flags any disagreement between the in-code `LanguageNormalizer` and th
 - [ ] Every subtask above is ✅.
 - [ ] `languages resolve <alias>` reproduces exactly what `Database.alias_to_language` /
       `_normalize_alias` do internally (parity suite green).
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

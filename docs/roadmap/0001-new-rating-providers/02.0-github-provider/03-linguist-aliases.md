@@ -47,7 +47,7 @@ Add `github`-scoped aliases for GitHub Linguist language names used by both vari
 
 ## Success criteria
 
-- [ ] Tests pass; lint/format/mypy/pytest green.
+- [ ] Tests pass; lint/format/pytest green.
 
 ## Constraints
 

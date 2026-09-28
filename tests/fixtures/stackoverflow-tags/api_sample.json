@@ -1,0 +1,39 @@
+{
+  "denominator": "all_questions",
+  "months": [
+    {
+      "month": "2024-01",
+      "tags": {
+        "go": 311,
+        "java": 2223,
+        "javascript": 3951,
+        "python": 6129,
+        "rust": 422
+      },
+      "total": 47577
+    },
+    {
+      "month": "2024-02",
+      "tags": {
+        "go": 284,
+        "java": 2174,
+        "javascript": 3581,
+        "python": 6106,
+        "rust": 380
+      },
+      "total": 45936
+    },
+    {
+      "month": "2024-03",
+      "tags": {
+        "go": 301,
+        "java": 2231,
+        "javascript": 3641,
+        "python": 5828,
+        "rust": 417
+      },
+      "total": 44720
+    }
+  ],
+  "source": "api"
+}

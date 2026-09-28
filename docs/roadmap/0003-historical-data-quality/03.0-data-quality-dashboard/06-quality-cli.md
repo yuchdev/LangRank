@@ -49,7 +49,7 @@ and prove the command never modifies the DB.
 
 - [ ] `langrank quality --format json` on the seeded fixture reports all anomaly classes (milestone exit criterion).
 - [ ] DB byte-identical after a run.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

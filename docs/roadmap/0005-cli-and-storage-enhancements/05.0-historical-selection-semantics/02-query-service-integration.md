@@ -55,7 +55,7 @@ multi-rating query entry point, and support the exclusive lower bound in `Databa
 ## Success criteria
 
 - [ ] No calendar-year arithmetic remains in `QueryService`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

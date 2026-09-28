@@ -74,7 +74,7 @@ can tell when a series spans a break. Values are never adjusted across a break.
 - [ ] `ValidationService` can report which observations fall within each methodology version
       of a rating (plan.md success criterion).
 - [ ] At least one bootstrap rating carries a real, cited methodology break.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

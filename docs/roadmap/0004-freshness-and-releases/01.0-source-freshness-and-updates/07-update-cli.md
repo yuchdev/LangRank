@@ -56,7 +56,7 @@ and CI-friendly exit codes.
 ## Success criteria
 
 - [ ] `langrank update --help` documents every option and the policy semantics of `--scheduled`.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 

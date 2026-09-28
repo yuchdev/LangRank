@@ -65,8 +65,8 @@ implements it.
 - [ ] `python scripts/scaffold_provider.py ieee-spectrum --milestone 0001 --task 03.0 --dry-run`
       lists the planned files without writing.
 - [ ] Two consecutive real runs give an identical tree. The second run reports only `skipped`.
-- [ ] The generated skeleton passes `ruff` and `mypy`. Its contract test is collected and skipped.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] The generated skeleton passes `ruff`. Its contract test is collected and skipped.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## References
 

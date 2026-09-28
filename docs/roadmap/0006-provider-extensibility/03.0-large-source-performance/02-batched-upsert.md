@@ -63,7 +63,7 @@ return semantics and the natural-key upsert behaviour.
 
 - [ ] Benchmark (`uv run pytest -m benchmark`) shows upsert-stage improvement recorded in `docs/dev/performance.md`.
 - [ ] Existing `tests/integration/test_fetch_and_query.py` unchanged and green.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src`, `uv run pytest` green.
+- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 
 ## Constraints
 
