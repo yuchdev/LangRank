@@ -14,18 +14,18 @@ from langrank.errors import FetchError
 from langrank.models import Observation, RawArtifact, SourceRecord
 from langrank.providers.base import FetchPayload
 
-#: Cache filename extensions written by :func:`payload_from_content`, newest-first
-#: preference order is irrelevant (mtime decides) but the set bounds the glob.
+# Cache filename extensions written by :func:`payload_from_content`, newest-first
+# preference order is irrelevant (mtime decides), but the set bounds the glob.
 _CACHE_EXTENSIONS = (".json", ".csv", ".bin")
 
-#: A provider id safe to interpolate into a cache glob: no path separators or
-#: traversal segments (SEC-5).
+# A provider id safe to interpolate into a cache glob: no path separators or
+# traversal segments (SEC-5).
 _PROVIDER_ID_RE = re.compile(r"^[a-z0-9-]+$")
 
 
-#: Calendar bounds ``(start_month, start_day, end_month, end_day)`` of each quarter,
-#: indexed by quarter number. Quarter-end months (Mar/Jun/Sep/Dec) have fixed last
-#: days, so no leap-year handling is needed.
+# Calendar bounds ``(start_month, start_day, end_month, end_day)`` of each quarter,
+# indexed by quarter number. Quarter-end months (Mar/Jun/Sep/Dec) have fixed last
+# days, so no leap-year handling is needed.
 _QUARTER_BOUNDS = {
     1: (1, 1, 3, 31),
     2: (4, 1, 6, 30),
@@ -38,7 +38,7 @@ def quarter_period(year: int, quarter: int) -> tuple[date, date, str]:
     """Return the calendar bounds and label for a calendar quarter.
 
     Quarters follow the standard calendar convention: Q1 is Jan 1..Mar 31, Q2 is
-    Apr 1..Jun 30, Q3 is Jul 1..Sep 30 and Q4 is Oct 1..Dec 31. Used by quarterly
+    Apr 1..Jun 30, Q3 is Jul 1..Sep 30, and Q4 is Oct 1..Dec 31. Used by quarterly
     providers to populate ``period_start`` / ``period_end`` / ``period_label`` on a
     :class:`~langrank.models.SourceRecord`.
 
@@ -108,7 +108,7 @@ def load_cached_payload(*, provider_id: str, cache_dir: Path) -> FetchPayload:
     if not candidates:
         raise FetchError(f"no cached artifact for provider {provider_id!r}; run without --offline first")
 
-    newest = max(candidates, key=lambda path: path.stat().st_mtime)
+    newest = max(candidates, key=lambda p: p.stat().st_mtime)
     return FetchPayload(artifact=None, content=newest.read_bytes())
 
 

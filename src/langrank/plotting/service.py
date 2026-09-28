@@ -10,9 +10,9 @@ from langrank.db.repository import QueryRow
 
 
 class PlotService:
+    @staticmethod
     def plot(
-        self,
-        rows: list[QueryRow],
+            rows: list[QueryRow],
         *,
         metric_id: str,
         output: Path | None,
@@ -28,7 +28,7 @@ class PlotService:
         for row in rows:
             grouped.setdefault(row.language_id, []).append(row)
         for language_id, values in grouped.items():
-            values = sorted(values, key=lambda row: row.period_start)
+            values = sorted(values, key=lambda r: r.period_start)
             points = [(row.period_start, row.value) for row in values if row.value is not None]
             if not points:
                 continue

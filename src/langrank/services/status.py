@@ -28,9 +28,7 @@ class StatusService:
         for provider in self._registry.all():
             last_run = self._database.last_fetch_run(provider.provider_id)
             last_failed = self._database.last_failed_fetch_run(provider.provider_id)
-            upstream_latest_period = (
-                provider.upstream_latest_period() if hasattr(provider, "upstream_latest_period") else None
-            )
+            upstream_latest_period = provider.upstream_latest_period()
             latest_local = self._database.latest_observation_for_provider(provider.provider_id)
             provider_state = "unknown"
             if latest_local and upstream_latest_period:

@@ -308,6 +308,8 @@ class Database:
         return inserted, updated
 
     def query_rows(self, filters: QueryFilters) -> list[QueryRow]:
+        # The WHERE 1=1 pattern is a common idiom in dynamic SQL query building
+        # noinspection SqlConstantExpression
         sql = """
         SELECT o.rating_id, o.metric_id, o.language_id, l.display_name, o.period_start, o.period_end,
                o.period_label, o.rank, o.value, o.unit, o.source_url

@@ -24,42 +24,42 @@ from langrank.normalization import IEEE_UNTRACKED_LABELS, LanguageNormalizer
 from langrank.providers.base import FetchPayload
 from langrank.providers.common import build_observation, payload_from_content
 
-#: Stable rating id, used across the pipeline and as every metric-id prefix.
+# Stable rating id, used across the pipeline and as every metric-id prefix.
 _RATING_ID = "ieee-spectrum"
 
-#: Parser version stamped onto every observation this provider emits.
+# Parser version stamped onto every observation this provider emits.
 PARSER_VERSION = "ieee-spectrum-v1"
 
-#: Landing page for the latest verified IEEE Spectrum edition; each curated CSV
-#: row carries its own per-edition ``source_url`` (subtask 04), so this is only
-#: the artifact-level provenance URL.
+# Landing page for the latest verified IEEE Spectrum edition; each curated CSV
+# row carries its own per-edition ``source_url`` (subtask 04), so this is only
+# the artifact-level provenance URL.
 HOMEPAGE = "https://spectrum.ieee.org/top-programming-languages-2025"
 
-#: Curated, repo-committed edition dataset read at :meth:`IeeeSpectrumProvider.fetch`
-#: time (manual transcription only, 0 network requests). Columns:
-#: ``year,profile,rank,language,score,source_url,published_at,methodology_version``.
+# Curated, repo-committed edition dataset read at :meth:`IeeeSpectrumProvider.fetch`
+# time (manual transcription only, 0 network requests). Columns:
+# ``year,profile,rank,language,score,source_url,published_at,methodology_version``.
 DATA_PATH = Path(__file__).parent / "data" / "ieee_spectrum.csv"
 
-#: ``--source`` values that select the only supported acquisition mode (the bundled,
-#: manually transcribed CSV). ``None`` and ``"auto"`` fall through to it because
-#: there is no network source; any other value is rejected with a
-#: :class:`~langrank.errors.ProviderError`.
+# ``--source`` values that select the only supported acquisition mode (the bundled,
+# manually transcribed CSV). ``None`` and ``"auto"`` fall through to it because
+# there is no network source; any other value is rejected with a
+# :class:`~langrank.errors.ProviderError`.
 _BUNDLED_SOURCES: frozenset[Optional[str]] = frozenset({None, "auto", "bundled"})
 
-#: ``derivation_method`` stamped on every **rank** observation in subtask 05. IEEE's
-#: Flourish data file publishes only per-language scores, never a rank column, so we
-#: compute the rank ourselves with standard competition ranking (ties share a rank,
-#: the next distinct score skips the tied positions). Rank observations are therefore
-#: ``is_derived=True``; score observations are ``is_derived=False`` (published raw).
+# ``derivation_method`` stamped on every **rank** observation in subtask 05. IEEE's
+# Flourish data file publishes only per-language scores, never a rank column, so we
+# compute the rank ourselves with standard competition ranking (ties share a rank,
+# the next distinct score skips the tied positions). Rank observations are therefore
+# ``is_derived=True``; score observations are ``is_derived=False`` (published raw).
 RANK_DERIVATION_METHOD = "rank_by_published_score"
 
-#: Published-score scale per edition, kept so subtask 05 never rescales a score. The
-#: ``score`` column is IEEE's own figure from that edition's Flourish published data
-#: file, stored exactly as published: 2022 is on a 0-100 scale, 2023-2025 on a 0-1
-#: scale. The scale is edition-specific and scores are never comparable across
-#: editions, so no normalization or rescaling is applied - the raw value is stored.
-#: Adding an edition means updating this map, :data:`IEEE_EDITIONS` and the bundled
-#: CSV together; a scored row for a year missing here raises ``ParseError``.
+# Published-score scale per edition, kept so subtask 05 never rescales a score. The
+# ``score`` column is IEEE's own figure from that edition's Flourish published data
+# file, stored exactly as published: 2022 is on a 0-100 scale, 2023-2025 on a 0-1
+# scale. The scale is edition-specific and scores are never comparable across
+# editions, so no normalization or rescaling is applied - the raw value is stored.
+# Adding an edition means updating this map, :data:`IEEE_EDITIONS` and the bundled
+# CSV together; a scored row for a year missing here raises ``ParseError``.
 SCORE_SCALE_BY_YEAR: dict[int, str] = {
     2022: "0-100",
     2023: "0-1",
@@ -67,9 +67,9 @@ SCORE_SCALE_BY_YEAR: dict[int, str] = {
     2025: "0-1",
 }
 
-#: Exact curated-CSV header the parser requires; a missing column raises a
-#: :class:`~langrank.errors.ParseError` so a malformed ``langrank import`` file
-#: never lands silently miscolumned.
+# Exact curated-CSV header the parser requires; a missing column raises a
+# :class:`~langrank.errors.ParseError` so a malformed ``langrank import`` file
+# never lands silently miscolumned.
 _REQUIRED_COLUMNS: tuple[str, ...] = (
     "year",
     "profile",
@@ -81,13 +81,13 @@ _REQUIRED_COLUMNS: tuple[str, ...] = (
     "methodology_version",
 )
 
-#: ``metadata["provenance"]`` stamped on every record: IEEE ships no machine-readable
-#: dataset, so ranks and scores are manually transcribed from the published edition.
+# ``metadata["provenance"]`` stamped on every record: IEEE ships no machine-readable
+# dataset, so ranks and scores are manually transcribed from the published edition.
 _PROVENANCE = "manual_transcription"
 
-#: Default look-back (years) applied to parsed editions when the request sets no
-#: ``--since`` / ``--until`` / ``--years`` window (e.g. the ``langrank import`` path).
-#: All curated editions fall inside a decade of the latest, so nothing is dropped.
+# Default look-back (years) applied to parsed editions when the request sets no
+# ``--since`` / ``--until`` / ``--years`` window (e.g., the ``langrank import`` path).
+# All curated editions fall inside a decade of the latest, so nothing is dropped.
 _DEFAULT_YEARS = 10
 
 
@@ -114,8 +114,8 @@ class IeeeProfile(StrEnum):
     TRENDING = "trending"
 
 
-#: Human-readable weighting summary per profile, reused in metric descriptions so
-#: each profile's meaning stays attached to its metric pair.
+# Human-readable weighting summary per profile, reused in metric descriptions so
+# each profile's meaning stays attached to its metric pair.
 _PROFILE_LABELS: dict[IeeeProfile, str] = {
     IeeeProfile.SPECTRUM: "Spectrum (default; typical IEEE-member / working-engineer weighting)",
     IeeeProfile.JOBS: "Jobs (employer demand)",
@@ -158,10 +158,10 @@ class _Edition:
     description: str
 
 
-#: One entry per edition row of ``docs/source-notes/ieee-spectrum.md``. The metric
-#: set and weights change between editions and the score is renormalized per edition
-#: (top = 100), so scores/ranks are never comparable across editions - each edition
-#: is recorded as its own :class:`~langrank.models.MethodologyNote`.
+# One entry per edition row of ``docs/source-notes/ieee-spectrum.md``. The metric
+# set and weights change between editions and the score is renormalized per edition
+# (top = 100), so scores/ranks are never comparable across editions - each edition
+# is recorded as its own :class:`~langrank.models.MethodologyNote`.
 IEEE_EDITIONS: tuple[_Edition, ...] = (
     _Edition(
         year=2025,
@@ -213,19 +213,19 @@ IEEE_EDITIONS: tuple[_Edition, ...] = (
 )
 
 
-#: Profiles present in each edition's source-note table. IEEE presents the same three
-#: named profiles (:class:`IeeeProfile`) in every imported edition (2022-2025, plus the
-#: 2021 interactive presets mapped 1:1 in subtask 01), so each year maps to the full
-#: profile set. :meth:`IeeeSpectrumProvider.validate` reads this to flag an observation
-#: whose ``(year, profile)`` pair is absent from the source note (``profile_not_in_edition``).
+# Profiles present in each edition's source-note table. IEEE presents the same three
+# named profiles (:class:`IeeeProfile`) in every imported edition (2022-2025, plus the
+# 2021 interactive presets mapped 1:1 in subtask 01), so each year maps to the full
+# profile set. :meth:`IeeeSpectrumProvider.validate` reads this to flag an observation
+# whose ``(year, profile)`` pair is absent from the source note (``profile_not_in_edition``).
 EDITION_PROFILES: dict[int, frozenset[IeeeProfile]] = {
     edition.year: frozenset(IeeeProfile) for edition in IEEE_EDITIONS
 }
 
-#: Upper bound of each edition's published-score scale (:data:`SCORE_SCALE_BY_YEAR`).
-#: A ``0-100`` edition tops out at 100, a ``0-1`` edition at 1; :meth:`validate`
-#: range-checks each score against the bound named in its ``metadata_json['score_scale']``
-#: rather than a fixed 100, because the scale is edition-specific and never rescaled.
+# Upper bound of each edition's published-score scale (:data:`SCORE_SCALE_BY_YEAR`).
+# A ``0-100`` edition tops out at 100, a ``0-1`` edition at 1; :meth:`validate`
+# range-checks each score against the bound named in its ``metadata_json['score_scale']``
+# rather than a fixed 100, because the scale is edition-specific and never rescaled.
 _SCORE_SCALE_MAX: dict[str, float] = {"0-100": 100.0, "0-1": 1.0}
 
 
@@ -233,7 +233,7 @@ def _score_scale_max(scale: str) -> float:
     """Return the maximum published score for an edition's scale.
 
     :param scale: The ``metadata_json['score_scale']`` label (``"0-100"`` / ``"0-1"``).
-    :returns: The scale's upper bound; ``100.0`` for any unrecognised label, matching
+    :returns: The scale's upper bound; ``100.0`` for any unrecognized label, matching
         IEEE's historical default so an unlabelled score is never silently accepted
         beyond a plausible bound.
     """
@@ -285,15 +285,15 @@ class IeeeSpectrumProvider:
         self._cache_dir = cache_dir / self.provider_id
         self._normalizer = LanguageNormalizer()
         self._retrieved_at = datetime.now(UTC)
-        #: Request window stashed by :meth:`fetch` and applied in :meth:`parse`; all
-        #: default to ``None`` so the ``langrank import`` path (which never calls
-        #: :meth:`fetch`) imports every edition in the supplied CSV.
+        # Request window stashed by :meth:`fetch` and applied in :meth:`parse`; all
+        # default to ``None`` so the ``langrank import`` path (which never calls
+        # :meth:`fetch`) imports every edition in the supplied CSV.
         self._request_since: Optional[date] = None
         self._request_until: Optional[date] = None
         self._request_years: Optional[int] = None
-        #: IEEE labels the last :meth:`normalize` call could not resolve to a canonical
-        #: language (documented :data:`IEEE_UNTRACKED_LABELS` are excluded); skipped
-        #: rather than guessed and surfaced to validation (subtask 06).
+        # IEEE labels the last :meth:`normalize` call could not resolve to a canonical
+        # language (documented :data:`IEEE_UNTRACKED_LABELS` are excluded); skipped
+        # rather than guessed and surfaced to validation (subtask 06).
         self.last_unmapped: list[str] = []
 
     def metadata(self) -> ProviderMetadata:
@@ -380,7 +380,7 @@ class IeeeSpectrumProvider:
         applied to the parsed editions in :meth:`parse`, not to the raw bytes.
 
         :param request: Fetch parameters; only ``source`` (validated here) and
-            ``no_cache`` are honoured at this stage.
+            ``no_cache`` are honored at this stage.
         :returns: The raw curated-CSV fetch payload for the bundled edition dataset.
         :raises ProviderError: If ``--source`` is neither unset/``auto`` nor
             ``bundled`` (the only supported acquisition mode).
@@ -455,7 +455,7 @@ class IeeeSpectrumProvider:
         with no explicit ``--since`` it spans ``--years`` (default
         :data:`_DEFAULT_YEARS`) back from that end. The ``langrank import`` path leaves
         every stashed bound at ``None``, so a decade-wide default keeps every curated
-        edition. Missing editions are never synthesised - only present rows are kept.
+        edition. Missing editions are never synthesized - only present rows are kept.
 
         :param records: Records built from the curated CSV.
         :returns: The subset whose ``period_start`` falls in ``[since, until]``.
@@ -535,7 +535,7 @@ class IeeeSpectrumProvider:
         dropping an observation. A report carrying only WARNINGs stays ``ok`` and its
         observations persist; any ERROR blocks the upsert in
         :class:`~langrank.services.fetch.FetchService`. Every message names the
-        profile, language and edition so an operator can locate the row.
+        profile, language, and edition so an operator can locate the row.
 
         Codes:
 
@@ -549,7 +549,7 @@ class IeeeSpectrumProvider:
           ``is_derived`` (published scores are raw). This mirrors the as-built pairing
           from subtask 05.
         - ``duplicate_language_period`` (ERROR): a repeated
-          ``(language_id, period_start, metric_id)`` triple - the same language, year
+          ``(language_id, period_start, metric_id)`` triple - the same language, year,
           and metric twice.
         - ``duplicate_rank`` (ERROR): two languages sharing a rank within one
           ``(year, profile)`` whose scores differ. A legitimate competition-ranking
@@ -666,11 +666,11 @@ def _records_from_row(row: dict[str, Any]) -> list[SourceRecord]:
     record (metric ``ieee-spectrum-{profile}-rank``); it additionally yields a
     **score** record (metric ``ieee-spectrum-{profile}-score``) only when the ``score``
     cell is non-empty - an empty score is left missing, never fabricated. The score
-    record carries no ``rank`` (the two metrics stay independent) and both records
+    record carries no ``rank`` (the two metrics stay independent), and both records
     carry the edition's provenance so ``is_derived`` can be decided in
     :meth:`IeeeSpectrumProvider.normalize`.
 
-    :param row: A curated CSV row keyed by column name.
+    :param row: A curated CSV row keyed by the column name.
     :returns: ``[rank_record]`` or ``[rank_record, score_record]``.
     :raises ParseError: If the profile is unknown, the rank is not a positive integer,
         the year is implausible, or a numeric cell is malformed.

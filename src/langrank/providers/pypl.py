@@ -149,7 +149,8 @@ class PyplProvider:
             )
         return observations
 
-    def validate(self, observations: Sequence[Observation]) -> ValidationReport:
+    @staticmethod
+    def validate(observations: Sequence[Observation]) -> ValidationReport:
         report = ValidationReport()
         seen: set[tuple[str, date, str]] = set()
         for item in observations:

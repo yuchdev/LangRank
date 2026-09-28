@@ -67,7 +67,7 @@ upsert-by-natural-key (`rating_id, metric_id, language_id, period_start, granula
 queries used by `ValidationService`.
 
 **Normalization** (`src/langrank/normalization/languages.py`): the canonical language list and
-source-specific aliases (e.g. PYPL's combined `c-cpp` category) that `Database.seed_languages` loads
+source-specific aliases (e.g., PYPL's combined `c-cpp` category) that `Database.seed_languages` loads
 on every `Database()` construction. Adding a new provider usually means adding aliases here, not just
 a new provider file.
 

@@ -11,7 +11,7 @@ import httpx
 
 from langrank.errors import FetchError
 
-#: Retryable upstream status codes (rate limit + transient server errors).
+# Retryable upstream status codes (rate limit + transient server errors).
 _RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
 
 
@@ -24,31 +24,31 @@ def _is_transient(error: Exception) -> bool:
 
     Only retryable statuses and transport-level failures (timeouts, connection
     resets) are retried. A 4xx such as 401/403, a refused redirect, or an
-    oversized body fails immediately so a bad credential or hostile response is
+    oversized body fails immediately, so a bad credential or hostile response is
     never replayed ``retries`` times.
     """
     return isinstance(error, (_TransientUpstreamError, httpx.TransportError))
 
 
-#: Query-parameter names whose values are secrets and must be redacted from any
-#: error text before it can reach a log sink or stack trace (SEC-1).
+# Query-parameter names whose values are secrets and must be redacted from any
+# error text before it can reach a log sink or stack trace (SEC-1).
 _SECRET_QUERY_KEYS = frozenset({"key", "access_token"})
 
-#: Matches an ``http(s)`` URL embedded anywhere in a free-form error message.
+# Matches an ``http(s)`` URL embedded anywhere in a free-form error message.
 _URL_RE = re.compile(r"https?://[^\s'\"]+")
 
-#: Matches a bare ``key=...`` / ``access_token=...`` pair as a defence-in-depth
-#: fallback for error text that is not a well-formed URL.
+# Matches a bare ``key=...`` / ``access_token=...`` pair as a defense-in-depth
+# fallback for error text that is not a well-formed URL.
 _SECRET_PARAM_RE = re.compile(r"(?i)\b(key|access_token)=[^&\s'\"]+")
 
-#: Matches an ``Authorization`` header value in any stringified request/response
-#: (repr, debug log, ``httpx.HTTPError``) so a bearer credential can never survive
-#: in error or log text past the scrubber (GH-SEC-1).
+# Matches an ``Authorization`` header value in any stringified request/response
+# (repr, debug log, ``httpx.HTTPError``) so a bearer credential can never survive
+# in error or log text past the scrubber (GH-SEC-1).
 _AUTH_HEADER_RE = re.compile(r"(?i)(authorization)(\s*[:=]\s*)(?:\"[^\"]*\"|'[^']*'|\S+)")
 
-#: Matches a bare ``Bearer <token>`` / ``token <token>`` credential embedded
-#: anywhere in free-form error text, as a defence-in-depth fallback when the
-#: credential is not carried inside a recognisable header (GH-SEC-1).
+# Matches a bare ``Bearer <token>`` / ``token <token>`` credential embedded
+# anywhere in free-form error text, as a defense-in-depth fallback when the
+# credential is not carried inside a recognizable header (GH-SEC-1).
 _BEARER_TOKEN_RE = re.compile(r"(?i)\b(bearer|token)\s+[A-Za-z0-9._~+/=-]{8,}")
 
 
@@ -56,7 +56,7 @@ def _scrub_url(url: str) -> str:
     """Redact secret query parameters from a single URL.
 
     :param url: A candidate URL, possibly carrying a ``key``/``access_token``.
-    :returns: The URL with secret query values replaced by ``REDACTED``; the
+    :returns: The URL with secret query values is replaced by ``REDACTED``; the
         input is returned unchanged when it has no query string or cannot be
         parsed.
     """
@@ -68,11 +68,11 @@ def _scrub_url(url: str) -> str:
         return url
     pairs = parse_qsl(parts.query, keep_blank_values=True)
     scrubbed = [(name, "REDACTED" if name.lower() in _SECRET_QUERY_KEYS else value) for name, value in pairs]
-    return urlunsplit(parts._replace(query=urlencode(scrubbed)))
+    return str(urlunsplit(parts._replace(query=urlencode(scrubbed))))
 
 
 def _scrub_message(message: str) -> str:
-    """Strip secret query values from every URL (and bare secret pair) in ``message``.
+    """Strip secret query values from every URL (and the bare secret pair) in ``message``.
 
     :param message: Free-form error text that may embed a request URL, an
         ``Authorization`` header, or a bare bearer/token credential.
@@ -101,7 +101,7 @@ class HttpClientOptions:
 class HttpClientFactory:
     """Builds retrying ``httpx`` clients and reads bytes/JSON with secret-safe errors.
 
-    :ivar _options: Timeout, retry and size-cap policy.
+    :ivar _options: Timeout, retry, and size-cap policy.
     :ivar _transport: Optional injected transport (tests use ``httpx.MockTransport``).
     """
 
@@ -121,10 +121,10 @@ class HttpClientFactory:
         self._transport = transport
 
     def build(self, *, follow_redirects: bool = True) -> httpx.Client:
-        """Construct an ``httpx.Client`` honouring the configured policy.
+        """Construct an ``httpx.Client`` honoring the configured policy.
 
         :param follow_redirects: Whether the client follows 3xx redirects; the
-            JSON path disables this so a key-bearing request is never replayed to
+            JSON path disables this, so a key-bearing request is never replayed to
             another host (SEC-2).
         :returns: A configured, not-yet-entered client.
         """
@@ -148,7 +148,7 @@ class HttpClientFactory:
         Secrets are passed only via ``params`` or an ``Authorization`` header and
         never string-formatted into ``url`` (SEC-1, GH-SEC-1). The request scheme
         must be HTTPS and, when ``allowed_host`` is given, the host must match
-        exactly; redirects are not followed so a credential is never replayed
+        exactly; redirects are not followed, so a credential is never replayed
         cross-host (SEC-2). The response body is read with a hard
         post-decompression byte ceiling (SEC-3).
 
@@ -173,11 +173,7 @@ class HttpClientFactory:
                 try:
                     raw = self._read_capped(client, url, params, headers=headers)
                 except (httpx.HTTPError, FetchError) as exc:
-                    if not _is_transient(exc):
-                        raise (self.map_error(exc) if isinstance(exc, httpx.HTTPError) else exc) from None
-                    last_error = exc
-                    if attempt < self._options.retries - 1:
-                        sleep(self._options.backoff_seconds * (2**attempt))
+                    last_error = self._handle_retry_error(exc, attempt)
                     continue
                 try:
                     return json.loads(raw)
@@ -194,7 +190,7 @@ class HttpClientFactory:
         headers: Optional[dict[str, str]] = None,
         max_bytes: Optional[int] = None,
     ) -> bytes:
-        """GET raw bytes host-pinned, no-redirect and size-capped (GH-SEC-3).
+        """GET raw bytes host-pinned, no-redirect, and size-capped (GH-SEC-3).
 
         Hardened raw-bytes GET for downloading an untrusted file
         from a single pinned host: the scheme must be HTTPS, the host must equal
@@ -223,13 +219,22 @@ class HttpClientFactory:
                 try:
                     return self._read_capped(client, url, None, headers=headers, max_bytes=max_bytes)
                 except (httpx.HTTPError, FetchError) as exc:
-                    if not _is_transient(exc):
-                        raise (self.map_error(exc) if isinstance(exc, httpx.HTTPError) else exc) from None
-                    last_error = exc
-                    if attempt < self._options.retries - 1:
-                        sleep(self._options.backoff_seconds * (2**attempt))
+                    last_error = self._handle_retry_error(exc, attempt)
             assert last_error is not None
             raise (self.map_error(last_error) if isinstance(last_error, httpx.HTTPError) else last_error)
+
+    def _handle_retry_error(self, exc: Exception, attempt: int) -> Exception:
+        """Process an exception encountered during a retry loop attempt.
+
+        Non-transient errors are re-raised immediately (mapped to :class:`FetchError`
+        if an :class:`httpx.HTTPError`). Transient errors record ``last_error`` and
+        exponentially back off when further retries remain.
+        """
+        if not _is_transient(exc):
+            raise (self.map_error(exc) if isinstance(exc, httpx.HTTPError) else exc) from None
+        if attempt < self._options.retries - 1:
+            sleep(self._options.backoff_seconds * (2**attempt))
+        return exc
 
     def _read_capped(
         self,

@@ -47,11 +47,11 @@ class RatingAlias:
     notes: Optional[str] = None
 
 
-#: GitHub Linguist "language" names that are markup, config, data, or notebook
-#: formats rather than programming languages tracked by this project. They are
-#: deliberately left unmapped; a genuinely new (unlisted) Linguist name should
-#: still raise an ``unmapped_language`` warning downstream, so this set exists to
-#: suppress the warning only for these documented exclusions.
+# GitHub Linguist "language" names that are markup, config, data, or notebook
+# formats rather than programming languages tracked by this project. They are
+# deliberately left unmapped; a genuinely new (unlisted) Linguist name should
+# still raise an ``unmapped_language`` warning downstream, so this set exists to
+# suppress the warning only for these documented exclusions.
 GITHUB_NON_LANGUAGES: frozenset[str] = frozenset(
     {
         "Jupyter Notebook",
@@ -64,23 +64,23 @@ GITHUB_NON_LANGUAGES: frozenset[str] = frozenset(
 )
 
 
-#: IEEE Spectrum "Top Programming Languages" labels that are deliberately not
-#: tracked in this project's canonical catalog. ``HTML`` is markup; ``Arduino``,
-#: ``Verilog`` and ``VHDL`` are a board dialect and two hardware-description
-#: languages rather than general-purpose programming languages (2026-09-25 user
-#: ruling, recorded in ``docs/roadmap/0001-new-rating-providers/status.md``).
-#: ``Visual Basic`` is IEEE's classic-VB label: ``visual-basic`` is not a
-#: canonical language yet and its normalized key collides with the global
-#: ``"visual basic" -> vb.net`` alias, so it is skipped here rather than silently
-#: folded into ``vb.net``. A provider must consult this set *before* attempting
-#: resolution so these documented labels are skipped without emitting an
-#: ``unmapped_language`` warning; any IEEE label neither in this set nor
-#: resolvable should still warn downstream. By the same principle (2026-09-26
-#: loop ruling, same status.md): ``Cuda`` is a C++ dialect, ``WebAssembly`` a
-#: compilation target, ``LabView`` and ``Ladder Logic`` graphical/PLC
-#: environments, and ``Pascal/Delphi`` (IEEE 2022-2023) an ambiguous combined
-#: category - mapping it to either ``pascal`` or ``delphi`` would merge two
-#: languages.
+# IEEE Spectrum "Top Programming Languages" labels that are deliberately not
+# tracked in this project's canonical catalog. ``HTML`` is markup; ``Arduino``,
+# ``Verilog`` and ``VHDL`` are a board dialect and two hardware-description
+# languages rather than general-purpose programming languages (2026-09-25 user
+# ruling, recorded in ``docs/roadmap/0001-new-rating-providers/status.md``).
+# ``Visual Basic`` is IEEE's classic-VB label: ``visual-basic`` is not a
+# canonical language yet, and its normalized key collides with the global
+# ``"visual basic" -> vb.net`` alias, so it is skipped here rather than silently
+# folded into ``vb.net``. A provider must consult this set *before* attempting
+# resolution so these documented labels are skipped without emitting an
+# ``unmapped_language`` warning; any IEEE label neither in this set nor
+# resolvable should still warn downstream. By the same principle (2026-09-26
+# loop ruling, same status.md): ``Cuda`` is a C++ dialect, ``WebAssembly`` a
+# compilation target, ``LabView`` and ``Ladder Logic`` graphical/PLC
+# environments, and ``Pascal/Delphi`` (IEEE 2022-2023) an ambiguous combined
+# category - mapping it to either ``pascal`` or ``delphi`` would merge two
+# languages.
 IEEE_UNTRACKED_LABELS: frozenset[str] = frozenset(
     {
         "HTML",
@@ -97,21 +97,21 @@ IEEE_UNTRACKED_LABELS: frozenset[str] = frozenset(
 )
 
 
-#: JetBrains *State of Developer Ecosystem* survey answer labels that are
-#: deliberately not tracked as canonical languages. ``HTML / CSS`` is markup and
-#: ``GraphQL`` is an API query/schema language rather than a general-purpose
-#: programming language (kept untracked exactly as ``HTML / CSS`` is, not merged
-#: into any tracked language). ``Other``, ``Others``, ``Platform tied language``
-#: and ``I don't use programming languages`` are survey meta-answers / catch-all
-#: categories, not specific languages. ``Visual Basic`` is JetBrains' classic-VB
-#: answer: per the 2026-09-26 user ruling (recorded in
-#: ``docs/roadmap/0001-new-rating-providers/status.md``) classic Visual Basic
-#: stays untracked and is *not* folded into ``vb.net`` for this milestone;
-#: because the bootstrap global alias ``"visual basic" -> vb.net`` (used by
-#: TIOBE) still resolves it, a provider must consult this set *before* calling
-#: :meth:`LanguageNormalizer.try_resolve` - exactly like ``IEEE_UNTRACKED_LABELS``
-#: - so the label is skipped rather than silently mapped. Answers not in this set
-#: and not resolvable should still warn downstream.
+# JetBrains *State of Developer Ecosystem* survey answer labels that are
+# deliberately not tracked as canonical languages. ``HTML / CSS`` is markup and
+# ``GraphQL`` is an API query/schema language rather than a general-purpose
+# programming language (kept untracked exactly as ``HTML / CSS`` is, not merged
+# into any tracked language). ``Other``, ``Others``, ``Platform tied language``
+# and ``I don't use programming languages`` are survey meta-answers / catch-all
+# categories, not specific languages. ``Visual Basic`` is JetBrains' classic-VB
+# answer: per the 2026-09-26 user ruling (recorded in
+# ``docs/roadmap/0001-new-rating-providers/status.md``) classic Visual Basic
+# stays untracked and is *not* folded into ``vb.net`` for this milestone;
+# because the bootstrap global alias ``"visual basic" -> vb.net`` (used by
+# TIOBE) still resolves it, a provider must consult this set *before* calling
+# :meth:`LanguageNormalizer.try_resolve` - exactly like ``IEEE_UNTRACKED_LABELS``
+# - so the label is skipped rather than silently mapped. Answers not in this set
+# and not resolvable should still warn downstream.
 JETBRAINS_NON_LANGUAGE_ANSWERS: frozenset[str] = frozenset(
     {
         "HTML / CSS",
@@ -125,8 +125,8 @@ JETBRAINS_NON_LANGUAGE_ANSWERS: frozenset[str] = frozenset(
 )
 
 
-#: Source-specific aliases shared by the new rating providers (Tasks 01.0-04.0).
-#: Rating-scoped entries win over the global alias table in :meth:`resolve`.
+# Source-specific aliases shared by the new rating providers (Tasks 01.0-04.0).
+# Rating-scoped entries win over the global alias table in :meth:`resolve`.
 RATING_ALIASES: tuple[RatingAlias, ...] = (
     RatingAlias("stackoverflow-tags", "c#", "c#", notes="Stack Overflow C# tag"),
     RatingAlias("stackoverflow-tags", "csharp", "c#", notes="Stack Overflow csharp synonym"),

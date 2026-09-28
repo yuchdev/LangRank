@@ -7,7 +7,7 @@ class ConfigurationError(LangRankError):
 
 
 class ProviderError(LangRankError):
-    """Raised for provider failures."""
+    """Raised when the provider fails."""
 
 
 class FetchError(ProviderError):

@@ -10,14 +10,14 @@ LangRank is designed to bring together different programming-language popularity
 
 Future sources do **not** measure the same thing, so their scores should not be treated as interchangeable estimates of one true popularity score.
 
-- TIOBE -> search/web visibility
-- PYPL -> tutorial-search interest
-- RedMonk -> GitHub + Stack Overflow activity
-- GitHub -> development/repository activity
-- SO Survey -> self-reported usage
-- SO Tags -> questions/discussion
-- IEEE Spectrum (`ieee-spectrum`) -> composite weighted index (profiles: spectrum / jobs / trending)
-- JetBrains -> survey-reported usage
+- TIOBE → search/web visibility
+- PYPL → tutorial-search interest
+- RedMonk → GitHub + Stack Overflow activity
+- GitHub → development/repository activity
+- SO Survey → self-reported usage
+- SO Tags → questions/discussion
+- IEEE Spectrum (`ieee-spectrum`) → composite weighted index (profiles: spectrum / jobs / trending)
+- JetBrains → survey-reported usage
 
 ## Installation
 
@@ -71,7 +71,7 @@ uv run langrank plot --rating jetbrains --metric jetbrains-used-last-12-months \
 > shared axis. Shares may sum above 100 % (multi-select). Bundled published data requires 0
 > network requests; raw-data import requires the operator to download the anonymized dump
 > out-of-band. See [docs/providers.md](/docs/providers.md) for the full metric table, import
-> limits, and licence obligations.
+> limits, and license obligations.
 
 ## Development checks
 

@@ -142,7 +142,8 @@ class DemoProvider:
             )
         return observations
 
-    def validate(self, observations: Sequence[Observation]) -> ValidationReport:
+    @staticmethod
+    def validate(observations: Sequence[Observation]) -> ValidationReport:
         report = ValidationReport()
         for observation in observations:
             if (
@@ -163,7 +164,8 @@ class DemoProvider:
                 )
         return report
 
-    def upstream_latest_period(self) -> str:
+    @staticmethod
+    def upstream_latest_period() -> str:
         return "2026"
 
     def _build_dataset(self, request: FetchRequest) -> dict[str, object]:

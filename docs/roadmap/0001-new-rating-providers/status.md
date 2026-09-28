@@ -11,6 +11,7 @@ Updated as each task lands.
 | 02.0 | GitHub Provider                             | ✅ Complete | `test_github_{metadata,innovation_graph,innovation_graph_normalize,octoverse,validate}.py`, `test_periods.py`, `contract/test_github_provider.py` |
 | 03.0 | IEEE Spectrum Provider                      | ✅ Complete | `test_ieee_spectrum_{metadata,fetch,normalize,validate}.py`, `contract/test_ieee_spectrum_provider.py`, `integration/test_ieee_spectrum_integration.py` |
 | 04.0 | JetBrains Developer Ecosystem Provider      | ✅ Complete | `test_jetbrains_{questions,metadata,published,raw,validate}.py`, `contract/test_jetbrains_provider.py`, `integration/test_jetbrains_integration.py` |
+| 05.0 | OOP Provider Refactoring                    | ⬜ Not started | `test_common_providers.py`, `test_base_provider.py`, contract test suites |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -160,17 +161,25 @@ docs/roadmap/0001-new-rating-providers/
 │   ├── 06-validate.md
 │   ├── 07-fixtures-and-contract-tests.md
 │   └── 08-docs.md
-└── 04.0-jetbrains-provider/             (9 subtasks)
+├── 04.0-jetbrains-provider/             (9 subtasks)
+│   ├── README.md
+│   ├── 01-source-note-and-policy-gate.md
+│   ├── 02-survey-question-registry.md
+│   ├── 03-jetbrains-aliases.md
+│   ├── 04-metadata-and-registry.md
+│   ├── 05-published-percentages.md
+│   ├── 06-raw-data-import.md
+│   ├── 07-validate.md
+│   ├── 08-fixtures-and-contract-tests.md
+│   └── 09-docs.md
+└── 05.0-oop-provider-refactoring/       (6 subtasks)
     ├── README.md
-    ├── 01-source-note-and-policy-gate.md
-    ├── 02-survey-question-registry.md
-    ├── 03-jetbrains-aliases.md
-    ├── 04-metadata-and-registry.md
-    ├── 05-published-percentages.md
-    ├── 06-raw-data-import.md
-    ├── 07-validate.md
-    ├── 08-fixtures-and-contract-tests.md
-    └── 09-docs.md
+    ├── 01-common-provider-helpers.md
+    ├── 02-base-provider-class.md
+    ├── 03-refactor-bootstrap-providers.md
+    ├── 04-refactor-new-providers.md
+    ├── 05-contract-tests-and-verification.md
+    └── 06-docs.md
 ```
 
 **Cross-task subtask dependencies:** Tasks 02.0-04.0 reuse three helpers specified in Task
@@ -352,6 +361,17 @@ tasks otherwise remain parallelizable.
   chart - excluded; add only on an explicit ruling.
 - `csv.field_size_limit` is process-global - fine for the single-threaded CLI.
 
+
+### Task 05.0 - OOP Provider Refactoring (⬜ Not started)
+
+**Goal**
+Refactor the entire set of 9 rating provider classes (`demo`, `tiobe`, `pypl`, `redmonk`,
+`stackoverflow-survey`, `stackoverflow-tags`, `github`, `ieee-spectrum`, `jetbrains`),
+establishing an abstract base provider class (`BaseRatingProvider`), shared lifecycle state,
+and shared helper functions. Eliminate duplicate logic (`_filter_window`, ranking math,
+`validate` boilerplate) while preserving `RatingProvider` protocol contracts.
+
+**Subtasks:** 6 subtask specs in [05.0-oop-provider-refactoring/](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/README.md).
 
 ### Milestone close - open follow-ups carried forward
 

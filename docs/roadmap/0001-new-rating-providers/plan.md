@@ -34,8 +34,9 @@ histories exist to be meaningful.
 | 02.0 | GitHub Provider                            | provider | `providers/github.py`; Octoverse/Innovation-Graph rank & activity    |
 | 03.0 | IEEE Spectrum Provider                     | provider | `providers/ieee_spectrum.py`; annual rank/score, multi-profile support |
 | 04.0 | JetBrains Developer Ecosystem Provider     | provider | `providers/jetbrains.py`; annual usage-survey metric                 |
+| 05.0 | OOP Provider Refactoring                   | refactor | `providers/base.py`, `providers/common.py`; `BaseRatingProvider`, shared state, helper methods |
 
-Each task is decomposed into subtask specs in its own folder: [01.0](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/README.md), [02.0](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/README.md), [03.0](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/README.md), [04.0](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/README.md).
+Each task is decomposed into subtask specs in its own folder: [01.0](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/README.md), [02.0](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/README.md), [03.0](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/README.md), [04.0](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/README.md), [05.0](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/README.md).
 
 Recommended order: Stack Overflow tags → GitHub → IEEE Spectrum → JetBrains —
 this progressively introduces monthly activity-derived metrics, then
@@ -168,6 +169,26 @@ where available.
 **Success criteria:** at least one metric has a validated multi-year history;
 `primary_language` and `used_last_12_months` are stored and queryable as
 distinct metrics, never merged.
+
+---
+
+### Task 05.0 - OOP Provider Refactoring
+
+**Goal:** refactoring of the entire provider class set (bootstrap and new providers),
+establishing explicit interfaces, contracts, an abstract base provider class (`BaseRatingProvider`),
+shared state management, and common helper methods.
+
+- Establish `BaseRatingProvider` in `providers/base.py` while maintaining `RatingProvider` as a `Protocol`.
+- Extract duplicated algorithmic and lifecycle logic into pure helper functions in `providers/common.py`
+  (including window filtering `filter_records_by_window`, competition ranking `compute_competition_ranks`,
+  and common observation validators).
+- Eliminate duplication between `GitHubProvider._filter_window` and `IeeeSpectrumProvider._filter_window`.
+- Unify common state (`_cache_dir`, `_normalizer`, `_retrieved_at`, request window bounds, `last_unmapped`)
+  across all 9 provider classes.
+- Ensure 100% backward compatibility with existing contract tests, golden outputs, and CLI behaviors.
+
+**Success criteria:** all 9 provider classes inherit from `BaseRatingProvider`; duplicated
+window filtering and ranking code is eliminated; contract test suite passes with zero golden regressions.
 
 ---
 
