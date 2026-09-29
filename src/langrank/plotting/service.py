@@ -12,7 +12,7 @@ from langrank.db.repository import QueryRow
 class PlotService:
     @staticmethod
     def plot(
-            rows: list[QueryRow],
+        rows: list[QueryRow],
         *,
         metric_id: str,
         output: Path | None,

@@ -23,11 +23,11 @@ sources. It stabilizes contracts rather than adding provider-facing features.
 
 ## Tasks
 
-| Task | Name                                    | Category       | Output                                                                |
-|------|--------------------------------------------|----------------|--------------------------------------------------------------------|
-| 01.0 | Provider Capabilities Metadata               | provider-infra | Structured `capabilities()` on `RatingProvider`; generic CLI behavior |
-| 02.0 | External Provider Plugin Loading             | provider-infra | `langrank.providers` entry-point discovery                          |
-| 03.0 | Large-Source Performance Hardening           | performance    | Streaming downloads, chunked CSV parsing, batched/transactional writes |
+| Task | Name                               | Category       | Output                                                                 |
+|------|------------------------------------|----------------|------------------------------------------------------------------------|
+| 01.0 | Provider Capabilities Metadata     | provider-infra | Structured `capabilities()` on `RatingProvider`; generic CLI behavior  |
+| 02.0 | External Provider Plugin Loading   | provider-infra | `langrank.providers` entry-point discovery                             |
+| 03.0 | Large-Source Performance Hardening | performance    | Streaming downloads, chunked CSV parsing, batched/transactional writes |
 
 Task 02.0 depends on Task 01.0 (a third-party provider needs the same
 capabilities metadata a built-in one exposes, and the contracts it stabilizes

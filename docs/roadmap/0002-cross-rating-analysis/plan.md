@@ -25,11 +25,11 @@ un-normalized values.
 
 ## Tasks
 
-| Task | Name                                     | Category | Output                                                       |
-|------|---------------------------------------------|----------|---------------------------------------------------------------|
-| 01.0 | Cross-Rating Normalization & Comparison      | analysis | `rank_percentile` normalization; `langrank plot compare`       |
-| 02.0 | Composite Index                              | analysis | `langrank composite`; explicit sources/weights/normalization, no hidden averaging |
-| 03.0 | Snapshot Comparison                          | cli      | `langrank snapshot {year\|latest}`; nearest-observation selection rules |
+| Task | Name                                    | Category | Output                                                                            |
+|------|-----------------------------------------|----------|-----------------------------------------------------------------------------------|
+| 01.0 | Cross-Rating Normalization & Comparison | analysis | `rank_percentile` normalization; `langrank plot compare`                          |
+| 02.0 | Composite Index                         | analysis | `langrank composite`; explicit sources/weights/normalization, no hidden averaging |
+| 03.0 | Snapshot Comparison                     | cli      | `langrank snapshot {year\|latest}`; nearest-observation selection rules           |
 
 Task 02.0 depends on Task 01.0 (the composite index consumes the same
 normalization methods `plot compare` introduces). Task 03.0 is independent of

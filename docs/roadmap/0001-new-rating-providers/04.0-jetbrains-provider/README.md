@@ -6,17 +6,17 @@
 
 ## Subtasks
 
-| #  | Subtask | Role | Depends on | Status |
-|----|---------|------|------------|--------|
-| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ✅ Complete |
-| 02 | [Survey question registry](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/02-survey-question-registry.md) | Python Expert | 01 | ✅ Complete |
-| 03 | [JetBrains language aliases](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/03-jetbrains-aliases.md) | Python Expert | 01.0/02 | ✅ Complete |
-| 04 | [Provider metadata & registry entry](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/04-metadata-and-registry.md) | Python Expert | 02, 03 | ✅ Complete |
-| 05 | [Published-percentages dataset: fetch, parse, normalize](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/05-published-percentages.md) | Python Expert | 04 | ✅ Complete |
-| 06 | [Raw-data import: derived respondent shares](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/06-raw-data-import.md) | Python Expert | 05 | ✅ Complete |
-| 07 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/07-validate.md) | Python Expert | 05, 06 | ✅ Complete |
-| 08 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/08-fixtures-and-contract-tests.md) | Testing Expert | 07, 01.0/07 | ✅ Complete |
-| 09 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/09-docs.md) | Docs Writer | 08 | ✅ Complete |
+| #  | Subtask                                                                                                                                               | Role             | Depends on  | Status      |
+|----|-------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|-------------|-------------|
+| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/01-source-note-and-policy-gate.md)           | Security Auditor | -           | ✅ Complete |
+| 02 | [Survey question registry](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/02-survey-question-registry.md)                            | Python Expert    | 01          | ✅ Complete |
+| 03 | [JetBrains language aliases](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/03-jetbrains-aliases.md)                                 | Python Expert    | 01.0/02     | ✅ Complete |
+| 04 | [Provider metadata & registry entry](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/04-metadata-and-registry.md)                     | Python Expert    | 02, 03      | ✅ Complete |
+| 05 | [Published-percentages dataset: fetch, parse, normalize](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/05-published-percentages.md) | Python Expert    | 04          | ✅ Complete |
+| 06 | [Raw-data import: derived respondent shares](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/06-raw-data-import.md)                   | Python Expert    | 05          | ✅ Complete |
+| 07 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/07-validate.md)                                    | Python Expert    | 05, 06      | ✅ Complete |
+| 08 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/08-fixtures-and-contract-tests.md)        | Testing Expert   | 07, 01.0/07 | ✅ Complete |
+| 09 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/09-docs.md)                                                  | Docs Writer      | 08          | ✅ Complete |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -55,12 +55,12 @@ Add a `jetbrains` provider for the annual *State of Developer Ecosystem* survey,
 - **Question wording drift:** each metric maps per year to a question ID/wording in
   `QUESTION_REGISTRY`; wording goes into `metadata_json["question_wording"]` of every
   observation and into a `MethodologyNote` when it changes.
-- Survey year vs period: the 2025 survey ran April-June 2025 and was published later;
+- Survey year vs. the period: the 2025 survey ran April-June 2025 and was published later;
   `period` = survey year, `source_published_at` = report publication date.
 
 ### Open questions
 
-- Raw-data licence terms (attribution / non-commercial?) - to be settled in subtask 01; if
+- Raw-data license terms (attribution / non-commercial?) - to be settled in subtask 01; if
   redistribution is disallowed, raw files are never cached beyond the user's local cache.
 
 ## Task exit criteria

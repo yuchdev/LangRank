@@ -11,13 +11,13 @@ result shapes, limits) in an ADR, before any code is written.
 ## Baseline
 
 - `docs/adr/` uses MADR: `template.md`, `README.md` index, and
-  `0001-config-loading-via-layered-settings.md`. The `/adr-write` skill scaffolds new ADRs.
+  ADRs 0001-0007. The `/adr-write` skill scaffolds new ADRs.
 
 ## Files
 
 | Action | Path                                            | Purpose |
 |--------|-------------------------------------------------|---------|
-| Create | `docs/adr/0002-read-only-mcp-server.md`         | ADR (use `/adr-write "Read-only MCP server"`) |
+| Create | `docs/adr/{NNNN}-read-only-mcp-server.md`      | ADR (next free number; use `/adr-write "Read-only MCP server"`) |
 | Modify | `docs/adr/README.md`                            | Index row |
 
 ## Symbols / fields

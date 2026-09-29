@@ -23,9 +23,14 @@ from langrank.models import (
     SourceRecord,
     ValidationReport,
 )
-from langrank.normalization import JETBRAINS_NON_LANGUAGE_ANSWERS, LanguageNormalizer
-from langrank.providers.base import FetchPayload
-from langrank.providers.common import build_observation, payload_from_content
+from langrank.normalization import JETBRAINS_NON_LANGUAGE_ANSWERS
+from langrank.providers.base import BaseRatingProvider, FetchPayload
+from langrank.providers.common import (
+    build_observation,
+    payload_from_content,
+    validate_bounded_values,
+    validate_unique_observations,
+)
 from langrank.providers.jetbrains_questions import (
     METRIC_PLANNED_ADOPTION,
     METRIC_PRIMARY_LANGUAGE,
@@ -216,7 +221,7 @@ def _resolve_source(value: Optional[str]) -> JetBrainsSource:
         raise ProviderError(f"unknown --source {value!r} for jetbrains; valid sources: {valid}.") from exc
 
 
-class JetBrainsProvider:
+class JetBrainsProvider(BaseRatingProvider):
     """Records JetBrains *State of Developer Ecosystem* language-usage percentages.
 
     JetBrains runs an annual self-reported survey and publishes **weighted**
@@ -250,14 +255,7 @@ class JetBrainsProvider:
         :param cache_dir: Root cache directory; the provider owns the ``jetbrains``
             subdirectory beneath it.
         """
-        self._cache_dir = cache_dir / self.provider_id
-        self._normalizer = LanguageNormalizer()
-        self._retrieved_at = datetime.now(UTC)
-        #: JetBrains labels the last :meth:`normalize` call could not resolve to a
-        #: canonical language (documented :data:`JETBRAINS_NON_LANGUAGE_ANSWERS` are
-        #: excluded); skipped rather than guessed and surfaced to validation
-        #: (subtask 07).
-        self.last_unmapped: list[str] = []
+        super().__init__(cache_dir)
 
     def metadata(self) -> ProviderMetadata:
         """Return the provider's static metadata: the published and ``-raw`` families.
@@ -437,6 +435,20 @@ class JetBrainsProvider:
                 raise ParseError(f"jetbrains CSV is missing required column {column!r}.")
         return [_record_from_row(row) for row in reader]
 
+    def _bundled_snapshot_payload(self) -> Optional[FetchPayload]:
+        """Return the repo-bundled published CSV for :meth:`upstream_latest_period`.
+
+        The default ``published`` mode reads the curated :data:`DATA_PATH`; the same
+        bytes back a no-network upstream probe. The ``raw-data`` mode is import-only
+        and ships no bundled snapshot, so it never contributes here.
+
+        :returns: The bundled published-percentages payload, or ``None`` when the
+            curated file is absent.
+        """
+        if not DATA_PATH.is_file():
+            return None
+        return FetchPayload(artifact=None, content=DATA_PATH.read_bytes())
+
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
         """Normalize source records into observations with full provenance.
 
@@ -471,8 +483,7 @@ class JetBrainsProvider:
                 continue
             language_id = self._normalizer.try_resolve(label, rating_id=self.provider_id)
             if language_id is None:
-                if label not in self.last_unmapped:
-                    self.last_unmapped.append(label)
+                self._record_unmapped(label)
                 continue
             is_raw = record.metric_id.endswith(RAW_METRIC_SUFFIX)
             year = record.period_start.year
@@ -580,18 +591,24 @@ class JetBrainsProvider:
         :returns: A validation report; WARNING-only reports remain ``ok``.
         """
         report = ValidationReport()
-        seen: set[tuple[str, date, str]] = set()
+
+        def label_of(item: Observation) -> str:
+            return f"{item.metric_id} {item.language_id} at {item.period_label}"
+
+        validate_bounded_values(
+            observations,
+            report,
+            code="percent_range",
+            min_value=_PERCENT_MIN,
+            max_value=_PERCENT_MAX,
+            message=lambda item: f"{label_of(item)}: percent {item.value} is outside 0..100",
+        )
+        validate_unique_observations(observations, report, message=lambda item: f"duplicate {label_of(item)}")
         wordings_by_metric: dict[str, dict[int, str]] = {}
         for item in observations:
             year = item.period_start.year
             is_raw = item.metric_id.endswith(RAW_METRIC_SUFFIX)
-            label = f"{item.metric_id} {item.language_id} at {item.period_label}"
-            if item.value is not None and not _PERCENT_MIN <= item.value <= _PERCENT_MAX:
-                report.add(Severity.ERROR, "percent_range", f"{label}: percent {item.value} is outside 0..100")
-            key = (item.language_id, item.period_start, item.metric_id)
-            if key in seen:
-                report.add(Severity.ERROR, "duplicate_language_period", f"duplicate {label}")
-            seen.add(key)
+            label = label_of(item)
             if is_raw:
                 if not item.is_derived or item.derivation_method != RAW_DERIVATION:
                     report.add(

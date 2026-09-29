@@ -38,16 +38,26 @@ The whole app is one linear pipeline, and almost every feature touches multiple 
 provider.fetch()  ->  provider.parse()  ->  provider.normalize()  ->  provider.validate()  ->  Database.upsert_observations()  ->  services (query/export/plot)  ->  CLI (typer commands in cli.py)
 ```
 
-**Providers** (`src/langrank/providers/`) implement the `RatingProvider` Protocol (`providers/base.py`):
-`metadata()`, `fetch(request) -> FetchPayload`, `parse(payload) -> list[SourceRecord]`,
-`normalize(records) -> list[Observation]`, `validate(observations) -> ValidationReport`. Providers
-**must never write directly to SQLite** — persistence is the caller's (service/CLI) job via
-`Database`. `providers/registry.py` is a flat hand-registered dict (`ProviderRegistry`); a new
-provider must be added there. `providers/common.py` has shared helpers: `payload_from_content`
-(caches raw bytes + computes sha256 for `RawArtifact`), `build_observation`/`build_observation_hash`
-(deterministic hash of the raw `SourceRecord`, stored as `raw_record_hash` for change detection).
-Use `providers/demo.py` as the reference implementation when adding a new one — it's the offline,
-deterministic provider that exists specifically to exercise the architecture without network calls.
+**Providers** (`src/langrank/providers/`) satisfy the `@runtime_checkable` `RatingProvider`
+Protocol (`providers/base.py`): `metadata()`, `fetch(request) -> FetchPayload`,
+`parse(payload) -> list[SourceRecord]`, `normalize(records) -> list[Observation]`,
+`validate(observations) -> ValidationReport`, and `upstream_latest_period() -> str | None`. All
+nine concrete providers inherit from `BaseRatingProvider` (`providers/base.py`), the ABC that
+centralises shared lifecycle state (`_cache_dir`, `_normalizer`, `_retrieved_at`,
+`last_unmapped`) and boilerplate: `_stash_request_window` / `_filter_window` (date-window
+trimming), `_record_unmapped` (deduplicating unmapped-label accumulator), and a concrete
+`upstream_latest_period()` that probes local cache then a bundled snapshot without any network
+call. Providers **must never write directly to SQLite** — persistence is the caller's
+(service/CLI) job via `Database`. `providers/registry.py` is a flat hand-registered dict
+(`ProviderRegistry`); a new provider must be added there. `providers/common.py` has shared
+helpers: `payload_from_content` (caches raw bytes + computes sha256 for `RawArtifact`),
+`build_observation`/`build_observation_hash` (deterministic hash of the raw `SourceRecord`,
+stored as `raw_record_hash` for change detection), `filter_records_by_window`,
+`compute_competition_ranks`, and the `validate_*` family (`validate_positive_ranks`,
+`validate_bounded_values`, `validate_unique_observations`). New providers subclass
+`BaseRatingProvider`; use `providers/demo.py` as the minimal reference and see
+[/docs/providers.md#implementing-a-new-provider](/docs/providers.md#implementing-a-new-provider)
+for the step-by-step guide.
 
 **Data model** (`src/langrank/models.py`): frozen dataclasses all the way down. Key distinction —
 `SourceRecord` (provider's raw language string, pre-normalization) vs. `Observation` (canonical

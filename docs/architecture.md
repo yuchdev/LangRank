@@ -13,6 +13,21 @@ LangRank follows a provider-to-storage pipeline:
 
 The demo provider proves the architecture offline with deterministic synthetic data.
 
+## Provider layer
+
+All nine concrete providers inherit from `BaseRatingProvider` (`src/langrank/providers/base.py`),
+the ABC that centralises shared lifecycle state (cache directory, language normalizer, acquisition
+timestamp, unmapped-label accumulator) and boilerplate (request-window stashing and filtering,
+unmapped-label recording, `upstream_latest_period()` without network). Concrete providers
+implement only the five abstract pipeline methods.
+
+`RatingProvider` is a separate `@runtime_checkable` `Protocol` — the type contract services and
+the CLI program against. Because every `BaseRatingProvider` subclass carries all six protocol
+methods it satisfies `RatingProvider` automatically.
+
+For the full OOP design, helper catalogue, and step-by-step new-provider guide see
+[/docs/providers.md#provider-contract](/docs/providers.md#provider-contract).
+
 ## Manual import path
 
 `langrank import --rating <id> <file>` feeds a locally-supplied file into the pipeline,

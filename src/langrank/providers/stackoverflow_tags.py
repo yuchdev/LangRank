@@ -24,9 +24,16 @@ from langrank.models import (
     SourceRecord,
     ValidationReport,
 )
-from langrank.normalization import LanguageNormalizer
-from langrank.providers.base import FetchPayload
-from langrank.providers.common import build_observation, load_cached_payload, payload_from_content
+from langrank.providers.base import BaseRatingProvider, FetchPayload
+from langrank.providers.common import (
+    build_observation,
+    compute_competition_ranks,
+    load_cached_payload,
+    payload_from_content,
+    validate_bounded_values,
+    validate_positive_ranks,
+    validate_unique_observations,
+)
 from langrank.util.http import HttpClientFactory
 
 #: Stable rating id, reused by the module-level parse helpers.
@@ -119,7 +126,7 @@ TAG_TO_LANGUAGE: dict[str, str] = {
 }
 
 
-class StackOverflowTagsProvider:
+class StackOverflowTagsProvider(BaseRatingProvider):
     """Records monthly Stack Overflow question activity per language tag.
 
     This provider measures *tag activity* (new-question counts) - a different
@@ -145,12 +152,9 @@ class StackOverflowTagsProvider:
         :param http: HTTP client factory; injectable so tests can supply an
             ``httpx.MockTransport``. Defaults to a real factory.
         """
-        self._cache_dir = cache_dir / self.provider_id
+        super().__init__(cache_dir)
         self._http = http or HttpClientFactory()
-        self._normalizer = LanguageNormalizer()
-        self._retrieved_at = datetime.now(UTC)
         self._artifact_retrieved_at: Optional[datetime] = None
-        self.last_unmapped: list[str] = []
 
     def metadata(self) -> ProviderMetadata:
         """Return the provider's static metadata: metrics, caveats and methodology.
@@ -358,8 +362,7 @@ class StackOverflowTagsProvider:
         for record in records:
             language_id = self._normalizer.try_resolve(record.language, rating_id=self.provider_id)
             if language_id is None:
-                if record.language not in self.last_unmapped:
-                    self.last_unmapped.append(record.language)
+                self._record_unmapped(record.language)
                 continue
             key = (record.period_start, language_id, record.metric_id)
             if key in seen:
@@ -417,27 +420,31 @@ class StackOverflowTagsProvider:
         :returns: A validation report; WARNING-only reports remain ``ok``.
         """
         report = ValidationReport()
-        seen: set[tuple[str, date, str]] = set()
+
+        def label_of(item: Observation) -> str:
+            return f"{item.language_id} {item.metric_id} at {item.period_label}"
+
+        validate_bounded_values(
+            observations,
+            report,
+            code="share_range",
+            metric_id=METRIC_SHARE,
+            message=lambda item: f"{label_of(item)}: share {item.value} is outside 0..100",
+        )
+        validate_positive_ranks(observations, report, message=lambda item: f"{label_of(item)}: rank must be positive")
+        validate_unique_observations(observations, report, message=lambda item: f"duplicate {label_of(item)}")
         share_denominators: set[str] = set()
         current_month = datetime.now(UTC).date()
         for item in observations:
-            label = f"{item.language_id} {item.metric_id} at {item.period_label}"
+            label = label_of(item)
             if item.metric_id == METRIC_QUESTIONS and item.value is not None and item.value < 0:
                 report.add(Severity.ERROR, "count_non_negative", f"{label}: question count must be non-negative")
-            if item.metric_id == METRIC_SHARE and item.value is not None and not 0 <= item.value <= 100:
-                report.add(Severity.ERROR, "share_range", f"{label}: share {item.value} is outside 0..100")
-            if item.rank is not None and item.rank <= 0:
-                report.add(Severity.ERROR, "rank_positive", f"{label}: rank must be positive")
             if item.metric_id in (METRIC_SHARE, METRIC_RANK) and not item.is_derived:
                 report.add(Severity.ERROR, "share_not_derived", f"{label}: derived metric must set is_derived")
             if item.metric_id == METRIC_SHARE:
                 share_denominators.add(str(item.metadata_json.get("denominator", "")))
             if item.period_start.year == current_month.year and item.period_start.month == current_month.month:
                 report.add(Severity.ERROR, "incomplete_month", f"{label}: period lies in the current, incomplete month")
-            key = (item.language_id, item.period_start, item.metric_id)
-            if key in seen:
-                report.add(Severity.ERROR, "duplicate_language_period", f"duplicate {label}")
-            seen.add(key)
         if len(share_denominators) > 1:
             report.add(
                 Severity.ERROR,
@@ -717,21 +724,18 @@ def _derive_rank(shares: list[Observation]) -> list[Observation]:
         by_month.setdefault(share.period_start, []).append(share)
     ranked: list[Observation] = []
     for month in sorted(by_month):
-        ordered = sorted(by_month[month], key=lambda obs: (-(obs.value or 0.0), obs.language_id))
-        current_rank = 0
-        previous_value: Optional[float] = None
-        for index, share in enumerate(ordered, start=1):
-            if previous_value is None or share.value != previous_value:
-                current_rank = index
-                previous_value = share.value
+        group = by_month[month]
+        ranks = compute_competition_ranks([(share.language_id, share.value or 0.0) for share in group])
+        for share in group:
+            rank_value = ranks[share.language_id]
             denominator = str(share.metadata_json.get("denominator", ""))
             ranked.append(
                 replace(
                     share,
                     metric_id=METRIC_RANK,
                     unit="rank",
-                    rank=current_rank,
-                    value=float(current_rank),
+                    rank=rank_value,
+                    value=float(rank_value),
                     is_derived=True,
                     derivation_method=f"rank_by_question_share:{denominator}",
                 )

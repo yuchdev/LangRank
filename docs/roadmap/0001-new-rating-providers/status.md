@@ -5,13 +5,13 @@ Updated as each task lands.
 
 ## Current status
 
-| Task | Name                                    | Status         | Tests |
-|------|--------------------------------------------|----------------|-------|
-| 01.0 | Stack Overflow Tags Provider                | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py` |
-| 02.0 | GitHub Provider                             | ✅ Complete | `test_github_{metadata,innovation_graph,innovation_graph_normalize,octoverse,validate}.py`, `test_periods.py`, `contract/test_github_provider.py` |
-| 03.0 | IEEE Spectrum Provider                      | ✅ Complete | `test_ieee_spectrum_{metadata,fetch,normalize,validate}.py`, `contract/test_ieee_spectrum_provider.py`, `integration/test_ieee_spectrum_integration.py` |
-| 04.0 | JetBrains Developer Ecosystem Provider      | ✅ Complete | `test_jetbrains_{questions,metadata,published,raw,validate}.py`, `contract/test_jetbrains_provider.py`, `integration/test_jetbrains_integration.py` |
-| 05.0 | OOP Provider Refactoring                    | ⬜ Not started | `test_common_providers.py`, `test_base_provider.py`, contract test suites |
+| Task | Name                                   | Status      | Tests                                                                                                                                                            |
+|------|----------------------------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 01.0 | Stack Overflow Tags Provider           | ✅ Complete | `test_stackoverflow_tags_{metadata,fetch,normalize,validate}.py`, `test_http.py`, `test_cache.py`, `contract/test_stackoverflow_tags_provider.py`                |
+| 02.0 | GitHub Provider                        | ✅ Complete | `test_github_{metadata,innovation_graph,innovation_graph_normalize,octoverse,validate}.py`, `test_periods.py`, `contract/test_github_provider.py`                |
+| 03.0 | IEEE Spectrum Provider                 | ✅ Complete | `test_ieee_spectrum_{metadata,fetch,normalize,validate}.py`, `contract/test_ieee_spectrum_provider.py`, `integration/test_ieee_spectrum_integration.py`          |
+| 04.0 | JetBrains Developer Ecosystem Provider | ✅ Complete | `test_jetbrains_{questions,metadata,published,raw,validate}.py`, `contract/test_jetbrains_provider.py`, `integration/test_jetbrains_integration.py`              |
+| 05.0 | OOP Provider Refactoring               | ✅ Complete | `test_common_providers.py`, `test_base_provider.py`, `test_bootstrap_providers_base.py`, `test_new_providers_base.py`, `contract/test_base_provider_contract.py` |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -362,7 +362,7 @@ tasks otherwise remain parallelizable.
 - `csv.field_size_limit` is process-global - fine for the single-threaded CLI.
 
 
-### Task 05.0 - OOP Provider Refactoring (⬜ Not started)
+### Task 05.0 - OOP Provider Refactoring (✅ Complete)
 
 **Goal**
 Refactor the entire set of 9 rating provider classes (`demo`, `tiobe`, `pypl`, `redmonk`,
@@ -372,6 +372,52 @@ and shared helper functions. Eliminate duplicate logic (`_filter_window`, rankin
 `validate` boilerplate) while preserving `RatingProvider` protocol contracts.
 
 **Subtasks:** 6 subtask specs in [05.0-oop-provider-refactoring/](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/README.md).
+
+**Delivered (2026-09-29, branch `task/0001-05.0-oop-provider-refactoring`)**
+
+- `providers/common.py`: pure helpers `filter_records_by_window`, `compute_competition_ranks`,
+  `validate_positive_ranks`, `validate_bounded_values`, `validate_unique_observations` (the
+  validators take a `message=` callable so every provider keeps its exact issue wording).
+- `providers/base.py`: `BaseRatingProvider(ABC)` owns `_cache_dir`, `_normalizer`,
+  `_retrieved_at`, `last_unmapped` and the request window (`_stash_request_window`,
+  `_filter_window`, `_record_unmapped`). `RatingProvider` is now `@runtime_checkable` and
+  declares `upstream_latest_period()`.
+- All 9 providers subclass `BaseRatingProvider`. The duplicate `_filter_window` methods in
+  GitHub and IEEE are gone, and GitHub `_derive_ig_rank` and Stack Overflow Tags `_derive_rank`
+  now call `compute_competition_ranks`.
+- Contract and golden fixtures are unchanged. CLI behaviour (`fetch`, `fetch all --offline`,
+  `validate --strict`, `export`) matches `master`. Full suite: 441 passed, 2 skipped; coverage
+  87.7%.
+
+**Key decisions**
+
+- **Ruling (user, 2026-09-28), `upstream_latest_period()`:** the hardcoded strings are
+  replaced by a concrete base implementation. It returns the max `period_start` of the first
+  local snapshot that parses to at least one record: the provider cache first, then the bundled
+  `data/*.csv` via the `_bundled_snapshot_payload()` hook. The value is formatted `YYYY` for
+  YEAR granularity and `YYYY-MM` otherwise, or `None` when nothing is local. There is no
+  network access. This fixes `langrank status`, which previously crashed with an
+  `AttributeError` on the four Milestone 0001 providers. The values match the old constants.
+  `stackoverflow-tags` has no bundled snapshot, so it reports `None` until it is fetched.
+- The spec was out of date on one point: IEEE reads its ranks from the curated CSV and never
+  computed competition ranks. The real duplicate pair was GitHub and Stack Overflow Tags.
+- Validation issues are now grouped by check type rather than interleaved per observation.
+  Codes, severities and messages are unchanged, and no consumer depends on issue order. The
+  IEEE per-edition `score_range` check and `count_non_negative` stay inline because no shared
+  helper fits them.
+
+**Open follow-ups**
+
+- `upstream_latest_period()` reports the newest *local* snapshot, not true upstream freshness.
+  Real probes are still planned in
+  [0004 01.0/03](/docs/roadmap/0004-freshness-and-releases/01.0-source-freshness-and-updates/03-provider-freshness-probes.md).
+  The row "Hard-coded `upstream_latest_period()` values" in the
+  [roadmap tech-debt table](/docs/roadmap/README.md) is now resolved as far as the literals go:
+  the method is part of the Protocol and implemented on the base class, so `StatusService` calls
+  it directly without a `hasattr` probe. Real upstream freshness is still 0004's job.
+- `GitHubProvider._bundled_snapshot_payload()` sets `self._source` to the Octoverse variant so
+  the offline probe can parse. That is harmless for `status`, which uses fresh provider
+  instances, but it is a side effect worth removing when the variant selection is reworked.
 
 ### Milestone close - open follow-ups carried forward
 

@@ -1,0 +1,27 @@
+---
+title: Provider pipeline and ownership boundaries (ADR 0001)
+---
+graph LR
+    subgraph Provider["Provider (BaseRatingProvider subclass) - no DB access"]
+        F["fetch(request)\nonly stage allowed to do I/O\n(network / cache / bundled CSV)"]
+        P["parse(payload)\npure -> SourceRecord[]"]
+        N["normalize(records)\npure -> Observation[]\nlanguage_id + provenance"]
+        V["validate(observations)\npure -> ValidationReport"]
+        F --> P --> N --> V
+    end
+
+    subgraph Service["FetchService - owns persistence"]
+        R["create_fetch_run"]
+        A["record_raw_artifact"]
+        G{"report.ok\nand not dry_run?"}
+        U["Database.upsert_observations"]
+        X["finish_fetch_run\n(success / dry-run / failed)"]
+    end
+
+    R --> F
+    F -.->|payload.artifact| A
+    V --> G
+    G -->|yes| U --> X
+    G -->|no| X
+
+    I["langrank import\n(SupportsRawImport.import_path)"] -.->|bypasses fetch + parse| N

@@ -12,8 +12,8 @@ metadata are stabilized *before* any loader code (subtasks 02-04).
 
 ## Baseline
 
-- `docs/adr/` has only the illustrative `0001-config-loading-via-layered-settings.md`
-  (to be deleted once a real ADR lands, per [docs/adr/README.md](/docs/adr/README.md)).
+- [ADR 0001](/docs/adr/0001-linear-provider-pipeline.md) records the current provider
+  contract (Protocol + `BaseRatingProvider`, hand-registered); index in [docs/adr/README.md](/docs/adr/README.md).
 - Candidate public surface today: `models.py` (`SourceRecord`, `Observation`,
   `ProviderMetadata`, `MetricDefinition`, `MetricKind`, `ProviderCapabilities`,
   `MethodologyNote`, `FetchRequest`, `RawArtifact`, `ValidationReport`, `Severity`,

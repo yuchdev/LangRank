@@ -20,9 +20,14 @@ from langrank.models import (
     SourceRecord,
     ValidationReport,
 )
-from langrank.normalization import IEEE_UNTRACKED_LABELS, LanguageNormalizer
-from langrank.providers.base import FetchPayload
-from langrank.providers.common import build_observation, payload_from_content
+from langrank.normalization import IEEE_UNTRACKED_LABELS
+from langrank.providers.base import BaseRatingProvider, FetchPayload
+from langrank.providers.common import (
+    build_observation,
+    payload_from_content,
+    validate_positive_ranks,
+    validate_unique_observations,
+)
 
 # Stable rating id, used across the pipeline and as every metric-id prefix.
 _RATING_ID = "ieee-spectrum"
@@ -240,7 +245,7 @@ def _score_scale_max(scale: str) -> float:
     return _SCORE_SCALE_MAX.get(scale, 100.0)
 
 
-class IeeeSpectrumProvider:
+class IeeeSpectrumProvider(BaseRatingProvider):
     """Records IEEE Spectrum *Top Programming Languages* rank and score per profile.
 
     Each edition re-weights one metric set into several ranking *profiles*
@@ -282,19 +287,7 @@ class IeeeSpectrumProvider:
         :param cache_dir: Root cache directory; the provider owns the
             ``ieee-spectrum`` subdirectory beneath it.
         """
-        self._cache_dir = cache_dir / self.provider_id
-        self._normalizer = LanguageNormalizer()
-        self._retrieved_at = datetime.now(UTC)
-        # Request window stashed by :meth:`fetch` and applied in :meth:`parse`; all
-        # default to ``None`` so the ``langrank import`` path (which never calls
-        # :meth:`fetch`) imports every edition in the supplied CSV.
-        self._request_since: Optional[date] = None
-        self._request_until: Optional[date] = None
-        self._request_years: Optional[int] = None
-        # IEEE labels the last :meth:`normalize` call could not resolve to a canonical
-        # language (documented :data:`IEEE_UNTRACKED_LABELS` are excluded); skipped
-        # rather than guessed and surfaced to validation (subtask 06).
-        self.last_unmapped: list[str] = []
+        super().__init__(cache_dir)
 
     def metadata(self) -> ProviderMetadata:
         """Return the provider's static metadata: one metric pair per profile.
@@ -391,9 +384,7 @@ class IeeeSpectrumProvider:
                 f"unknown --source {request.source!r} for ieee-spectrum; the only source is the bundled, "
                 f"manually transcribed dataset (valid: {valid})."
             )
-        self._request_since = request.since
-        self._request_until = request.until
-        self._request_years = request.years
+        self._stash_request_window(request)
         content = DATA_PATH.read_bytes()
         return payload_from_content(
             provider_id=self.provider_id,
@@ -446,29 +437,21 @@ class IeeeSpectrumProvider:
         records: list[SourceRecord] = []
         for row in reader:
             records.extend(_records_from_row(row))
-        return self._filter_window(records)
+        return self._filter_window(records, default_years=_DEFAULT_YEARS)
 
-    def _filter_window(self, records: list[SourceRecord]) -> list[SourceRecord]:
-        """Trim parsed edition records to the request window by ``period_start``.
+    def _bundled_snapshot_payload(self) -> Optional[FetchPayload]:
+        """Return the repo-bundled edition CSV for :meth:`upstream_latest_period`.
 
-        With no explicit ``--until`` the window ends at the latest edition present;
-        with no explicit ``--since`` it spans ``--years`` (default
-        :data:`_DEFAULT_YEARS`) back from that end. The ``langrank import`` path leaves
-        every stashed bound at ``None``, so a decade-wide default keeps every curated
-        edition. Missing editions are never synthesized - only present rows are kept.
+        IEEE ships no machine-readable dataset, so the manually transcribed
+        :data:`DATA_PATH` is the only offline snapshot; it backs a no-network upstream
+        probe just as it backs :meth:`fetch`.
 
-        :param records: Records built from the curated CSV.
-        :returns: The subset whose ``period_start`` falls in ``[since, until]``.
+        :returns: The bundled edition-CSV payload, or ``None`` when the curated file
+            is absent.
         """
-        if not records:
-            return records
-        until = self._request_until or max(record.period_start for record in records)
-        if self._request_since is not None:
-            since = self._request_since
-        else:
-            span = self._request_years or _DEFAULT_YEARS
-            since = date(until.year - span, 1, 1)
-        return [record for record in records if since <= record.period_start <= until]
+        if not DATA_PATH.is_file():
+            return None
+        return FetchPayload(artifact=None, content=DATA_PATH.read_bytes())
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
         """Normalize per-profile records into observations with full provenance.
@@ -502,8 +485,7 @@ class IeeeSpectrumProvider:
                 continue
             language_id = self._normalizer.try_resolve(label, rating_id=self.provider_id)
             if language_id is None:
-                if label not in self.last_unmapped:
-                    self.last_unmapped.append(label)
+                self._record_unmapped(label)
                 continue
             is_rank = record.metric_id.endswith("-rank")
             profile = str(record.metadata.get("profile", ""))
@@ -569,7 +551,19 @@ class IeeeSpectrumProvider:
         :returns: A validation report; WARNING-only reports remain ``ok``.
         """
         report = ValidationReport()
-        seen: set[tuple[str, date, str]] = set()
+
+        def label_of(item: Observation) -> str:
+            profile = str(item.metadata_json.get("profile", ""))
+            return f"{profile} {item.language_id} at {item.period_label}"
+
+        validate_unique_observations(
+            observations, report, message=lambda item: f"duplicate {label_of(item)} ({item.metric_id})"
+        )
+        validate_positive_ranks(
+            [item for item in observations if item.metric_id.endswith("-rank")],
+            report,
+            message=lambda item: f"{label_of(item)}: rank {item.rank} must be positive",
+        )
         profiles_by_metric: dict[str, set[str]] = {}
         rank_groups: dict[tuple[int, str, int], set[str]] = {}
         score_by_key: dict[tuple[int, str, str], float] = {}
@@ -580,12 +574,8 @@ class IeeeSpectrumProvider:
             profile = str(item.metadata_json.get("profile", ""))
             is_rank = item.metric_id.endswith("-rank")
             is_score = item.metric_id.endswith("-score")
-            label = f"{profile} {item.language_id} at {item.period_label}"
+            label = label_of(item)
             profiles_by_metric.setdefault(item.metric_id, set()).add(profile)
-            key = (item.language_id, item.period_start, item.metric_id)
-            if key in seen:
-                report.add(Severity.ERROR, "duplicate_language_period", f"duplicate {label} ({item.metric_id})")
-            seen.add(key)
             allowed = EDITION_PROFILES.get(year)
             if allowed is None or profile not in {member.value for member in allowed}:
                 report.add(
@@ -594,8 +584,6 @@ class IeeeSpectrumProvider:
                     f"{label}: profile {profile!r} is not in the {year} edition",
                 )
             if is_rank:
-                if item.rank is not None and item.rank <= 0:
-                    report.add(Severity.ERROR, "rank_positive", f"{label}: rank {item.rank} must be positive")
                 if not item.is_derived:
                     report.add(
                         Severity.ERROR,

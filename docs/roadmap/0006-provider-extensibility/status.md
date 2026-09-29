@@ -5,11 +5,11 @@ Updated as each task lands.
 
 ## Current status
 
-| Task | Name                                    | Status         | Tests |
-|------|--------------------------------------------|----------------|-------|
-| 01.0 | Provider Capabilities Metadata               | ⬜ Not started | -     |
-| 02.0 | External Provider Plugin Loading             | ⬜ Not started | -     |
-| 03.0 | Large-Source Performance Hardening           | ⬜ Not started | -     |
+| Task | Name                               | Status         | Tests |
+|------|------------------------------------|----------------|-------|
+| 01.0 | Provider Capabilities Metadata     | ⬜ Not started | -     |
+| 02.0 | External Provider Plugin Loading   | ⬜ Not started | -     |
+| 03.0 | Large-Source Performance Hardening | ⬜ Not started | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -29,7 +29,7 @@ Updated as each task lands.
 
 ## Decomposition tree
 
-18 subtasks across 3 tasks (all ⬜ Not started).
+The 18 subtasks across 3 tasks (all ⬜ Not started).
 
 ```
 docs/roadmap/0006-provider-extensibility/

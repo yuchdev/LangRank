@@ -5,11 +5,11 @@ Updated as each task lands.
 
 ## Current status
 
-| Task | Name                                              | Status         | Tests |
-|------|------------------------------------------------------|----------------|-------|
-| 01.0 | Source Freshness Monitoring & Scheduled Updates       | ⬜ Not started | -     |
-| 02.0 | Dataset Release Workflow                              | ⬜ Not started | -     |
-| 03.0 | Source Archival Strategy                              | ⬜ Not started | -     |
+| Task | Name                                            | Status         | Tests |
+|------|-------------------------------------------------|----------------|-------|
+| 01.0 | Source Freshness Monitoring & Scheduled Updates | ⬜ Not started | -     |
+| 02.0 | Dataset Release Workflow                        | ⬜ Not started | -     |
+| 03.0 | Source Archival Strategy                        | ⬜ Not started | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -25,7 +25,7 @@ Updated as each task lands.
   from freshness data once 01.0 lands.
 - **Automation must respect source terms:** `langrank update`'s scheduled
   fetching must not default to on where a source's terms discourage
-  automation — same gate as each provider task in
+  automation — the same gate as each provider task in
   [Milestone 0001](/docs/roadmap/0001-new-rating-providers/plan.md).
 
 ## Decomposition tree
@@ -64,9 +64,11 @@ docs/roadmap/0004-freshness-and-releases/
     └── 06-retention-docs-and-repo-guard.md
 ```
 
-Task READMEs: [01.0](/docs/roadmap/0004-freshness-and-releases/01.0-source-freshness-and-updates/README.md) ·
-[02.0](/docs/roadmap/0004-freshness-and-releases/02.0-dataset-release-workflow/README.md) ·
-[03.0](/docs/roadmap/0004-freshness-and-releases/03.0-source-archival-strategy/README.md).
+Task README: 
+
+* [01.0](/docs/roadmap/0004-freshness-and-releases/01.0-source-freshness-and-updates/README.md) ·
+* [02.0](/docs/roadmap/0004-freshness-and-releases/02.0-dataset-release-workflow/README.md) ·
+* [03.0](/docs/roadmap/0004-freshness-and-releases/03.0-source-archival-strategy/README.md).
 
 ## Per-task detail
 

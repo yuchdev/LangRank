@@ -6,18 +6,18 @@
 
 ## Subtasks
 
-| #  | Subtask | Role | Depends on | Status |
-|----|---------|------|------------|--------|
-| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ✅ Complete |
-| 02 | [Quarterly granularity](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/02-quarterly-granularity.md) | Python Expert | - | ✅ Complete |
-| 03 | [Linguist language aliases](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/03-linguist-aliases.md) | Python Expert | 01.0/02 | ✅ Complete |
-| 04 | [Provider metadata, variants & registry entry](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/04-metadata-variants-and-registry.md) | Python Expert | 02, 03 | ✅ Complete |
-| 05 | [Innovation Graph fetch & parse](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/05-innovation-graph-fetch-and-parse.md) | Python Expert | 04, 01.0/04 | ✅ Complete |
-| 06 | [Innovation Graph normalize: global aggregation, share & rank](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/06-innovation-graph-normalize.md) | Python Expert | 05 | ✅ Complete |
-| 07 | [Octoverse annual rankings dataset](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/07-octoverse-annual-rankings.md) | Python Expert | 04 | ✅ Complete |
-| 08 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/08-validate.md) | Python Expert | 06, 07 | ✅ Complete |
-| 09 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/09-fixtures-and-contract-tests.md) | Testing Expert | 08, 01.0/07 | ✅ Complete |
-| 10 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/10-docs.md) | Docs Writer | 09 | ✅ Complete |
+| #  | Subtask                                                                                                                                                       | Role             | Depends on  | Status      |
+|----|---------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|-------------|-------------|
+| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/01-source-note-and-policy-gate.md)                      | Security Auditor | -           | ✅ Complete |
+| 02 | [Quarterly granularity](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/02-quarterly-granularity.md)                                             | Python Expert    | -           | ✅ Complete |
+| 03 | [Linguist language aliases](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/03-linguist-aliases.md)                                              | Python Expert    | 01.0/02     | ✅ Complete |
+| 04 | [Provider metadata, variants & registry entry](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/04-metadata-variants-and-registry.md)             | Python Expert    | 02, 03      | ✅ Complete |
+| 05 | [Innovation Graph fetch & parse](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/05-innovation-graph-fetch-and-parse.md)                         | Python Expert    | 04, 01.0/04 | ✅ Complete |
+| 06 | [Innovation Graph normalize: global aggregation, share & rank](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/06-innovation-graph-normalize.md) | Python Expert    | 05          | ✅ Complete |
+| 07 | [Octoverse annual rankings dataset](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/07-octoverse-annual-rankings.md)                             | Python Expert    | 04          | ✅ Complete |
+| 08 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/08-validate.md)                                               | Python Expert    | 06, 07      | ✅ Complete |
+| 09 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/09-fixtures-and-contract-tests.md)                   | Testing Expert   | 08, 01.0/07 | ✅ Complete |
+| 10 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/10-docs.md)                                                             | Docs Writer      | 09          | ✅ Complete |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -51,7 +51,7 @@ RedMonk's GitHub-derived component.
 - **Metric IDs:** `github-octoverse-rank` (annual, raw, published rank),
   `github-innovation-graph-pushers` (quarterly, derived global sum),
   `github-innovation-graph-share` (quarterly, derived), `github-innovation-graph-rank`
-  (quarterly, derived). Variant is part of the metric ID so a query can never silently mix
+  (quarterly, derived). Variant is part of the metric ID, so a query can never silently mix
   them.
 - **Innovation Graph source (verified):** `github/innovationgraph` repo,
   `data/languages.csv` - columns `num_pushers, language, iso2_code, year, quarter`;
@@ -62,10 +62,10 @@ RedMonk's GitHub-derived component.
   SHA (`raw.githubusercontent.com/github/innovationgraph/{sha}/data/languages.csv`), SHA
   stored in `source_document_id`, for reproducibility.
 - **Octoverse source (verified):** annual blog post; there is no machine-readable dataset.
-  The ranking basis changed over the years (e.g. 2025: TypeScript #1 by **monthly
+  The ranking basis changed over the years (e.g., 2025: TypeScript #1 by **monthly
   contributors**, published 2025-10-28; earlier editions ranked by contributors to
   repositories). Acquisition = curated bundled CSV `providers/data/github_octoverse.csv`
-  (same pattern as the bootstrap providers) with one `MethodologyNote` per ranking basis.
+  (the same pattern as the bootstrap providers) with one `MethodologyNote` per ranking basis.
   Only ranks that appear in the text/table are captured; **no chart pixel extraction**
   (`--allow-chart-extraction` is not implemented; see subtask 07).
 - `--source auto` → `innovation-graph` (machine-readable preferred, per plan.md); `fetch all`
@@ -83,7 +83,7 @@ RedMonk's GitHub-derived component.
 ## Task exit criteria
 
 - [ ] Every subtask above is ✅.
-- [ ] Both variants independently selectable via `--source`; each writes only its own metric IDs.
+- [ ] Both variants are independently selectable via `--source`; each writes only its own metric IDs.
 - [ ] No chart-derived value reaches the DB; every aggregated value has `is_derived=True`.
 - [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
 

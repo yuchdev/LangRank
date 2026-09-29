@@ -4,6 +4,7 @@ import csv
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Optional
 
 from langrank.models import (
     FetchRequest,
@@ -12,22 +13,23 @@ from langrank.models import (
     MetricDefinition,
     Observation,
     ProviderMetadata,
-    Severity,
     SourceRecord,
     ValidationReport,
 )
-from langrank.normalization import LanguageNormalizer
-from langrank.providers.base import FetchPayload
-from langrank.providers.common import build_observation, payload_from_content
+from langrank.providers.base import BaseRatingProvider, FetchPayload
+from langrank.providers.common import (
+    build_observation,
+    payload_from_content,
+    validate_positive_ranks,
+    validate_unique_observations,
+)
 
 
-class RedMonkProvider:
+class RedMonkProvider(BaseRatingProvider):
     provider_id = "redmonk"
 
     def __init__(self, cache_dir: Path) -> None:
-        self._cache_dir = cache_dir / self.provider_id
-        self._normalizer = LanguageNormalizer()
-        self._retrieved_at = datetime.now(UTC)
+        super().__init__(cache_dir)
         self._data_path = Path(__file__).parent / "data" / "redmonk.csv"
 
     def metadata(self) -> ProviderMetadata:
@@ -127,19 +129,16 @@ class RedMonkProvider:
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
         report = ValidationReport()
-        seen: set[tuple[str, date, str]] = set()
-        for item in observations:
-            if item.rank is not None and item.rank <= 0:
-                report.add(Severity.ERROR, "rank_positive", f"{item.language_id} rank must be positive")
-            key = (item.language_id, item.period_start, item.metric_id)
-            if key in seen:
-                report.add(
-                    Severity.ERROR,
-                    "duplicate_language_period",
-                    f"duplicate language/period metric for {item.language_id} {item.period_label}",
-                )
-            seen.add(key)
+        validate_positive_ranks(observations, report)
+        validate_unique_observations(observations, report)
         return report
 
-    def upstream_latest_period(self) -> str:
-        return "2025-06"
+    def _bundled_snapshot_payload(self) -> Optional[FetchPayload]:
+        """Return the bundled RedMonk CSV as a snapshot payload for period reporting.
+
+        Feeds :meth:`~langrank.providers.base.BaseRatingProvider.upstream_latest_period`
+        when no cached artifact exists, without any network access.
+
+        :returns: A :class:`FetchPayload` wrapping the bundled ``redmonk.csv`` bytes.
+        """
+        return FetchPayload(artifact=None, content=self._data_path.read_bytes())

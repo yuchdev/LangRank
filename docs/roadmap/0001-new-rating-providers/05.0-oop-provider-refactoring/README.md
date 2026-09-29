@@ -2,18 +2,18 @@
 
 **Milestone:** [0001 - New Rating Providers](/docs/roadmap/0001-new-rating-providers/plan.md) ·
 **Spec source:** [plan.md § Task 05.0](/docs/roadmap/0001-new-rating-providers/plan.md#task-050---oop-provider-refactoring) ·
-**Category:** refactoring / architecture · **Status:** ⬜ Not started
+**Category:** refactoring / architecture · **Status:** ✅ Complete
 
 ## Subtasks
 
-| #  | Subtask | Role | Depends on | Status |
-|----|---------|------|------------|--------|
-| 01 | [Common provider helper methods & functions](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/01-common-provider-helpers.md) | Python Expert | - | ⬜ Not started |
-| 02 | [Abstract Base Provider & shared state](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/02-base-provider-class.md) | Python Expert | 01 | ⬜ Not started |
-| 03 | [Refactor bootstrap providers to BaseRatingProvider](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/03-refactor-bootstrap-providers.md) | Python Expert | 02 | ⬜ Not started |
-| 04 | [Refactor Milestone 0001 providers to BaseRatingProvider](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/04-refactor-new-providers.md) | Python Expert | 02 | ⬜ Not started |
-| 05 | [Contract tests, golden outputs & regression verification](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/05-contract-tests-and-verification.md) | Testing Expert | 03, 04 | ⬜ Not started |
-| 06 | [Architecture & developer documentation updates](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/06-docs.md) | Docs Writer | 05 | ⬜ Not started |
+| #  | Subtask                                                                                                                                                                 | Role           | Depends on | Status         |
+|----|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|------------|----------------|
+| 01 | [Common provider helper methods & functions](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/01-common-provider-helpers.md)                       | Python Expert  | -          | ✅ Complete    |
+| 02 | [Abstract Base Provider & shared state](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/02-base-provider-class.md)                                | Python Expert  | 01         | ✅ Complete    |
+| 03 | [Refactor bootstrap providers to BaseRatingProvider](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/03-refactor-bootstrap-providers.md)          | Python Expert  | 02         | ✅ Complete    |
+| 04 | [Refactor Milestone 0001 providers to BaseRatingProvider](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/04-refactor-new-providers.md)           | Python Expert  | 02         | ✅ Complete    |
+| 05 | [Contract tests, golden outputs & regression verification](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/05-contract-tests-and-verification.md) | Testing Expert | 03, 04     | ✅ Complete    |
+| 06 | [Architecture & developer documentation updates](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/06-docs.md)                                      | Docs Writer    | 05         | ✅ Complete    |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -60,9 +60,9 @@ initialization boilerplate, and redundant validation checks while preserving the
 
 ## Task exit criteria
 
-- [ ] Every subtask above is ✅.
-- [ ] `GitHubProvider._filter_window` and `IeeeSpectrumProvider._filter_window` are refactored
+- [x] Every subtask above is ✅.
+- [x] `GitHubProvider._filter_window` and `IeeeSpectrumProvider._filter_window` are refactored
       to use shared base/helper implementation.
-- [ ] All 9 provider classes inherit from `BaseRatingProvider`.
-- [ ] Contract tests and golden outputs for all providers pass without modification.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.
+- [x] All 9 provider classes inherit from `BaseRatingProvider`.
+- [x] Contract tests and golden outputs for all providers pass without modification.
+- [x] `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest` green.

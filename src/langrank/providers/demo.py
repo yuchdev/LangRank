@@ -4,8 +4,9 @@ import hashlib
 import json
 from collections.abc import Sequence
 from dataclasses import asdict
-from datetime import UTC, date, datetime
+from datetime import date
 from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 
 from langrank.models import (
@@ -15,21 +16,18 @@ from langrank.models import (
     Observation,
     ProviderMetadata,
     RawArtifact,
-    Severity,
     SourceRecord,
     ValidationReport,
 )
-from langrank.normalization import LanguageNormalizer
-from langrank.providers.base import FetchPayload
+from langrank.providers.base import BaseRatingProvider, FetchPayload
+from langrank.providers.common import validate_bounded_values, validate_positive_ranks
 
 
-class DemoProvider:
+class DemoProvider(BaseRatingProvider):
     provider_id = "demo"
 
     def __init__(self, cache_dir: Path) -> None:
-        self._cache_dir = cache_dir / self.provider_id
-        self._normalizer = LanguageNormalizer()
-        self._retrieved_at = datetime.now(UTC)
+        super().__init__(cache_dir)
 
     def metadata(self) -> ProviderMetadata:
         return ProviderMetadata(
@@ -142,31 +140,31 @@ class DemoProvider:
             )
         return observations
 
-    @staticmethod
-    def validate(observations: Sequence[Observation]) -> ValidationReport:
+    def validate(self, observations: Sequence[Observation]) -> ValidationReport:
         report = ValidationReport()
-        for observation in observations:
-            if (
-                observation.metric_id == "rating"
-                and observation.value is not None
-                and not 0 <= observation.value <= 100
-            ):
-                report.add(
-                    Severity.ERROR,
-                    "percentage_range",
-                    f"{observation.language_id} rating is outside 0..100",
-                )
-            if observation.metric_id == "rank" and observation.rank is not None and observation.rank <= 0:
-                report.add(
-                    Severity.ERROR,
-                    "rank_positive",
-                    f"{observation.language_id} rank must be positive",
-                )
+        validate_bounded_values(
+            observations,
+            report,
+            code="percentage_range",
+            metric_id="rating",
+            message=lambda observation: f"{observation.language_id} rating is outside 0..100",
+        )
+        validate_positive_ranks(observations, report, metric_id="rank")
         return report
 
-    @staticmethod
-    def upstream_latest_period() -> str:
-        return "2026"
+    def _bundled_snapshot_payload(self) -> Optional[FetchPayload]:
+        """Return the default synthetic dataset as a bundled snapshot payload.
+
+        Feeds :meth:`~langrank.providers.base.BaseRatingProvider.upstream_latest_period`
+        when no cached artifact exists. The dataset is built for a default
+        :class:`~langrank.models.FetchRequest`, so the reported period is the
+        deterministic ``end_year`` of the synthetic history (no wall-clock input).
+
+        :returns: A :class:`FetchPayload` wrapping the synthetic dataset bytes.
+        """
+        dataset = self._build_dataset(FetchRequest())
+        content = json.dumps(dataset, indent=2, sort_keys=True).encode("utf-8")
+        return FetchPayload(artifact=None, content=content)
 
     def _build_dataset(self, request: FetchRequest) -> dict[str, object]:
         base = {

@@ -31,36 +31,36 @@ Conventions in this document:
 
 ## 2. Summary table
 
-| ID (proposed) | Measures | Access | History | Granularity | License / terms | Status in LangRank | Priority |
-|---|---|---|---|---|---|---|---|
-| `tiobe` | Search-engine visibility | HTML table (current month); full history sold as CSV | 2001-06 onward (paid); free: current top 50 + long-term snapshots | Monthly | Free display with attribution; history costs USD 5,000 | existing | P1 (maintain) |
-| `pypl` | Tutorial-search interest (Google Trends) | JS data file on GitHub Pages (`PYPL/All.js`) | 2004-06 onward | Monthly (6-month smoothed) | CC BY 3.0 | existing | P1 (maintain) |
-| `redmonk` | GitHub PRs + SO tags (composite rank) | HTML post + scatter-plot image | 2012 onward | Irregular, now about annual | No data license; blog copyright | existing | P1 (maintain) |
-| `stackoverflow-survey` | Self-reported usage (+ admired/desired) | Official JSON + CSV archive on GitHub | 2011 onward (languages question from about 2013) | Annual | ODbL 1.0 / DbCL 1.0 | existing | P1 (upgrade source) |
-| `stackoverflow-tags` | Q&A activity (questions per tag) | Stack Exchange API; SEDE; quarterly data dumps | 2008-08 onward | Monthly (derivable) | Content CC BY-SA 4.0; dump download terms bar LLM training; API terms | planned (0001 task 01.0) | P1 |
-| `github-innovation-graph` | Code activity (unique pushers per language per economy) | CSV in `github/innovationgraph` | 2020-Q1 onward | **Quarterly**, per economy | CC0-1.0 | planned (0001 task 02.0) | P1 |
-| `github-octoverse` | Code activity (contributors per language; annual top-10) | HTML report + charts | about 2014 onward (unverified for the earliest years) | Annual | GitHub site terms; no data license | planned (0001 task 02.0) | P2 |
-| `ieee-spectrum` | Composite (search, SO, jobs, papers, GitHub, books, Discord) | Interactive (Flourish embed with JSON data); methodology article | 2013 onward (unverified for the earliest years) | Annual | IEEE copyright; no data license | planned (0001 task 03.0) | P1 |
-| `jetbrains` | Self-reported usage (survey) | Raw-data ZIP (anonymized microdata) + report pages | 2017 onward (report); raw ZIP verified for 2024 and 2025 | Annual | 2024 report: CC BY-NC-SA 4.0 (non-commercial) | planned (0001 task 04.0) | P1 |
-| `wikipedia-pageviews` | Encyclopedic interest (article views) | Wikimedia Analytics REST API | 2015-07 onward | Daily / monthly | Open data (license unverified; believed CC0) | candidate | P2 |
-| `hn-hiring` | Job demand (share of HN "Who is hiring" posts mentioning a language) | HN APIs (Algolia/Firebase) → LangRank-derived counts; third-party sites | 2011-04 onward | Monthly | HN API terms (unverified); values would be LangRank-derived | candidate | P2 |
-| `kaggle-survey` | Self-reported usage (DS/ML population) | CSV on Kaggle | 2017–2022 (ended) | Annual | Kaggle dataset terms (unverified) | candidate (static backfill) | P3 |
-| `github-linguist-search` | Code hosting (repo counts per Linguist language) | GitHub Search API `language:` counts | None (current snapshot only) | Snapshot | GitHub API ToS | candidate | P3 |
-| `package-registries` | Ecosystem downloads (not languages) | PyPI BigQuery, npm downloads API, crates.io dumps | Varies | Daily / monthly | Varies | candidate (separate "ecosystem" family) | P3 |
-| `slashdata-communities` | Estimated developer-community size (survey + model) | Gated PDF / interactive | about 2017 onward (unverified) | About annual (biannual survey) | Proprietary | candidate (manual only) | P3 |
-| `githut` | Code activity (GH Archive events by repo language) | JSON in `madnight/githut` | 2012–2024-Q1 (stale) | Quarterly | Code AGPL-3.0; data derived from GH Archive | rejected (stale) | reject |
-| `languish` | Composite (GitHub + SO) | JSON in `tjpalmer/languish` | 2012–2025-Q2 | Quarterly | No license asserted | rejected | reject |
-| `gh-archive` | Raw GitHub event stream | Hourly JSON.gz; BigQuery `githubarchive` | 2011-02 onward | Hourly | Open (terms unverified) | rejected (language field gone) | reject |
-| `ossinsight` | Repo rankings within collections | Public API (beta) | 2011 onward | Varies | Terms unverified | rejected | reject |
-| `google-trends` | Search interest | Official API in closed alpha; web UI only otherwise | 5-year rolling window (API) | Daily–yearly | Google ToS; no scraping | rejected (for now) | reject |
-| `devjobsscanner`, `indeed` | Job demand | Blog posts (DevJobsScanner); occupation-level CSV (Indeed) | Short | Annual / daily | Proprietary / CC BY 4.0 (Indeed, not per language) | rejected | reject |
-| `hackerrank`, `coderpad-codingame`, `leetcode` | Assessment / platform usage | Gated PDF reports / none | Short | Annual | Proprietary | rejected | reject |
-| `reddit-subscribers` | Community size | Reddit API (paid tiers) | Third-party only | n/a | Reddit API terms; public counts removed 2025 | rejected | reject |
-| `rosetta-code` | Chrestomathy task coverage | MediaWiki API | Snapshot only | Snapshot | GFDL (unverified) | rejected | reject |
-| `langpop-2026` | Composite aggregator of other indices | Web site (bot-protected) | 2026 onward (unverified) | Weekly (claimed) | Unverified | rejected (circular) | reject |
-| `openrouter`, `anthropic-economic-index` | AI-model / task usage | Web / Hugging Face | 2024–2025 onward | Weekly / periodic | Varies | rejected (not per language) | reject |
-| `stackoverflow-trends` | Q&A tag share (chart tool) | Retired | — | — | — | defunct | — |
-| `langpop-original`, `tlpi`, `trendyskills` | Composite / jobs | — | about 2008–2016 | — | — | defunct | — |
+| ID (proposed)                                  | Measures                                                             | Access                                                                  | History                                                           | Granularity                    | License / terms                                                       | Status in LangRank                      | Priority            |
+|------------------------------------------------|----------------------------------------------------------------------|-------------------------------------------------------------------------|-------------------------------------------------------------------|--------------------------------|-----------------------------------------------------------------------|-----------------------------------------|---------------------|
+| `tiobe`                                        | Search-engine visibility                                             | HTML table (current month); full history sold as CSV                    | 2001-06 onward (paid); free: current top 50 + long-term snapshots | Monthly                        | Free display with attribution; history costs USD 5,000                | existing                                | P1 (maintain)       |
+| `pypl`                                         | Tutorial-search interest (Google Trends)                             | JS data file on GitHub Pages (`PYPL/All.js`)                            | 2004-06 onward                                                    | Monthly (6-month smoothed)     | CC BY 3.0                                                             | existing                                | P1 (maintain)       |
+| `redmonk`                                      | GitHub PRs + SO tags (composite rank)                                | HTML post + scatter-plot image                                          | 2012 onward                                                       | Irregular, now about annual    | No data license; blog copyright                                       | existing                                | P1 (maintain)       |
+| `stackoverflow-survey`                         | Self-reported usage (+ admired/desired)                              | Official JSON + CSV archive on GitHub                                   | 2011 onward (languages question from about 2013)                  | Annual                         | ODbL 1.0 / DbCL 1.0                                                   | existing                                | P1 (upgrade source) |
+| `stackoverflow-tags`                           | Q&A activity (questions per tag)                                     | Stack Exchange API; SEDE; quarterly data dumps                          | 2008-08 onward                                                    | Monthly (derivable)            | Content CC BY-SA 4.0; dump download terms bar LLM training; API terms | planned (0001 task 01.0)                | P1                  |
+| `github-innovation-graph`                      | Code activity (unique pushers per language per economy)              | CSV in `github/innovationgraph`                                         | 2020-Q1 onward                                                    | **Quarterly**, per economy     | CC0-1.0                                                               | planned (0001 task 02.0)                | P1                  |
+| `github-octoverse`                             | Code activity (contributors per language; annual top-10)             | HTML report + charts                                                    | about 2014 onward (unverified for the earliest years)             | Annual                         | GitHub site terms; no data license                                    | planned (0001 task 02.0)                | P2                  |
+| `ieee-spectrum`                                | Composite (search, SO, jobs, papers, GitHub, books, Discord)         | Interactive (Flourish embed with JSON data); methodology article        | 2013 onward (unverified for the earliest years)                   | Annual                         | IEEE copyright; no data license                                       | planned (0001 task 03.0)                | P1                  |
+| `jetbrains`                                    | Self-reported usage (survey)                                         | Raw-data ZIP (anonymized microdata) + report pages                      | 2017 onward (report); raw ZIP verified for 2024 and 2025          | Annual                         | 2024 report: CC BY-NC-SA 4.0 (non-commercial)                         | planned (0001 task 04.0)                | P1                  |
+| `wikipedia-pageviews`                          | Encyclopedic interest (article views)                                | Wikimedia Analytics REST API                                            | 2015-07 onward                                                    | Daily / monthly                | Open data (license unverified; believed CC0)                          | candidate                               | P2                  |
+| `hn-hiring`                                    | Job demand (share of HN "Who is hiring" posts mentioning a language) | HN APIs (Algolia/Firebase) → LangRank-derived counts; third-party sites | 2011-04 onward                                                    | Monthly                        | HN API terms (unverified); values would be LangRank-derived           | candidate                               | P2                  |
+| `kaggle-survey`                                | Self-reported usage (DS/ML population)                               | CSV on Kaggle                                                           | 2017–2022 (ended)                                                 | Annual                         | Kaggle dataset terms (unverified)                                     | candidate (static backfill)             | P3                  |
+| `github-linguist-search`                       | Code hosting (repo counts per Linguist language)                     | GitHub Search API `language:` counts                                    | None (current snapshot only)                                      | Snapshot                       | GitHub API ToS                                                        | candidate                               | P3                  |
+| `package-registries`                           | Ecosystem downloads (not languages)                                  | PyPI BigQuery, npm downloads API, crates.io dumps                       | Varies                                                            | Daily / monthly                | Varies                                                                | candidate (separate "ecosystem" family) | P3                  |
+| `slashdata-communities`                        | Estimated developer-community size (survey + model)                  | Gated PDF / interactive                                                 | about 2017 onward (unverified)                                    | About annual (biannual survey) | Proprietary                                                           | candidate (manual only)                 | P3                  |
+| `githut`                                       | Code activity (GH Archive events by repo language)                   | JSON in `madnight/githut`                                               | 2012–2024-Q1 (stale)                                              | Quarterly                      | Code AGPL-3.0; data derived from GH Archive                           | rejected (stale)                        | reject              |
+| `languish`                                     | Composite (GitHub + SO)                                              | JSON in `tjpalmer/languish`                                             | 2012–2025-Q2                                                      | Quarterly                      | No license asserted                                                   | rejected                                | reject              |
+| `gh-archive`                                   | Raw GitHub event stream                                              | Hourly JSON.gz; BigQuery `githubarchive`                                | 2011-02 onward                                                    | Hourly                         | Open (terms unverified)                                               | rejected (language field gone)          | reject              |
+| `ossinsight`                                   | Repo rankings within collections                                     | Public API (beta)                                                       | 2011 onward                                                       | Varies                         | Terms unverified                                                      | rejected                                | reject              |
+| `google-trends`                                | Search interest                                                      | Official API in closed alpha; web UI only otherwise                     | 5-year rolling window (API)                                       | Daily–yearly                   | Google ToS; no scraping                                               | rejected (for now)                      | reject              |
+| `devjobsscanner`, `indeed`                     | Job demand                                                           | Blog posts (DevJobsScanner); occupation-level CSV (Indeed)              | Short                                                             | Annual / daily                 | Proprietary / CC BY 4.0 (Indeed, not per language)                    | rejected                                | reject              |
+| `hackerrank`, `coderpad-codingame`, `leetcode` | Assessment / platform usage                                          | Gated PDF reports / none                                                | Short                                                             | Annual                         | Proprietary                                                           | rejected                                | reject              |
+| `reddit-subscribers`                           | Community size                                                       | Reddit API (paid tiers)                                                 | Third-party only                                                  | n/a                            | Reddit API terms; public counts removed 2025                          | rejected                                | reject              |
+| `rosetta-code`                                 | Chrestomathy task coverage                                           | MediaWiki API                                                           | Snapshot only                                                     | Snapshot                       | GFDL (unverified)                                                     | rejected                                | reject              |
+| `langpop-2026`                                 | Composite aggregator of other indices                                | Web site (bot-protected)                                                | 2026 onward (unverified)                                          | Weekly (claimed)               | Unverified                                                            | rejected (circular)                     | reject              |
+| `openrouter`, `anthropic-economic-index`       | AI-model / task usage                                                | Web / Hugging Face                                                      | 2024–2025 onward                                                  | Weekly / periodic              | Varies                                                                | rejected (not per language)             | reject              |
+| `stackoverflow-trends`                         | Q&A tag share (chart tool)                                           | Retired                                                                 | —                                                                 | —                              | —                                                                     | defunct                                 | —                   |
+| `langpop-original`, `tlpi`, `trendyskills`     | Composite / jobs                                                     | —                                                                       | about 2008–2016                                                   | —                              | —                                                                     | defunct                                 | —                   |
 
 ---
 
@@ -68,50 +68,50 @@ Conventions in this document:
 
 Each criterion is scored 0–3. Higher is always better for LangRank.
 
-| Criterion | 0 | 1 | 2 | 3 |
-|---|---|---|---|---|
-| **D** Measurement distinctness (adds a signal not already covered) | Duplicates an existing source, or is derived from other indices | Mostly overlaps | Partially distinct | Unique signal family |
-| **H** History depth (free, machine-obtainable) | None / snapshot only | < 5 years | 5–10 years | > 10 years |
-| **M** Machine-readability | Chart images / gated PDF | HTML scraping of prose/tables | Semi-structured (embedded JSON, large microdata needing aggregation) | Official CSV/JSON/API |
-| **L** License clarity (for ingest + raw-artifact caching) | Unknown / proprietary | Copyright-only, attribution-only, or ambiguous | Clear but restrictive (NC, no-LLM, API ToS) | Open license (CC0, CC BY, ODbL) |
-| **S** Methodology stability | Broken / defunct | Frequent undocumented breaks | Documented breaks | Stable |
-| **C** Maintenance cost (3 = cheapest) | Needs heavy infra (BigQuery $) or manual transcription | Per-edition manual work | Occasional parser updates | Set-and-forget |
+| Criterion                                                          | 0                                                               | 1                                              | 2                                                                    | 3                               |
+|--------------------------------------------------------------------|-----------------------------------------------------------------|------------------------------------------------|----------------------------------------------------------------------|---------------------------------|
+| **D** Measurement distinctness (adds a signal not already covered) | Duplicates an existing source, or is derived from other indices | Mostly overlaps                                | Partially distinct                                                   | Unique signal family            |
+| **H** History depth (free, machine-obtainable)                     | None / snapshot only                                            | < 5 years                                      | 5–10 years                                                           | > 10 years                      |
+| **M** Machine-readability                                          | Chart images / gated PDF                                        | HTML scraping of prose/tables                  | Semi-structured (embedded JSON, large microdata needing aggregation) | Official CSV/JSON/API           |
+| **L** License clarity (for ingest + raw-artifact caching)          | Unknown / proprietary                                           | Copyright-only, attribution-only, or ambiguous | Clear but restrictive (NC, no-LLM, API ToS)                          | Open license (CC0, CC BY, ODbL) |
+| **S** Methodology stability                                        | Broken / defunct                                                | Frequent undocumented breaks                   | Documented breaks                                                    | Stable                          |
+| **C** Maintenance cost (3 = cheapest)                              | Needs heavy infra (BigQuery $) or manual transcription          | Per-edition manual work                        | Occasional parser updates                                            | Set-and-forget                  |
 
-| ID | D | H | M | L | S | C | Total /18 | Priority |
-|---|---|---|---|---|---|---|---|---|
-| `pypl` | 2 | 3 | 3 | 3 | 2 | 3 | **16** | P1 (existing) |
-| `stackoverflow-survey` | 3 | 3 | 3 | 3 | 2 | 2 | **16** | P1 (existing) |
-| `github-innovation-graph` | 3 | 1 | 3 | 3 | 2 | 3 | **15** | P1 |
-| `wikipedia-pageviews` | 2 | 3 | 3 | 2 | 3 | 2 | **15** | P2 |
-| `hn-hiring` | 3 | 3 | 3 | 2 | 2 | 1 | **14** | P2 |
-| `stackoverflow-tags` | 2 | 3 | 3 | 2 | 1 | 2 | **13** | P1 |
-| `tiobe` | 2 | 2 | 1 | 2 | 2 | 2 | **11** | P1 (existing) |
-| `jetbrains` | 2 | 2 | 2 | 2 | 2 | 1 | **11** | P1 |
-| `redmonk` | 1 | 3 | 1 | 1 | 1 | 2 | **9** | P1 (existing) |
-| `ieee-spectrum` | 2 | 2 | 2 | 1 | 1 | 1 | **9** | P1 |
-| `kaggle-survey` | 2 | 1 | 3 | 1 | 0 | 3 | **10** | P3 |
-| `github-linguist-search` | 2 | 0 | 3 | 2 | 2 | 2 | **11** | P3 |
-| `package-registries` | 1 | 2 | 2 | 2 | 2 | 1 | **10** | P3 |
-| `github-octoverse` | 1 | 2 | 1 | 1 | 1 | 1 | **7** | P2 |
-| `githut` | 1 | 2 | 3 | 1 | 0 | 2 | **9** | reject |
-| `languish` | 0 | 2 | 3 | 0 | 1 | 2 | **8** | reject |
-| `gh-archive` | 2 | 3 | 2 | 2 | 0 | 0 | **9** | reject |
-| `ossinsight` | 1 | 2 | 2 | 1 | 1 | 1 | **8** | reject |
-| `slashdata-communities` | 2 | 1 | 0 | 0 | 2 | 0 | **5** | P3 (manual) |
-| `google-trends` | 1 | 1 | 1 | 1 | 1 | 1 | **6** | reject |
-| `devjobsscanner` | 3 | 1 | 0 | 0 | 1 | 0 | **5** | reject |
-| `hackerrank` / `coderpad-codingame` | 1 | 1 | 0 | 0 | 1 | 0 | **3** | reject |
-| `reddit-subscribers` | 1 | 0 | 1 | 0 | 0 | 0 | **2** | reject |
-| `rosetta-code` | 1 | 0 | 2 | 1 | 2 | 2 | **8** | reject |
-| `langpop-2026` | 0 | 0 | 0 | 0 | 1 | 1 | **2** | reject |
+| ID                                  | D | H | M | L | S | C | Total /18 | Priority      |
+|-------------------------------------|---|---|---|---|---|---|-----------|---------------|
+| `pypl`                              | 2 | 3 | 3 | 3 | 2 | 3 | **16**    | P1 (existing) |
+| `stackoverflow-survey`              | 3 | 3 | 3 | 3 | 2 | 2 | **16**    | P1 (existing) |
+| `github-innovation-graph`           | 3 | 1 | 3 | 3 | 2 | 3 | **15**    | P1            |
+| `wikipedia-pageviews`               | 2 | 3 | 3 | 2 | 3 | 2 | **15**    | P2            |
+| `hn-hiring`                         | 3 | 3 | 3 | 2 | 2 | 1 | **14**    | P2            |
+| `stackoverflow-tags`                | 2 | 3 | 3 | 2 | 1 | 2 | **13**    | P1            |
+| `tiobe`                             | 2 | 2 | 1 | 2 | 2 | 2 | **11**    | P1 (existing) |
+| `jetbrains`                         | 2 | 2 | 2 | 2 | 2 | 1 | **11**    | P1            |
+| `redmonk`                           | 1 | 3 | 1 | 1 | 1 | 2 | **9**     | P1 (existing) |
+| `ieee-spectrum`                     | 2 | 2 | 2 | 1 | 1 | 1 | **9**     | P1            |
+| `kaggle-survey`                     | 2 | 1 | 3 | 1 | 0 | 3 | **10**    | P3            |
+| `github-linguist-search`            | 2 | 0 | 3 | 2 | 2 | 2 | **11**    | P3            |
+| `package-registries`                | 1 | 2 | 2 | 2 | 2 | 1 | **10**    | P3            |
+| `github-octoverse`                  | 1 | 2 | 1 | 1 | 1 | 1 | **7**     | P2            |
+| `githut`                            | 1 | 2 | 3 | 1 | 0 | 2 | **9**     | reject        |
+| `languish`                          | 0 | 2 | 3 | 0 | 1 | 2 | **8**     | reject        |
+| `gh-archive`                        | 2 | 3 | 2 | 2 | 0 | 0 | **9**     | reject        |
+| `ossinsight`                        | 1 | 2 | 2 | 1 | 1 | 1 | **8**     | reject        |
+| `slashdata-communities`             | 2 | 1 | 0 | 0 | 2 | 0 | **5**     | P3 (manual)   |
+| `google-trends`                     | 1 | 1 | 1 | 1 | 1 | 1 | **6**     | reject        |
+| `devjobsscanner`                    | 3 | 1 | 0 | 0 | 1 | 0 | **5**     | reject        |
+| `hackerrank` / `coderpad-codingame` | 1 | 1 | 0 | 0 | 1 | 0 | **3**     | reject        |
+| `reddit-subscribers`                | 1 | 0 | 1 | 0 | 0 | 0 | **2**     | reject        |
+| `rosetta-code`                      | 1 | 0 | 2 | 1 | 2 | 2 | **8**     | reject        |
+| `langpop-2026`                      | 0 | 0 | 0 | 0 | 1 | 1 | **2**     | reject        |
 
 Notes on scoring:
 
-- The planned `github-octoverse` scores low on its own. Its value is as annual editorial context
+- The planned `github-octoverse` scores low on its own. Its value is as an annual editorial context 
   next to `github-innovation-graph`, and for years before 2020 that Innovation Graph does not cover.
 - `redmonk` and `ieee-spectrum` score low mostly because of machine-readability and license. Both
   are still worth having as widely cited, distinct editorial composites.
-- A totals tie is broken by D, the distinctness score.
+- A total tie is broken by D, the distinctness score.
 
 ---
 
@@ -120,7 +120,7 @@ Notes on scoring:
 ### TIOBE Index (`tiobe`, existing)
 
 - **Measures:** search-engine visibility. The query is `+"<language> programming"`, run on 25
-  engines chosen from Similarweb's top sites. Each engine's hits are normalized to its total, then
+  engines chosen from Similarweb top sites. Each engine's hits are normalized to its total, then
   averaged; a confidence factor removes false positives. Explicitly "not about the best
   programming language or the language in which most lines of code have been written."
   (https://www.tiobe.com/tiobe-index/programminglanguages_definition/)
@@ -227,13 +227,13 @@ Notes on scoring:
 - **2026 edition:** opened **2026-06-23**
   (https://stackoverflow.blog/2026/06/23/the-2026-developer-survey-is-now-open-for-human-developers-only/),
   later than prior years. **Results are not published as of 2026-09-24**: survey.stackoverflow.co
-  lists 2025 as the latest, and the archive has no 2026 directory.
+  lists 2025 as the latest, and the archive has no. 2026 directory.
 - **License:** ODbL 1.0 for the database and DbCL 1.0 for contents. Attribution: "Stack Overflow
   Developer Survey, Stack Exchange Inc." Repo code is Apache-2.0.
 - **Methodology breaks:** question wording and answer options change yearly. "Loved/Dreaded/Wanted"
   became "Admired/Desired" in 2023 **(unverified exact year, believed 2023)**. Survey timing moved
   from January–February (≤2020) to May–June (2021 onward). Respondent counts are falling (49k+
-  total in 2025). Years are labelled by release year.
+  total in 2025). Years are labeled by release year.
 - **Language quirks:** HTML/CSS and SQL are included as "languages"; "Bash/Shell (all shells)";
   write-ins are listed separately.
 - **Stability risk:** low to medium.
@@ -256,7 +256,7 @@ Notes on scoring:
   2. **Stack Exchange Data Explorer (SEDE)**, https://data.stackexchange.com/, is bot-protected
      (HTTP 403 to curl and WebFetch). RedMonk still uses it in 2026. It is refreshed weekly
      **(unverified)** and is interactive only, so it is unsuitable for unattended fetch.
-  3. **Data dumps.** Since mid-2024 the official dumps are downloaded per site after login, and the
+  3. **Data dumps.** Since mid-2024 the official dumps have been downloaded per site after login, and the
      downloader must agree not to use them for "training a large language model"
      (https://devclass.com/2024/07/30/stack-exchange-restricts-access-to-dump-of-user-contributed-data-as-critics-complain-license-permits-reuse-for-any-purpose/,
      https://search.feep.dev/blog/post/2025-02-20-state-of-stackexchange). Community mirrors on
@@ -313,7 +313,7 @@ Notes on scoring:
 - **Measures:** code activity. In 2025 the ranking was by "the number of distinct monthly
   contributors who committed code in that language," measured on a September 1, 2024 – August 31,
   2025 window, with a top-10 snapshot for August 2025. TypeScript was #1 (about 2.64M monthly
-  contributors, +66.6% YoY), ahead of Python (2.55M) and JavaScript (2.15M). Also published:
+  contributors, +66.6% YoY), ahead of Python (2.55M) and JavaScript (2.15 M). Also published:
   "fastest-growing" languages by percentage (Luau, Typst, Astro, Blade, TypeScript)
   (https://github.blog/news-insights/octoverse/octoverse-a-new-developer-joins-github-every-second-as-ai-leads-typescript-to-1/,
   published 2025-10-28, updated 2026-02-28).
@@ -339,14 +339,14 @@ Notes on scoring:
   language," Stack Overflow tagged questions (past week), IEEE Xplore articles, IEEE Job Site
   postings, CareerBuilder (400 sampled U.S. ads), GitHub (top 50 languages, Q1 2025), Trinity
   College Dublin library books, and Discord tags via Disboard. Collection is now **manual**
-  "due to the difficulty of keeping up with API changes and terminations." 64 languages are
+  "due to the difficulty of keeping up with API changes and terminations." Total 64 languages are
   tracked (https://spectrum.ieee.org/top-programming-languages-methodology-2025). The weights per
   profile are not published.
 - **Profiles:** **Spectrum** (default, weighted toward IEEE members), **Jobs**, **Trending**.
 - **Acquisition (verified for 2025):** the article
   https://spectrum.ieee.org/top-programming-languages-2025 (published 2025-09-23) and the
-  interactive https://spectrum.ieee.org/top-programming-languages embed a **Flourish
-  visualisation 24825595**. Its embed page `https://flo.uri.sh/visualisation/24825595/embed`
+  interactive https://spectrum.ieee.org/top-programming-languages embed **Flourish
+  visualization 24825595**. Its embed page `https://flo.uri.sh/visualisation/24825595/embed`
   carries a `_Flourish_data` JSON array of `{filter: "Spectrum"|"Jobs"|"Trending", label,
   value, metadata}`. Row counts: Spectrum 52, Jobs 51, Trending 53. Scores are normalized so the
   top language = 1 (Python = 1 in all three; Spectrum #2 Java 0.499; Jobs #2 SQL 0.912).
@@ -380,7 +380,7 @@ Notes on scoring:
     (HTTP 200, 98.3 MB, Last-Modified 2025-10-16).
   - 2024: `https://resources.jetbrains.com/storage/products/research/DevEco2024/RawData.zip`
     (HTTP 200).
-  - The same URL pattern returns 403 for 2017–2023 and 2026. The 2022 page says "raw data from our
+  - The same URL pattern returns 403 for 2017–2023 and 2026. The 2022-page says "raw data from our
     DevEco 2022 survey is now available," but at a different URL (unverified). Raw data for
     2018–2021 is **unverified**.
   - The raw data is respondent-level microdata (500+ or 600+ questions), so LangRank would have
@@ -435,22 +435,22 @@ Notes on scoring:
   (https://github.com/HackerNews/API). Threads are posted monthly by `whoishiring` since 2011-04.
 - **Third-party aggregators:** https://www.hntrends.com/ (Ryan Williams; last updated May 2024,
   so stale), https://hnhiring.com/ (live; per-technology monthly pages such as
-  https://hnhiring.com/technologies/java; a trends page at https://hnhiring.com/trends; no export
+  https://hnhiring.com/technologies/java; a trend page at https://hnhiring.com/trends; no export
   found), https://hackernewstrends.com/who-is-hiring, https://hacker-hirings.com/. None publishes
   a licensed dataset **(unverified)**.
 - **Gotchas:** LangRank would compute the metric itself from primary posts, so every value is
-  `is_derived=True` with a documented `derivation_method` (term dictionary + version). Language
+  `is_derived=True` with a documented `derivation_method` (term dictionary and version). Language
   names clash with common words (`Go`, `C`, `R`, `Swift`, `Rust`) and need careful regexes and a
   versioned dictionary. The number of posts per thread varies strongly, so report both counts and
   shares.
 - **Terms:** HN API usage terms **unverified**; content belongs to the posters.
-- **Fit:** P2. The only open, long-history, monthly jobs-flavoured signal found.
+- **Fit:** P2. The only open, long-history, monthly jobs-flavored signal found.
 
 ### Kaggle ML & DS Survey (`kaggle-survey`, candidate, static)
 
 - **Measures:** self-reported language use among data-science and ML practitioners.
 - **URLs:** https://www.kaggle.com/c/kaggle-survey-2022 (and the 2017–2021 editions).
-- **Status:** **ended after 2022.** No 2023 survey; users were still asking about it in March 2024
+- **Status:** **ended after 2022.** No. 2023 survey; users were still asking about it in March 2024
   (https://www.kaggle.com/discussions/product-feedback/483573). The 2022 edition had 23,997
   responses.
 - **License:** Kaggle competition-data terms **(unverified)**.
@@ -475,7 +475,7 @@ Notes on scoring:
 - **Sources:** PyPI downloads (BigQuery `bigquery-public-data.pypi.file_downloads`, **unverified
   current name**); npm downloads API (`api.npmjs.org/downloads`, history limited to about 18
   months per query, **unverified**); crates.io daily DB dump (**unverified license**);
-  Libraries.io (API with key, 60 requests/minute; owner Tidelift is being acquired by Sonar)
+  Libraries.io (API with a key, 60 requests/minute; owner Tidelift is being acquired by Sonar)
   (https://libraries.io/api).
 - **Fit:** P3. If ever added, as a distinct `ecosystem-*` metric family that is never plotted as
   language popularity.
@@ -548,14 +548,14 @@ Notes on scoring:
 
 ### Job-posting indices (`devjobsscanner`, `indeed`, rejected)
 
-- **DevJobsScanner:** annual blog posts on "most demanded languages," for example about 3M
-  developer jobs analysed in 2025
+- **DevJobsScanner:** annual blog posts on "most demanded languages," for example, about 3M
+  developer jobs analyzed in 2025
   (https://www.devjobsscanner.com/blog/top-8-most-demanded-programming-languages/). The site
   returns 403 to automated fetch, publishes no dataset, and is proprietary.
-- **Indeed Hiring Lab:** CC BY 4.0 daily job-postings index on GitHub
+- **Indeed-Hiring-Lab:** CC BY 4.0 daily job-postings index on GitHub
   (https://github.com/hiring-lab/job_postings_tracker), with a "Software Development" series from
   2020-02-01 (FRED `IHLIDXUSTPSOFTDEVE`). It is **occupation-level, not per language**.
-- **Reject reason:** no open per-language series. Indeed could at most serve as context for a job
+- **Reject reason:** no open per-language series. **Indeed** could at most serve as context for a job
   denominator.
 
 ### HackerRank, CoderPad/CodinGame, LeetCode (rejected)
@@ -633,7 +633,7 @@ and break the natural key's meaning.
   quota. Store the key via config or env, never in the repo.
 - Denominator options:
   - (a) all questions per month (`/search/advanced?...&filter=total`, verified), or
-  - (b) questions with at least one tracked language tag. The API cannot OR-count de-duplicated
+  - (b) questions with at least one tracked language tag. The API cannot OR-count deduplicated
     across many tags in one call. A `tagged=a;b` call is an AND. Option (b) therefore needs dumps
     or SEDE.
   - **Recommendation:** use (a) as the documented denominator for the API variant. Offer (b) only
@@ -670,7 +670,7 @@ and break the natural key's meaning.
 - Octoverse offers no dataset. Treat it as manually curated annual top-N ranks with a
   per-edition metric-definition note: 2025 used distinct monthly contributors, August 2025
   snapshot, over a September–August window. Octoverse's "#1 by contributors" is not comparable
-  with Innovation Graph pushers, and neither is comparable with RedMonk's GitHub axis.
+  with Innovation Graph pushers and neither is comparable with RedMonk's GitHub axis.
 - The plan's statement that GitHub's metric "is not interchangeable with RedMonk's" matters even
   more now: RedMonk's GitHub input is degraded after October 2025.
 
@@ -687,7 +687,7 @@ and break the natural key's meaning.
 - About 51–53 of 64 tracked languages appear per profile. Absence means "not ranked," not zero.
 - The 2026 edition is not out (404 at the expected slug). The provider must tolerate a missing or
   discontinued year.
-- Methodology changes yearly (2025 switched to manual collection and added Discord), so version
+- Methodology changes yearly (2025 switched to a manual collection and added Discord), so version
   per edition with a `methodology_url` in provenance.
 
 **Task 04.0, `jetbrains`:**
@@ -700,7 +700,7 @@ and break the natural key's meaning.
   for cached artifacts and exported data.
 - Raw microdata needs JetBrains' weighting to reproduce the published percentages, so re-tabulated
   values are derived. Prefer published report percentages as the non-derived observation.
-- Populations shift: 2025 and 2026 are weighted toward professional developers. Record the
+- Population shift: 2025 and 2026 are weighted toward professional developers. Record the
   population and weighting description as metadata, along with the exact question wording.
 - The 2026 report (tenth edition, survey May–July 2026) is expected around Q4 2026 and is not yet
   verified as published.
@@ -716,7 +716,7 @@ allows attribution-only display, and its history is paid.
    (`packages/archive/{YEAR}/json/technology.json`, 2017–2025) with `total_respondents`
    denominators. Add `admired`/`desired` metrics (2023 and later) and subgroup metrics
    (professional versus all) as distinct metrics.
-2. `pypl`: fetch `PYPL/All.js` directly. Expect whole-history re-statement each month.
+2. `pypl`: fetch `PYPL/All.js` directly. Expect a whole-history re-statement each month.
 3. `redmonk`: the cadence is now about annual, and the edition label lags publication by 3–6
    months. Annotate post-2025 editions with the SO-decline and GitHub-PR-anomaly caveats.
 4. `tiobe`: archive the monthly HTML as raw artifacts to accumulate a first-party history.
@@ -729,7 +729,7 @@ allows attribution-only display, and its history is paid.
    "encyclopedic interest" signal. Needs a curated article-title map.
 3. **`hn-hiring`** (P2): the only open, monthly, 2011-onward jobs signal. All values are
    LangRank-derived, so the derivation method has to be versioned.
-4. **`github-linguist-search`** (P3): start forward snapshot collection now, since the value
+4. **`github-linguist-search`** (P3): start a forward snapshot collection now, since the value
    accrues only with time.
 5. **`kaggle-survey`** (P3): a one-off static 2017–2022 import for a DS/ML population.
 6. **`package-registries`** (P3): only as a separate ecosystem family, never as language
@@ -757,22 +757,22 @@ allows attribution-only display, and its history is paid.
 
 ### 6.1 Edition calendar
 
-| Source | Cadence | Typical publication | Latest verified edition | Next expected | Watch signal |
-|---|---|---|---|---|---|
-| TIOBE | Monthly | First days of the month | September 2026 | Early October 2026 | Index page month header |
-| PYPL | Monthly | About the 1st–10th of the month | September 2026 (commit 2026-09-10) | About 2026-10-10 | Commit to `PYPL/All.js` |
-| RedMonk | About annual (was semiannual) | Irregular: "January" edition published April–June | January 2026 (published 2026-04-14) | A "June 2026" edition is uncertain | New post in the category feed |
-| SO Developer Survey | Annual | Late June–July historically (2025: 2025-07-29) | 2025 | 2026 results: survey opened 2026-06-23, release date unverified (likely Q4 2026) | New `packages/archive/2026/` in `StackExchange/Survey` |
-| SO data dumps (community mirror) | Quarterly | Data cut at quarter end; mirror 1–7 weeks later | `stackexchange_20260630` (posted 2026-08-17) | `stackexchange_20260930` around October–November 2026 | archive.org identifier search |
-| SO API | Continuous | — | — | — | API version / quota changes |
-| GitHub Innovation Graph | Quarterly | 3–4 months after quarter end | Q1 2026 (v1.0.11, 2026-07-07) | Q2 2026 around October–November 2026 | New release tag |
-| GitHub Octoverse | Annual | Late October–early November (2025: 2025-10-28) | 2025 | Around late October 2026 | github.blog Octoverse category |
-| IEEE Spectrum TPL | Annual | Late August–September (2021-08-24, 2022-08-23, about 2024-08-22, 2025-09-23) | 2025 | 2026 overdue: 404 as of 2026-09-24 | `/top-programming-languages-2026` status; Flourish embed ID change |
-| JetBrains DevEco | Annual | October–December (2024-12-11; 2025 about October) | 2025 (raw ZIP 2025-10-16) | 2026 report around Q4 2026 | `DevEco2026/RawData.zip` turning 403 → 200 |
-| SlashData language communities | About annual (biannual survey) | Varies | Q1 2026 (31st edition) | — | Report page edition text |
-| Wikipedia pageviews | Daily | Month complete 1–2 days after month end | — | — | API schema / deprecation notices |
-| HN "Who is hiring?" | Monthly | First weekday of the month | — | — | New `whoishiring` thread |
-| Google Trends API | — | — | Alpha | GA announcement? | developers.google.com/search/apis/trends status |
+| Source                           | Cadence                        | Typical publication                                                          | Latest verified edition                      | Next expected                                                                    | Watch signal                                                       |
+|----------------------------------|--------------------------------|------------------------------------------------------------------------------|----------------------------------------------|----------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| TIOBE                            | Monthly                        | First days of the month                                                      | September 2026                               | Early October 2026                                                               | Index page month header                                            |
+| PYPL                             | Monthly                        | About the 1st–10th of the month                                              | September 2026 (commit 2026-09-10)           | About 2026-10-10                                                                 | Commit to `PYPL/All.js`                                            |
+| RedMonk                          | About annual (was semiannual)  | Irregular: "January" edition published April–June                            | January 2026 (published 2026-04-14)          | A "June 2026" edition is uncertain                                               | New post in the category feed                                      |
+| SO Developer Survey              | Annual                         | Late June–July historically (2025: 2025-07-29)                               | 2025                                         | 2026 results: survey opened 2026-06-23, release date unverified (likely Q4 2026) | New `packages/archive/2026/` in `StackExchange/Survey`             |
+| SO data dumps (community mirror) | Quarterly                      | Data cut at quarter end; mirror 1–7 weeks later                              | `stackexchange_20260630` (posted 2026-08-17) | `stackexchange_20260930` around October–November 2026                            | archive.org identifier search                                      |
+| SO API                           | Continuous                     | —                                                                            | —                                            | —                                                                                | API version / quota changes                                        |
+| GitHub Innovation Graph          | Quarterly                      | 3–4 months after quarter end                                                 | Q1 2026 (v1.0.11, 2026-07-07)                | Q2 2026 around October–November 2026                                             | New release tag                                                    |
+| GitHub Octoverse                 | Annual                         | Late October–early November (2025: 2025-10-28)                               | 2025                                         | Around late October 2026                                                         | github.blog Octoverse category                                     |
+| IEEE Spectrum TPL                | Annual                         | Late August–September (2021-08-24, 2022-08-23, about 2024-08-22, 2025-09-23) | 2025                                         | 2026 overdue: 404 as of 2026-09-24                                               | `/top-programming-languages-2026` status; Flourish embed ID change |
+| JetBrains DevEco                 | Annual                         | October–December (2024-12-11; 2025 about October)                            | 2025 (raw ZIP 2025-10-16)                    | 2026 report around Q4 2026                                                       | `DevEco2026/RawData.zip` turning 403 → 200                         |
+| SlashData language communities   | About annual (biannual survey) | Varies                                                                       | Q1 2026 (31st edition)                       | —                                                                                | Report page edition text                                           |
+| Wikipedia pageviews              | Daily                          | Month complete 1–2 days after month end                                      | —                                            | —                                                                                | API schema / deprecation notices                                   |
+| HN "Who is hiring?"              | Monthly                        | First weekday of the month                                                   | —                                            | —                                                                                | New `whoishiring` thread                                           |
+| Google Trends API                | —                              | —                                                                            | Alpha                                        | GA announcement?                                                                 | developers.google.com/search/apis/trends status                    |
 
 ### 6.2 Facts to re-verify periodically
 
@@ -791,7 +791,7 @@ allows attribution-only display, and its history is paid.
 - **RedMonk cadence and methodology.** Whether semiannual resumes, and whether SO is dropped or
   re-weighted.
 - **TIOBE.** Any change to the engine list or methodology; price and availability of the history.
-- **PYPL.** Language-set additions or removals (for example Zig) and regional file availability.
+- **PYPL.** Language-set additions or removals (for example, Zig) and regional file availability.
 
 ### 6.3 Open research gaps
 

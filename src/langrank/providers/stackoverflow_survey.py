@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import csv
 from collections.abc import Sequence
-from datetime import UTC, date, datetime
+from datetime import date
 from pathlib import Path
+from typing import Optional
 
 from langrank.models import (
     FetchRequest,
@@ -16,18 +17,20 @@ from langrank.models import (
     SourceRecord,
     ValidationReport,
 )
-from langrank.normalization import LanguageNormalizer
-from langrank.providers.base import FetchPayload
-from langrank.providers.common import build_observation, payload_from_content
+from langrank.providers.base import BaseRatingProvider, FetchPayload
+from langrank.providers.common import (
+    build_observation,
+    payload_from_content,
+    validate_bounded_values,
+    validate_unique_observations,
+)
 
 
-class StackOverflowSurveyProvider:
+class StackOverflowSurveyProvider(BaseRatingProvider):
     provider_id = "stackoverflow-survey"
 
     def __init__(self, cache_dir: Path) -> None:
-        self._cache_dir = cache_dir / self.provider_id
-        self._normalizer = LanguageNormalizer()
-        self._retrieved_at = datetime.now(UTC)
+        super().__init__(cache_dir)
         self._data_path = Path(__file__).parent / "data" / "stackoverflow_survey.csv"
 
     def metadata(self) -> ProviderMetadata:
@@ -163,14 +166,14 @@ class StackOverflowSurveyProvider:
 
     def validate(self, observations: Sequence[Observation]) -> ValidationReport:
         report = ValidationReport()
-        seen: set[tuple[str, date, str]] = set()
+        validate_bounded_values(
+            observations,
+            report,
+            code="percentage_range",
+            metric_id="worked_with_percent",
+            message=lambda item: f"{item.language_id} worked_with_percent outside 0..100 at {item.period_label}",
+        )
         for item in observations:
-            if item.metric_id == "worked_with_percent" and item.value is not None and not 0 <= item.value <= 100:
-                report.add(
-                    Severity.ERROR,
-                    "percentage_range",
-                    f"{item.language_id} worked_with_percent outside 0..100 at {item.period_label}",
-                )
             if item.sample_size is None or item.sample_size <= 0:
                 report.add(
                     Severity.ERROR,
@@ -183,15 +186,21 @@ class StackOverflowSurveyProvider:
                     "population_required",
                     f"{item.language_id} population missing at {item.period_label}",
                 )
-            key = (item.language_id, item.period_start, item.metric_id)
-            if key in seen:
-                report.add(
-                    Severity.ERROR,
-                    "duplicate_language_year_metric",
-                    f"duplicate language/year/metric for {item.language_id} {item.period_label}",
-                )
-            seen.add(key)
+        validate_unique_observations(
+            observations,
+            report,
+            code="duplicate_language_year_metric",
+            message=lambda item: f"duplicate language/year/metric for {item.language_id} {item.period_label}",
+        )
         return report
 
-    def upstream_latest_period(self) -> str:
-        return "2025"
+    def _bundled_snapshot_payload(self) -> Optional[FetchPayload]:
+        """Return the bundled survey CSV as a snapshot payload for period reporting.
+
+        Feeds :meth:`~langrank.providers.base.BaseRatingProvider.upstream_latest_period`
+        when no cached artifact exists, without any network access.
+
+        :returns: A :class:`FetchPayload` wrapping the bundled
+            ``stackoverflow_survey.csv`` bytes.
+        """
+        return FetchPayload(artifact=None, content=self._data_path.read_bytes())

@@ -5,14 +5,14 @@ Updated as each task lands.
 
 ## Current status
 
-| Task | Name                                     | Status         | Tests |
-|------|---------------------------------------------|----------------|-------|
-| 01.0 | Database Inspection Views                    | ⬜ Not started | -     |
-| 02.0 | Improved Plotting Options                    | ⬜ Not started | -     |
-| 03.0 | Multi-Chart Report Generation                | ⬜ Not started | -     |
-| 04.0 | Alias Management Commands                    | ⬜ Not started | -     |
-| 05.0 | Historical Selection Semantics               | ⬜ Not started | -     |
-| 06.0 | Test Coverage Baseline                       | ⬜ Not started | -     |
+| Task | Name                           | Status         | Tests |
+|------|--------------------------------|----------------|-------|
+| 01.0 | Database Inspection Views      | ⬜ Not started | -     |
+| 02.0 | Improved Plotting Options      | ⬜ Not started | -     |
+| 03.0 | Multi-Chart Report Generation  | ⬜ Not started | -     |
+| 04.0 | Alias Management Commands      | ⬜ Not started | -     |
+| 05.0 | Historical Selection Semantics | ⬜ Not started | -     |
+| 06.0 | Test Coverage Baseline         | ⬜ Not started | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -33,7 +33,7 @@ Updated as each task lands.
 
 Every task is decomposed into a `{TT.t}-{task-slug}/` folder with a `README.md` (`## Subtasks`
 table) and `{NN}-{subtask-slug}.md` specs, per [docs/roadmap/README.md](/docs/roadmap/README.md).
-All subtasks are ⬜ Not started. 34 subtasks total (28 across 01.0-05.0, plus 6 in 06.0 Test Coverage Baseline, added 2026-09-25).
+All subtasks are ⬜ Not started. The 34 subtasks total (28 across 01.0-05.0, plus 6 in 06.0 Test Coverage Baseline, added 2026-09-25).
 
 ```
 docs/roadmap/0005-cli-and-storage-enhancements/
@@ -87,11 +87,13 @@ docs/roadmap/0005-cli-and-storage-enhancements/
     └── 06-coverage-gate-ci.md
 ```
 
-Task READMEs: [01.0](/docs/roadmap/0005-cli-and-storage-enhancements/01.0-database-inspection-views/README.md) ·
-[02.0](/docs/roadmap/0005-cli-and-storage-enhancements/02.0-improved-plotting-options/README.md) ·
-[03.0](/docs/roadmap/0005-cli-and-storage-enhancements/03.0-multi-chart-report/README.md) ·
-[04.0](/docs/roadmap/0005-cli-and-storage-enhancements/04.0-alias-management-commands/README.md) ·
-[05.0](/docs/roadmap/0005-cli-and-storage-enhancements/05.0-historical-selection-semantics/README.md)
+Task README:
+
+* [01.0](/docs/roadmap/0005-cli-and-storage-enhancements/01.0-database-inspection-views/README.md) ·
+* [02.0](/docs/roadmap/0005-cli-and-storage-enhancements/02.0-improved-plotting-options/README.md) ·
+* [03.0](/docs/roadmap/0005-cli-and-storage-enhancements/03.0-multi-chart-report/README.md) ·
+* [04.0](/docs/roadmap/0005-cli-and-storage-enhancements/04.0-alias-management-commands/README.md) ·
+* [05.0](/docs/roadmap/0005-cli-and-storage-enhancements/05.0-historical-selection-semantics/README.md)
 
 **Baseline findings recorded during decomposition:** `latest_observations`, `language_history`,
 `rating_coverage` views and `languages aliases` already exist (01.0/04.0 scope reduced to the

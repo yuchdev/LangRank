@@ -6,30 +6,26 @@ are in `assets/`.
 
 ## Inventory
 
-| ADR                                                            | Title                                             | Status   | Date       |
-|------------------------------------------------------------------|----------------------------------------------------|----------|------------|
-| [0001](0001-config-loading-via-layered-settings.md) *(example - delete once you have a real ADR)* | Config Loading via Layered pydantic-settings Sources | Accepted | 2026-01-15 |
+| ADR                                                           | Title                                                                      | Status   | Date       |
+|---------------------------------------------------------------|----------------------------------------------------------------------------|----------|------------|
+| [0001](0001-linear-provider-pipeline.md)                      | Linear provider pipeline with persistence-free providers                   | Accepted | 2026-09-29 |
+| [0002](0002-provenance-carrying-observations.md)              | Provenance-carrying observations; never fabricate values                   | Accepted | 2026-09-29 |
+| [0003](0003-sqlite-storage-and-natural-key-upsert.md)         | Local SQLite via raw `sqlite3`, append-only migrations, natural-key upsert | Accepted | 2026-09-29 |
+| [0004](0004-ratings-are-not-comparable-by-default.md)         | Ratings are not comparable by default; explicit normalization required     | Accepted | 2026-09-29 |
+| [0005](0005-canonical-language-catalog-and-scoped-aliases.md) | Code-defined canonical language catalog with rating-scoped aliases         | Accepted | 2026-09-29 |
+| [0006](0006-source-acquisition-policy.md)                     | Source acquisition policy: policy gate, cache-first, bundled, import       | Accepted | 2026-09-29 |
+| [0007](0007-config-resolution-precedence.md)                  | Config resolution: CLI flag > env var > TOML file > XDG default            | Accepted | 2026-09-29 |
 
-## Example ADR (delete before this project ships)
-
-[`0001-config-loading-via-layered-settings.md`](0001-config-loading-via-layered-settings.md)
-is a complete, fully-worked ADR - not a stub - shipped so `app-architect` and `/adr-write`
-have something real to read for depth and structure before this project has written its
-own first record. Its diagram, [`assets/0001-config-source-precedence.mmd`](assets/0001-config-source-precedence.mmd),
-is the matching example of when an ADR is worth a Mermaid diagram and how much detail
-belongs in one.
-
-**Delete both files once this project has written its own first real ADR.** A stale
-illustrative decision left in place afterward can be cited as prior art by mistake, or
-get chained into a real ADR's `Supersedes` link. Your first real ADR landing as `0002`
-(leaving a gap at `0001`) is expected and fine - see Naming conventions below.
+ADRs 0001-0007 were recorded retroactively on 2026-09-29: they document decisions already
+implemented and enforced by the code at the end of milestone 0001, and each header notes when
+the decision actually took effect. New ADRs start as `Proposed` (see `/adr-write`).
 
 ## Template
 
 Use `template.md` when creating a new ADR:
 
 ```bash
-cp docs/adr/template.md docs/adr/0002-short-title.md
+cp docs/adr/template.md docs/adr/0008-short-title.md
 ```
 
 Replace the template placeholders with the record's number, title, date, and status.

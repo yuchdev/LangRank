@@ -28,13 +28,13 @@ histories exist to be meaningful.
 
 ## Tasks
 
-| Task | Name                                    | Category | Output                                                                |
-|------|-------------------------------------------|----------|--------------------------------------------------------------------|
-| 01.0 | Stack Overflow Tags Provider               | provider | `providers/stackoverflow_tags.py`; monthly tag-activity + share metric |
-| 02.0 | GitHub Provider                            | provider | `providers/github.py`; Octoverse/Innovation-Graph rank & activity    |
-| 03.0 | IEEE Spectrum Provider                     | provider | `providers/ieee_spectrum.py`; annual rank/score, multi-profile support |
-| 04.0 | JetBrains Developer Ecosystem Provider     | provider | `providers/jetbrains.py`; annual usage-survey metric                 |
-| 05.0 | OOP Provider Refactoring                   | refactor | `providers/base.py`, `providers/common.py`; `BaseRatingProvider`, shared state, helper methods |
+| Task | Name                                   | Category | Output                                                                                         |
+|------|----------------------------------------|----------|------------------------------------------------------------------------------------------------|
+| 01.0 | Stack Overflow Tags Provider           | provider | `providers/stackoverflow_tags.py`; monthly tag-activity + share metric                         |
+| 02.0 | GitHub Provider                        | provider | `providers/github.py`; Octoverse/Innovation-Graph rank & activity                              |
+| 03.0 | IEEE Spectrum Provider                 | provider | `providers/ieee_spectrum.py`; annual rank/score, multi-profile support                         |
+| 04.0 | JetBrains Developer Ecosystem Provider | provider | `providers/jetbrains.py`; annual usage-survey metric                                           |
+| 05.0 | OOP Provider Refactoring               | refactor | `providers/base.py`, `providers/common.py`; `BaseRatingProvider`, shared state, helper methods |
 
 Each task is decomposed into subtask specs in its own folder: [01.0](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/README.md), [02.0](/docs/roadmap/0001-new-rating-providers/02.0-github-provider/README.md), [03.0](/docs/roadmap/0001-new-rating-providers/03.0-ieee-spectrum-provider/README.md), [04.0](/docs/roadmap/0001-new-rating-providers/04.0-jetbrains-provider/README.md), [05.0](/docs/roadmap/0001-new-rating-providers/05.0-oop-provider-refactoring/README.md).
 
@@ -52,12 +52,12 @@ parallel**.
 
 ### Provider IDs & metrics
 
-| Provider ID           | Metrics                              | Granularity | Task |
-|-------------------------|---------------------------------------|-------------|------|
-| `stackoverflow-tags`    | `questions`, `question_share`, `rank` | month       | 01.0 |
-| `github`                | `rank`, `activity`, `share` (variants: `octoverse`, `innovation-graph`) | annual | 02.0 |
-| `ieee-spectrum`         | `rank`, `score` (profiles: `default`, `jobs`, `trending`) | annual | 03.0 |
-| `jetbrains`             | `used_last_12_months`, `primary_language`, `planned_adoption` | annual | 04.0 |
+| Provider ID          | Metrics                                                                 | Granularity | Task |
+|----------------------|-------------------------------------------------------------------------|-------------|------|
+| `stackoverflow-tags` | `questions`, `question_share`, `rank`                                   | month       | 01.0 |
+| `github`             | `rank`, `activity`, `share` (variants: `octoverse`, `innovation-graph`) | annual      | 02.0 |
+| `ieee-spectrum`      | `rank`, `score` (profiles: `default`, `jobs`, `trending`)               | annual      | 03.0 |
+| `jetbrains`          | `used_last_12_months`, `primary_language`, `planned_adoption`           | annual      | 04.0 |
 
 Each ID is registered in `providers/registry.py`'s `ProviderRegistry` exactly
 like the five bootstrap providers; a provider ID is never reused for an
@@ -66,7 +66,7 @@ unrelated metric family.
 ### Legal / source-policy review gate
 
 Before any task in this milestone enables unattended, scheduled fetching for
-its source, it must document: official API/download availability, robots
+its source, it must document: official API/download availability, robot
 policy where relevant, terms of use, a reasonable request rate, and whether
 raw-artifact redistribution is allowed. If redistribution is unclear, the
 provider ships normalized derived data only, with provenance documented. This
@@ -137,7 +137,7 @@ without the explicit flag and derived-value labeling.
 
 ### Task 03.0 - IEEE Spectrum Provider
 
-**Goal:** annual composite-index ingestion with explicit multi-profile
+**Goal:** annual composite-index ingestion with explicit multiprofile
 support (IEEE publishes more than one ranking profile).
 
 - Metrics where available: `rank`, `score`, at `annual` granularity.

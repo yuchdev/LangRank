@@ -22,7 +22,7 @@ snapshot. This milestone turns that research into a repeatable, agent-assisted w
    from cited web research;
 3. a **read-only LangRank MCP server** so any agent can interrogate the local database
    (coverage, gaps, provenance, methodology) while researching, without shelling out or writing;
-4. a **provider intake scaffold** that turns a vetted note into a provider skeleton + roadmap
+4. a **provider intake scaffold** that turns a vetted note into a provider skeleton and roadmap
    task stub;
 5. a **source-watch loop** that uses the notes' publication calendar to notice new editions and
    hand a human a drafted update.
@@ -41,13 +41,13 @@ sources or reads the database.
 
 ## Tasks
 
-| Task | Name                                   | Category      | Output                                                                                     |
-|------|----------------------------------------|---------------|--------------------------------------------------------------------------------------------|
+| Task | Name                                    | Category      | Output                                                                                                    |
+|------|-----------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------|
 | 01.0 | Source Note Schema & Candidate Registry | research-docs | Front-matter schema, `TEMPLATE.md`, `scripts/check_source_notes.py`, `docs/research/source-candidates.md` |
-| 02.0 | Source Researcher Agent & Skill         | agentic       | `.claude/agents/source-researcher.md`, `/source-research` skill                              |
-| 03.0 | Read-only LangRank MCP Server           | integration   | `src/langrank/mcp/server.py`, `langrank mcp serve`, optional extra `langrank[mcp]`          |
-| 04.0 | Provider Intake Scaffold                | agentic       | `scripts/scaffold_provider.py`, `/provider-scaffold` skill                                  |
-| 05.0 | Source Watch Loop                       | agentic       | `scripts/source_calendar.py`, `.claude/loops/source-watch.md`                               |
+| 02.0 | Source Researcher Agent & Skill         | agentic       | `.claude/agents/source-researcher.md`, `/source-research` skill                                           |
+| 03.0 | Read-only LangRank MCP Server           | integration   | `src/langrank/mcp/server.py`, `langrank mcp serve`, optional extra `langrank[mcp]`                        |
+| 04.0 | Provider Intake Scaffold                | agentic       | `scripts/scaffold_provider.py`, `/provider-scaffold` skill                                                |
+| 05.0 | Source Watch Loop                       | agentic       | `scripts/source_calendar.py`, `.claude/loops/source-watch.md`                                             |
 
 Task decomposition: [01.0](/docs/roadmap/0007-source-research-tooling/01.0-source-note-schema-and-candidate-registry/README.md) ·
 [02.0](/docs/roadmap/0007-source-research-tooling/02.0-source-researcher-agent-and-skill/README.md) ·
@@ -125,7 +125,7 @@ source can be compared, prioritized, scheduled and scaffolded without re-reading
 - Backfill the four existing notes (`tiobe`, `pypl`, `redmonk`, `stackoverflow-survey`) and
   add notes for the four [Milestone 0001](/docs/roadmap/0001-new-rating-providers/plan.md)
   sources as `planned`.
-- `scripts/check_source_notes.py` is a stdlib-only validator. It parses a restricted YAML
+- `scripts/check_source_notes.py` is the stdlib-only validator. It parses a restricted YAML
   subset and also generates or checks `docs/research/source-candidates.md`, the registry
   table sorted by status and priority.
 - Wire the validator into CI and a PostToolUse hook, the same way `doc_link_check` is wired.
@@ -154,7 +154,7 @@ language indices") and writes cited, schema-valid source notes. It never touches
 
 **Success criteria:** `/source-research ieee-spectrum` produces or updates a note that
 passes the validator. Every factual field is cited or marked `(unverified)`. The agent
-definition's write scope and no-auth/no-CAPTCHA rules are covered by the security review.
+definition write scope and no-auth/no-CAPTCHA rules are covered by the security review.
 
 ---
 
@@ -171,7 +171,7 @@ shelling out.
   and the server runs over stdio. It ships as an optional extra `langrank[mcp]`, so the core
   CLI gains no new runtime dependency.
 - New CLI command `langrank mcp serve`. It imports the extra lazily and raises a
-  `ConfigurationError` with an install hint when the extra is missing.
+  `ConfigurationError` with an installation hint when the extra is missing.
 - Tools:
   - `list_ratings`
   - `list_metrics`
@@ -195,7 +195,7 @@ shelling out.
 
 **Success criteria:** the in-memory `mcp.Client` tests exercise every tool. A write attempt
 through the server's connection raises `sqlite3.OperationalError`. `langrank mcp serve`
-without the extra exits with code 2 and prints the install hint. The threat model has no
+without the extra exits with code 2 and prints the installation hint. The threat model has no
 open CRITICAL findings.
 
 ---
@@ -239,7 +239,7 @@ database.
   1. runs a cheap check: Milestone 0004 freshness when available, otherwise a
      source-researcher check of the edition page;
   2. drafts a note update on a branch;
-  3. optionally files or updates a de-duplicated GitHub issue labeled `source-watch`,
+  3. optionally files or updates a deduplicated GitHub issue labeled `source-watch`,
      through the already-configured `github` MCP server.
 - Every lifecycle transition (`due → checked → {new-edition | unchanged | error}`) ends at a
   human-visible artifact. Errors are reported and never swallowed.

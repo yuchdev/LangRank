@@ -11,7 +11,7 @@ overridden by user lookup aliases.
 
 ## Baseline
 
-- [docs/adr/0001-config-loading-via-layered-settings.md](/docs/adr/0001-config-loading-via-layered-settings.md) is the only ADR; template at [docs/adr/template.md](/docs/adr/template.md).
+- ADRs 0001-0007 are indexed in [docs/adr/README.md](/docs/adr/README.md); [0005](/docs/adr/0005-canonical-language-catalog-and-scoped-aliases.md) (code-defined catalog) is the decision this one layers on. Template at [docs/adr/template.md](/docs/adr/template.md).
 - `language_aliases` has no origin column; `seed_languages` upserts from code on every
   `Database()` construction (a user row with the same `(rating_id, source_name_norm)` would be
   overwritten - one of the hazards the ADR must address).
@@ -20,7 +20,7 @@ overridden by user lookup aliases.
 
 | Action | Path                                              | Purpose |
 |--------|---------------------------------------------------|---------|
-| Create | `docs/adr/0002-user-defined-language-aliases.md`  | ADR, status **Proposed (deferred)** (take next free number if 0002 is used) |
+| Create | `docs/adr/{NNNN}-user-defined-language-aliases.md` | ADR, status **Proposed (deferred)** (next free number) |
 | Modify | `docs/adr/README.md`                              | Index row |
 
 ## Symbols / fields

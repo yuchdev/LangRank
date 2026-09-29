@@ -32,8 +32,14 @@ Per-provider acquisition policy, quota limits, terms, and methodology gate verdi
 
 ## ADRs
 
-- [adr/README.md](/docs/adr/README.md)
-- [adr/0001-config-loading-via-layered-settings.md](/docs/adr/0001-config-loading-via-layered-settings.md)
+- [adr/README.md](/docs/adr/README.md) - ADR index and conventions.
+- [adr/0001-linear-provider-pipeline.md](/docs/adr/0001-linear-provider-pipeline.md) - Provider pipeline; providers never persist.
+- [adr/0002-provenance-carrying-observations.md](/docs/adr/0002-provenance-carrying-observations.md) - Provenance fields, derived-value flags, no fabrication.
+- [adr/0003-sqlite-storage-and-natural-key-upsert.md](/docs/adr/0003-sqlite-storage-and-natural-key-upsert.md) - SQLite, append-only migrations, natural-key upsert.
+- [adr/0004-ratings-are-not-comparable-by-default.md](/docs/adr/0004-ratings-are-not-comparable-by-default.md) - No shared raw axis across ratings.
+- [adr/0005-canonical-language-catalog-and-scoped-aliases.md](/docs/adr/0005-canonical-language-catalog-and-scoped-aliases.md) - Language catalog, scoped aliases, catalog principle.
+- [adr/0006-source-acquisition-policy.md](/docs/adr/0006-source-acquisition-policy.md) - Policy gate, acquisition modes, offline tests.
+- [adr/0007-config-resolution-precedence.md](/docs/adr/0007-config-resolution-precedence.md) - Config precedence and XDG defaults.
 
 ## Roadmap
 

@@ -5,11 +5,11 @@ Updated as each task lands.
 
 ## Current status
 
-| Task | Name                                     | Status         | Tests |
-|------|---------------------------------------------|----------------|-------|
-| 01.0 | Cross-Rating Normalization & Comparison      | ⬜ Not started | -     |
-| 02.0 | Composite Index                              | ⬜ Not started | -     |
-| 03.0 | Snapshot Comparison                          | ⬜ Not started | -     |
+| Task | Name                                    | Status         | Tests |
+|------|-----------------------------------------|----------------|-------|
+| 01.0 | Cross-Rating Normalization & Comparison | ⬜ Not started | -     |
+| 02.0 | Composite Index                         | ⬜ Not started | -     |
+| 03.0 | Snapshot Comparison                     | ⬜ Not started | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 

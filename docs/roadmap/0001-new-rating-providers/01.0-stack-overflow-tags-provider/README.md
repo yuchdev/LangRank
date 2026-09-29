@@ -6,16 +6,16 @@
 
 ## Subtasks
 
-| #  | Subtask | Role | Depends on | Status |
-|----|---------|------|------------|--------|
-| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/01-source-note-and-policy-gate.md) | Security Auditor | - | ✅ Complete |
-| 02 | [Language catalog expansion & rating-scoped aliases](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/02-rating-scoped-aliases.md) | Python Expert | - | ✅ Complete (`visual-basic` deferred - key collides with `vb.net` alias; see status.md) |
-| 03 | [Provider metadata, metrics & registry entry](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/03-metadata-and-registry.md) | Python Expert | 02 | ✅ Complete |
-| 04 | [Fetch: Stack Exchange API client, SEDE import & offline cache](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/04-fetch-api-and-offline-cache.md) | Python Expert | 03 | ✅ Complete |
-| 05 | [Parse & normalize: counts, derived share and derived rank](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/05-parse-and-normalize.md) | Python Expert | 04 | ✅ Complete |
-| 06 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/06-validate.md) | Python Expert | 05 | ✅ Complete |
-| 07 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/07-fixtures-and-contract-tests.md) | Testing Expert | 06 | ✅ Complete |
-| 08 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/08-docs.md) | Docs Writer | 07 | ✅ Complete |
+| #  | Subtask                                                                                                                                                                      | Role             | Depends on | Status                                                                                  |
+|----|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|------------|-----------------------------------------------------------------------------------------|
+| 01 | [Source note & legal/source-policy gate](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/01-source-note-and-policy-gate.md)                        | Security Auditor | -          | ✅ Complete                                                                             |
+| 02 | [Language catalog expansion & rating-scoped aliases](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/02-rating-scoped-aliases.md)                  | Python Expert    | -          | ✅ Complete (`visual-basic` deferred - key collides with `vb.net` alias; see status.md) |
+| 03 | [Provider metadata, metrics & registry entry](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/03-metadata-and-registry.md)                         | Python Expert    | 02         | ✅ Complete                                                                             |
+| 04 | [Fetch: Stack Exchange API client, SEDE import & offline cache](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/04-fetch-api-and-offline-cache.md) | Python Expert    | 03         | ✅ Complete                                                                             |
+| 05 | [Parse & normalize: counts, derived share and derived rank](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/05-parse-and-normalize.md)             | Python Expert    | 04         | ✅ Complete                                                                             |
+| 06 | [Validate: named validation codes](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/06-validate.md)                                                 | Python Expert    | 05         | ✅ Complete                                                                             |
+| 07 | [Fixtures, golden outputs & contract tests](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/07-fixtures-and-contract-tests.md)                     | Testing Expert   | 06         | ✅ Complete                                                                             |
+| 08 | [Provider documentation](/docs/roadmap/0001-new-rating-providers/01.0-stack-overflow-tags-provider/08-docs.md)                                                               | Docs Writer      | 07         | ✅ Complete                                                                             |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 
@@ -57,7 +57,7 @@ comparison because total Stack Overflow volume has fallen sharply since ~2022) a
     `GET https://api.stackexchange.com/2.3/questions?site=stackoverflow&tagged={tag}&fromdate={epoch}&todate={epoch}&filter=total`
     returns `{"total": N}` - one request per tag per month. Unauthenticated quota is
     ~300 requests/day per IP; an app `key` (env `LANGRANK_STACKEXCHANGE_KEY`, optional)
-    raises it to 10,000/day. Honour the `backoff` field in responses. 10 years × 12 months ×
+    raises it to 10,000/day. Honor the `backoff` field in responses. The 10 years × 12 months ×
     ~30 tags ≈ 3,600 requests → a full backfill needs a key or several days; incremental
     monthly updates are ~30 requests.
   - `sede` - manual import of a CSV exported from Stack Exchange Data Explorer
@@ -84,8 +84,8 @@ comparison because total Stack Overflow volume has fallen sharply since ~2022) a
 - **Month boundaries:** `fromdate` = first second of the month UTC, `todate` = last second;
   the current, incomplete month is never fetched.
 - **Shared helpers owned here:** rating-scoped aliases / `try_resolve` (subtask 02) and the
-  offline cache reader `load_cached_payload` (subtask 04) and golden-output helper (subtask
-  07) are reused by Tasks 02.0-04.0. Whichever task starts first lands them.
+  offline cache reader `load_cached_payload` (subtask [04-fetch-api-and-offline-cache.md](04-fetch-api-and-offline-cache.md)) and golden-output helper (subtask
+  [07-fixtures-and-contract-tests.md](07-fixtures-and-contract-tests.md)) are reused by Tasks 02.0-04.0. Whichever task starts first lands them.
 
 ### Open questions
 

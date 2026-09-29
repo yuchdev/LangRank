@@ -23,14 +23,14 @@ existing pipeline easier to use and inspect.
 
 ## Tasks
 
-| Task | Name                                     | Category | Output                                                                |
-|------|---------------------------------------------|----------|--------------------------------------------------------------------|
-| 01.0 | Database Inspection Views                    | storage  | `latest_observations`, `language_history`, `rating_coverage`, etc. SQL views |
-| 02.0 | Improved Plotting Options                    | cli      | `--start/--end/--smooth/--annotate-methodology/--log-y/--facet`     |
-| 03.0 | Multi-Chart Report Generation                | cli      | `langrank report`; per-rating plots + coverage + Markdown summary   |
-| 04.0 | Alias Management Commands                    | cli      | `langrank languages aliases`, `languages resolve`, `alias add`      |
-| 05.0 | Historical Selection Semantics               | cli      | Precise `--years N` / `--until` endpoint rules across services      |
-| 06.0 | Test Coverage Baseline                       | quality  | Characterization tests to the 85% `fail_under` floor; CI coverage gate |
+| Task | Name                           | Category | Output                                                                       |
+|------|--------------------------------|----------|------------------------------------------------------------------------------|
+| 01.0 | Database Inspection Views      | storage  | `latest_observations`, `language_history`, `rating_coverage`, etc. SQL views |
+| 02.0 | Improved Plotting Options      | cli      | `--start/--end/--smooth/--annotate-methodology/--log-y/--facet`              |
+| 03.0 | Multi-Chart Report Generation  | cli      | `langrank report`; per-rating plots + coverage + Markdown summary            |
+| 04.0 | Alias Management Commands      | cli      | `langrank languages aliases`, `languages resolve`, `alias add`               |
+| 05.0 | Historical Selection Semantics | cli      | Precise `--years N` / `--until` endpoint rules across services               |
+| 06.0 | Test Coverage Baseline         | quality  | Characterization tests to the 85% `fail_under` floor; CI coverage gate       |
 
 These five tasks are independent of each other and may proceed in any order,
 with one exception: Task 03.0 depends on Task 02.0 landing first (the report
@@ -39,7 +39,7 @@ Task 03.0's spec below).
 
 Each task is decomposed into subtask specs in its own folder: [01.0](/docs/roadmap/0005-cli-and-storage-enhancements/01.0-database-inspection-views/README.md), [02.0](/docs/roadmap/0005-cli-and-storage-enhancements/02.0-improved-plotting-options/README.md), [03.0](/docs/roadmap/0005-cli-and-storage-enhancements/03.0-multi-chart-report/README.md), [04.0](/docs/roadmap/0005-cli-and-storage-enhancements/04.0-alias-management-commands/README.md), [05.0](/docs/roadmap/0005-cli-and-storage-enhancements/05.0-historical-selection-semantics/README.md), [06.0](/docs/roadmap/0005-cli-and-storage-enhancements/06.0-test-coverage-baseline/README.md).
 
-Task 06.0 is independent and **recommended first**: it pins current behaviour (including known
+Task 06.0 is independent and **recommended first**: it pins current behavior (including known
 defects, as strict xfails) before Tasks 01.0-05.0 and other milestones change it.
 
 ---
@@ -103,7 +103,7 @@ actual use (avoid speculative plotting complexity).
 - Rules that must remain true regardless of which flags land: see
   [Shared conventions § Plotting invariants](#plotting-invariants).
 
-**Success criteria:** each new flag ships with a test asserting the
+**Success criteria:** each new flag is supplied with a test asserting the
 plotting invariants still hold with that flag active.
 
 ---
@@ -122,7 +122,7 @@ before.
   a CSV data subset, and a Markdown summary.
 
 **Success criteria:** the report directory is self-contained (openable
-without the CLI) and its Markdown summary references the same methodology
+without the CLI), and its Markdown summary references the same methodology
 notes stored in Milestone 0003's table.
 
 ---
@@ -173,7 +173,7 @@ behavior for a source with a stale current year.
 (`fail_under = 85`) and enforced by the local `run_tests` Stop hook (73.27% on 2026-09-24),
 and make CI enforce the same gate.
 
-- Characterization tests only - no behaviour change in `src/`. Known defects are pinned with
+- Characterization tests only - no behavior change in `src/`. Known defects are pinned with
   `pytest.mark.xfail(strict=True)` linking the owning subtask (see the
   [defect ledger](/docs/roadmap/README.md#cross-milestone-defect-ledger)).
 - Priorities by gap: `util/http.py` (0%), `cli.py` (44%), `services/status.py` (45%),

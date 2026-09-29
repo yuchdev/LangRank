@@ -6,10 +6,180 @@ See [/docs/source-notes/](/docs/source-notes/) for per-provider acquisition poli
 
 ## Provider contract
 
-Every provider implements the `RatingProvider` protocol (`src/langrank/providers/base.py`) with
-five methods: `metadata()`, `fetch(request)`, `parse(payload)`, `normalize(records)`, and
-`validate(observations)`. Providers must never write to SQLite; persistence is the service
+Every provider satisfies the `@runtime_checkable` `RatingProvider` protocol
+(`src/langrank/providers/base.py`) with six methods: `metadata()`, `fetch(request)`,
+`parse(payload)`, `normalize(records)`, `validate(observations)`, and
+`upstream_latest_period()`. Providers must never write to SQLite; persistence is the service
 layer's responsibility via `Database`.
+
+All nine concrete providers inherit from `BaseRatingProvider` (also in `providers/base.py`),
+the ABC that centralises shared state and boilerplate described in the sections below.
+
+### Protocol vs BaseRatingProvider
+
+`RatingProvider` is a structural (duck-typed) `Protocol` — any class that carries the six
+methods satisfies it at runtime via `isinstance`. It is the **type contract** that services
+and the CLI program against; they never import concrete provider classes.
+
+`BaseRatingProvider` is the **implementation base** — an abstract class that all nine built-in
+providers inherit from. It wires up the state every provider shares and provides concrete
+helpers so subclasses need only implement the five abstract pipeline methods (`metadata`,
+`fetch`, `parse`, `normalize`, `validate`):
+
+| What | Where | Purpose |
+|---|---|---|
+| `_cache_dir` | `__init__` | Provider-owned cache subdirectory (`{root}/{provider_id}`). |
+| `_normalizer` | `__init__` | Shared `LanguageNormalizer` instance. |
+| `_retrieved_at` | `__init__` | Acquisition timestamp (UTC, set once per provider instance). |
+| `last_unmapped` | `__init__` | Ordered, deduplicated list of unresolved source labels. |
+| `_stash_request_window` | method | Records `since`/`until`/`years` from the `FetchRequest`. |
+| `_filter_window` | method | Trims parsed records to the stashed window via `filter_records_by_window`. |
+| `_record_unmapped` | method | Appends a label to `last_unmapped` if not already present. |
+| `_bundled_snapshot_payload` | hook | Override to supply a repo-bundled snapshot (default: `None`). |
+| `upstream_latest_period` | concrete | Returns the latest period from cache or bundled snapshot, no network. |
+
+The `RatingProvider` protocol is `@runtime_checkable`, so `isinstance(provider,
+RatingProvider)` works at runtime. Because every `BaseRatingProvider` subclass carries all six
+protocol methods, it satisfies the protocol automatically.
+
+### Implementing a new provider
+
+All built-in providers follow this pattern. Use `providers/demo.py` as the minimal reference
+(offline, deterministic, annual granularity) and `providers/tiobe.py` as a real-world example
+(monthly, network fetch, bundled CSV fallback).
+
+**1. Subclass `BaseRatingProvider` and declare `provider_id`.**
+
+```python
+from langrank.providers.base import BaseRatingProvider, FetchPayload
+
+
+class MyProvider(BaseRatingProvider):
+    provider_id = "my-rating"  # stable slug; becomes the cache subdir name
+
+    def __init__(self, cache_dir: Path) -> None:
+        super().__init__(cache_dir)
+        # any extra per-provider state here
+```
+
+**2. Implement `metadata()`.** Return a `ProviderMetadata` with at least one `MetricDefinition`
+and the correct `native_granularity` (`Granularity.YEAR`, `.MONTH`, or `.QUARTER`).
+`native_granularity` controls how `upstream_latest_period()` formats its return value
+(`"YYYY"` vs `"YYYY-MM"`), so set it accurately.
+
+**3. Implement `fetch(request)`.** Call `_stash_request_window(request)` at the top so
+`_filter_window` picks up the window later. Use `payload_from_content` from `providers/common`
+to cache bytes and mint a `RawArtifact`. For bundled-file providers (no network), read the
+file and return a `FetchPayload` directly.
+
+```python
+from langrank.providers.common import payload_from_content
+
+
+def fetch(self, request: FetchRequest) -> FetchPayload:
+    self._stash_request_window(request)
+    content = _download(...)  # your network call
+    return payload_from_content(
+        provider_id=self.provider_id,
+        cache_dir=self._cache_dir,
+        url=source_url,
+        content=content,
+        mime_type="text/csv",
+        metadata_json={},
+        no_cache=request.no_cache,
+    )
+```
+
+**4. Implement `parse(payload)`.** Parse `payload.content` into `list[SourceRecord]`, then
+call `_filter_window(records)` before returning so the date window is applied.
+
+```python
+def parse(self, raw: FetchPayload) -> list[SourceRecord]:
+    records = _parse_csv(raw.content)
+    return self._filter_window(records)
+```
+
+**5. Implement `normalize(records)`.** Reset `self.last_unmapped = []` at the top. Resolve
+each source label with `self._normalizer.resolve(label)`: on `None`, call
+`self._record_unmapped(label)` and skip the record; on success, call `build_observation` from
+`providers/common` to mint the `Observation` with correct provenance fields.
+
+```python
+from langrank.providers.common import build_observation
+
+
+def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
+    self.last_unmapped = []
+    observations: list[Observation] = []
+    parser_version = self.metadata().parser_version
+    for record in records:
+        language_id = self._normalizer.resolve(record.language)
+        if language_id is None:
+            self._record_unmapped(record.language)
+            continue
+        observations.append(
+            build_observation(
+                record=record,
+                language_id=language_id,
+                parser_version=parser_version,
+                retrieved_at=self._retrieved_at,
+                is_derived=False,
+                derivation_method=None,
+                source_document_id=None,
+                source_published_at=None,
+            )
+        )
+    return observations
+```
+
+**6. Implement `validate(observations)`.** Use the helpers from `providers/common`:
+
+```python
+from langrank.providers.common import (
+    validate_positive_ranks,
+    validate_bounded_values,
+    validate_unique_observations,
+)
+
+
+def validate(self, observations: Sequence[Observation]) -> ValidationReport:
+    report = ValidationReport()
+    validate_positive_ranks(observations, report, metric_id="my-rating-rank")
+    validate_bounded_values(
+        observations, report, code="value_range", metric_id="my-rating-value", min_value=0.0, max_value=100.0
+    )
+    validate_unique_observations(observations, report)
+    return report
+```
+
+Each helper accepts an optional `message=` callable to preserve provider-specific wording.
+
+**7. Override `_bundled_snapshot_payload()` when the provider ships bundled data.** This
+enables `upstream_latest_period()` (and `langrank status`) to work without a network call:
+
+```python
+def _bundled_snapshot_payload(self) -> Optional[FetchPayload]:
+    content = (Path(__file__).parent / "data" / "my_rating.csv").read_bytes()
+    return FetchPayload(artifact=None, content=content)
+```
+
+**8. Register the provider.** Add an entry to `providers/registry.py`:
+
+```python
+from langrank.providers.my_rating import MyProvider
+
+PROVIDERS: dict[str, RatingProvider] = {
+    ...
+    "my-rating": MyProvider(cache_dir=cache_root),
+}
+```
+
+**9. Add language aliases** in `src/langrank/normalization/languages.py` for any source labels
+the provider uses that do not already map to a canonical language ID.
+
+**10. Add tests.** The `tests/contract/` suite is fixture-driven; add a `tests/fixtures/my_rating/`
+directory with a sample raw payload and a golden-file of expected observations. See
+[/docs/test/conventions.md](/docs/test/conventions.md) for the golden-file workflow.
 
 ### Optional capability: SupportsRawImport
 

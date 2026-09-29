@@ -25,11 +25,11 @@ interpolate; make what's actually known explicit instead.
 
 ## Tasks
 
-| Task | Name                                              | Category    | Output                                                         |
-|------|------------------------------------------------------|-------------|-------------------------------------------------------------------|
-| 01.0 | Methodology Break Tracking                            | data-model  | `rating_methodologies` table; plot annotation hooks             |
-| 02.0 | Language Births, Renames & Alias Validity Ranges      | data-model  | `valid_from`/`valid_to` on aliases; no zero-fill pre-existence history |
-| 03.0 | Data Quality Dashboard                                | data-quality| `langrank quality`; anomaly report (missing periods, gaps, stale sources) |
+| Task | Name                                             | Category     | Output                                                                    |
+|------|--------------------------------------------------|--------------|---------------------------------------------------------------------------|
+| 01.0 | Methodology Break Tracking                       | data-model   | `rating_methodologies` table; plot annotation hooks                       |
+| 02.0 | Language Births, Renames & Alias Validity Ranges | data-model   | `valid_from`/`valid_to` on aliases; no zero-fill pre-existence history    |
+| 03.0 | Data Quality Dashboard                           | data-quality | `langrank quality`; anomaly report (missing periods, gaps, stale sources) |
 
 Task 03.0 (the quality dashboard) consumes Task 01.0's methodology-boundary
 data and checks for unmapped aliases from Task 02.0's alias-validity model, so
@@ -56,7 +56,7 @@ itself.
 Task 01.0 and 02.0 both add migrations to `db/migrations.py` and need
 migration tests (append-only version, per [CLAUDE.md](/CLAUDE.md)). Task 03.0
 needs fixture data with deliberately-seeded anomalies (a gap, a duplicate
-rank, an unmapped alias) to assert each check fires. `uv run ruff check .`,
+rank, an unmapped alias) to assert each check fire. `uv run ruff check .`,
 `uv run ruff format --check .`.
 
 ---
@@ -98,7 +98,7 @@ history.
   historical aliases (don't rewrite history to the current name).
 
 **Success criteria:** a language added mid-range shows a real gap (no
-observations) before its birth date, not a zero-value series; an alias
+observations) before its birthdate, not a zero-value series; an alias
 rename is queryable both under its old and new label for the periods each
 was actually in effect.
 

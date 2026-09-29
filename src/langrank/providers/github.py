@@ -24,13 +24,17 @@ from langrank.models import (
     SourceRecord,
     ValidationReport,
 )
-from langrank.normalization import GITHUB_NON_LANGUAGES, LanguageNormalizer
-from langrank.providers.base import FetchPayload
+from langrank.normalization import GITHUB_NON_LANGUAGES
+from langrank.providers.base import BaseRatingProvider, FetchPayload
 from langrank.providers.common import (
     build_observation,
+    compute_competition_ranks,
     load_cached_payload,
     payload_from_content,
     quarter_period,
+    validate_bounded_values,
+    validate_positive_ranks,
+    validate_unique_observations,
 )
 from langrank.util.http import HttpClientFactory
 
@@ -209,7 +213,7 @@ def _resolve_source(value: Optional[str]) -> GitHubSource:
         raise ProviderError(f"unknown --source {value!r}; valid sources: {valid}.") from exc
 
 
-class GitHubProvider:
+class GitHubProvider(BaseRatingProvider):
     """Records GitHub language-popularity signals across two independent variants.
 
     The provider carries two variants selected with ``--source`` that are never
@@ -244,10 +248,8 @@ class GitHubProvider:
         :param http: HTTP client factory; injectable so tests can supply an
             ``httpx.MockTransport``. Defaults to a real factory.
         """
-        self._cache_dir = cache_dir / self.provider_id
+        super().__init__(cache_dir)
         self._http = http or HttpClientFactory()
-        self._normalizer = LanguageNormalizer()
-        self._retrieved_at = datetime.now(UTC)
         #: Curated, repo-committed Octoverse rankings CSV read at ``fetch()`` time
         #: (manual curation only, no network - GH-SEC-8).
         self._octoverse_data_path = Path(__file__).parent / "data" / "github_octoverse.csv"
@@ -257,12 +259,6 @@ class GitHubProvider:
         #: Commit SHA of the payload last produced by :meth:`fetch`, carried into
         #: :meth:`parse` when a cached (artifact-less) payload is replayed.
         self._commit_sha: Optional[str] = None
-        #: Request window stashed by :meth:`fetch` and applied in :meth:`parse`.
-        self._request_since: Optional[date] = None
-        self._request_until: Optional[date] = None
-        self._request_years: Optional[int] = None
-        #: Linguist names the last :meth:`normalize` could not map (never guessed).
-        self.last_unmapped: list[str] = []
 
     def metadata(self) -> ProviderMetadata:
         """Return the provider's static metadata: both variants' metrics and caveats.
@@ -418,9 +414,7 @@ class GitHubProvider:
             )
         source = _resolve_source(request.source)
         self._source = source
-        self._request_since = request.since
-        self._request_until = request.until
-        self._request_years = request.years
+        self._stash_request_window(request)
         if source is GitHubSource.INNOVATION_GRAPH:
             return self._fetch_innovation_graph(request)
         return self._fetch_octoverse(request)
@@ -580,7 +574,7 @@ class GitHubProvider:
         if commit_sha is None:
             raise ParseError("github payload has no commit sha; parse requires a fetched innovation-graph payload.")
         records = _parse_innovation_graph(raw.content, commit_sha=commit_sha)
-        return self._filter_window(records)
+        return self._filter_window(records, default_years=DEFAULT_YEARS)
 
     def _payload_variant(self, raw: FetchPayload) -> GitHubSource:
         """Resolve which variant a raw payload belongs to.
@@ -603,26 +597,25 @@ class GitHubProvider:
                     raise ParseError(f"github cached artifact has unknown variant {recorded!r}.") from None
         return self._source or GitHubSource.INNOVATION_GRAPH
 
-    def _filter_window(self, records: list[SourceRecord]) -> list[SourceRecord]:
-        """Filter parsed records to the request window by ``period_start``.
+    def _bundled_snapshot_payload(self) -> Optional[FetchPayload]:
+        """Return the repo-bundled Octoverse CSV for :meth:`upstream_latest_period`.
 
-        With no explicit ``--until`` the window ends at the latest quarter present
-        in the data; with no explicit ``--since`` it spans ``--years`` (default
-        :data:`DEFAULT_YEARS`) back from that end. Missing quarters are never
-        synthesised - only present rows are kept.
+        The Innovation Graph variant needs a network-resolved commit SHA to parse,
+        so it cannot back a no-network upstream probe; the manually curated Octoverse
+        rankings CSV (:attr:`_octoverse_data_path`) can. This routes the offline
+        upstream probe through the Octoverse parser by stashing the Octoverse variant
+        for :meth:`parse`. A cached Innovation Graph artifact, when present, is still
+        probed first by :meth:`_local_snapshot_payloads`; when it cannot be parsed
+        offline (no SHA) the probe falls through to this bundled snapshot instead of
+        crashing or reporting ``None``.
 
-        :param records: Records from :func:`_parse_innovation_graph`.
-        :returns: The subset whose ``period_start`` falls in ``[since, until]``.
+        :returns: The bundled Octoverse CSV payload, or ``None`` when the curated
+            file is absent.
         """
-        if not records:
-            return records
-        until = self._request_until or max(record.period_start for record in records)
-        if self._request_since is not None:
-            since = self._request_since
-        else:
-            span = self._request_years or DEFAULT_YEARS
-            since = date(until.year - span, 1, 1)
-        return [record for record in records if since <= record.period_start <= until]
+        if not self._octoverse_data_path.is_file():
+            return None
+        self._source = GitHubSource.OCTOVERSE
+        return FetchPayload(artifact=None, content=self._octoverse_data_path.read_bytes())
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
         """Normalize Innovation Graph per-economy records into a derived global series.
@@ -674,8 +667,8 @@ class GitHubProvider:
         for record in aggregated:
             language_id = self._normalizer.try_resolve(record.language, rating_id=self.provider_id)
             if language_id is None:
-                if record.language not in GITHUB_NON_LANGUAGES and record.language not in self.last_unmapped:
-                    self.last_unmapped.append(record.language)
+                if record.language not in GITHUB_NON_LANGUAGES:
+                    self._record_unmapped(record.language)
                 continue
             commit_sha = str(record.metadata.get("commit_sha", ""))
             source_document_id = f"innovationgraph@{commit_sha[:12]}"
@@ -742,8 +735,8 @@ class GitHubProvider:
         for record in records:
             language_id = self._normalizer.try_resolve(record.language, rating_id=self.provider_id)
             if language_id is None:
-                if record.language not in GITHUB_NON_LANGUAGES and record.language not in self.last_unmapped:
-                    self.last_unmapped.append(record.language)
+                if record.language not in GITHUB_NON_LANGUAGES:
+                    self._record_unmapped(record.language)
                 continue
             published_raw = record.metadata.get("published_at")
             source_published_at = (
@@ -798,31 +791,39 @@ class GitHubProvider:
         :returns: A validation report; WARNING-only reports remain ``ok``.
         """
         report = ValidationReport()
-        seen: set[tuple[str, date, str]] = set()
+
+        def label_of(item: Observation) -> str:
+            variant = _variant_of(item.metric_id) or self.provider_id
+            return f"{variant} {item.language_id} at {item.period_label}"
+
+        validate_positive_ranks(
+            observations, report, message=lambda item: f"{label_of(item)}: rank {item.rank} must be positive"
+        )
+        validate_bounded_values(
+            observations,
+            report,
+            code="share_range",
+            metric_id=METRIC_IG_SHARE,
+            message=lambda item: f"{label_of(item)}: share {item.value} is outside 0..100",
+        )
+        validate_unique_observations(
+            observations, report, message=lambda item: f"duplicate {label_of(item)} ({item.metric_id})"
+        )
         variants: set[str] = set()
         octoverse_ranks: dict[str, list[int]] = {}
         for item in observations:
-            variant = _variant_of(item.metric_id) or self.provider_id
-            variants.add(variant)
-            label = f"{variant} {item.language_id} at {item.period_label}"
-            if item.rank is not None and item.rank <= 0:
-                report.add(Severity.ERROR, "rank_positive", f"{label}: rank {item.rank} must be positive")
+            variants.add(_variant_of(item.metric_id) or self.provider_id)
+            label = label_of(item)
             if item.metric_id == METRIC_IG_PUSHERS and item.value is not None and item.value < 0:
                 report.add(
                     Severity.ERROR, "count_non_negative", f"{label}: pusher count {item.value} must be non-negative"
                 )
-            if item.metric_id == METRIC_IG_SHARE and item.value is not None and not 0 <= item.value <= 100:
-                report.add(Severity.ERROR, "share_range", f"{label}: share {item.value} is outside 0..100")
             if item.metric_id in _IG_METRIC_IDS and not item.is_derived:
                 report.add(
                     Severity.ERROR,
                     "aggregate_not_derived",
                     f"{label}: innovation-graph aggregate must set is_derived",
                 )
-            key = (item.language_id, item.period_start, item.metric_id)
-            if key in seen:
-                report.add(Severity.ERROR, "duplicate_language_period", f"duplicate {label} ({item.metric_id})")
-            seen.add(key)
             if item.metric_id == METRIC_OCTOVERSE_RANK and item.rank is not None:
                 octoverse_ranks.setdefault(item.period_label, []).append(item.rank)
         if {GitHubSource.OCTOVERSE.value, GitHubSource.INNOVATION_GRAPH.value} <= variants:
@@ -1117,20 +1118,17 @@ def _derive_ig_rank(
         by_quarter.setdefault(record.period_start, []).append((language_id, record))
     ranked: list[Observation] = []
     for quarter in sorted(by_quarter):
-        ordered = sorted(by_quarter[quarter], key=lambda item: (-(item[1].value or 0.0), item[0]))
-        current_rank = 0
-        previous_value: Optional[float] = None
-        for index, (language_id, record) in enumerate(ordered, start=1):
-            if previous_value is None or record.value != previous_value:
-                current_rank = index
-                previous_value = record.value
+        group = by_quarter[quarter]
+        ranks = compute_competition_ranks([(language_id, record.value or 0.0) for language_id, record in group])
+        for language_id, record in group:
+            rank_value = ranks[language_id]
             commit_sha = str(record.metadata.get("commit_sha", ""))
             rank_record = replace(
                 record,
                 metric_id=METRIC_IG_RANK,
                 unit="rank",
-                rank=current_rank,
-                value=float(current_rank),
+                rank=rank_value,
+                value=float(rank_value),
             )
             ranked.append(
                 build_observation(

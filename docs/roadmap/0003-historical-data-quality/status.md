@@ -5,11 +5,11 @@ Updated as each task lands.
 
 ## Current status
 
-| Task | Name                                              | Status         | Tests |
-|------|------------------------------------------------------|----------------|-------|
-| 01.0 | Methodology Break Tracking                            | ⬜ Not started | -     |
-| 02.0 | Language Births, Renames & Alias Validity Ranges      | ⬜ Not started | -     |
-| 03.0 | Data Quality Dashboard                                | ⬜ Not started | -     |
+| Task | Name                                             | Status         | Tests |
+|------|--------------------------------------------------|----------------|-------|
+| 01.0 | Methodology Break Tracking                       | ⬜ Not started | -     |
+| 02.0 | Language Births, Renames & Alias Validity Ranges | ⬜ Not started | -     |
+| 03.0 | Data Quality Dashboard                           | ⬜ Not started | -     |
 
 **Legend:** ✅ Complete · 🔶 In progress / partial · ⬜ Not started
 

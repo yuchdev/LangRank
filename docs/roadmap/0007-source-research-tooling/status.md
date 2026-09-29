@@ -42,7 +42,7 @@ The seed research survey lives in
   in the optional extra.
 - **Read-only is enforced, not promised:** the MCP server opens SQLite with `mode=ro` and
   bypasses `Database.__init__`, which currently always runs `migrate()` and
-  `seed_languages()`. That is a write on every construction.
+  `seed_languages()`. That is a writing on every construction.
 - **Stdlib-only scripts:** `check_source_notes.py`, `scaffold_provider.py` and
   `source_calendar.py` use a restricted YAML front-matter subset parser rather than adding
   PyYAML, matching the no-dependency convention of the existing `scripts/`.

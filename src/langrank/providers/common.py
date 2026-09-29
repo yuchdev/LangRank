@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import re
+from collections.abc import Callable, Sequence
 from dataclasses import asdict
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -11,7 +12,7 @@ from typing import Optional
 from uuid import uuid4
 
 from langrank.errors import FetchError
-from langrank.models import Observation, RawArtifact, SourceRecord
+from langrank.models import Observation, RawArtifact, Severity, SourceRecord, ValidationReport
 from langrank.providers.base import FetchPayload
 
 # Cache filename extensions written by :func:`payload_from_content`, newest-first
@@ -147,6 +148,186 @@ def payload_from_content(
             },
         )
     return FetchPayload(artifact=artifact, content=content)
+
+
+def filter_records_by_window(
+    records: Sequence[SourceRecord],
+    *,
+    since: Optional[date] = None,
+    until: Optional[date] = None,
+    years: Optional[int] = None,
+    default_years: int = 10,
+) -> list[SourceRecord]:
+    """Trim parsed records to a request window keyed on ``period_start``.
+
+    Reproduces the shared window semantics of the quarterly / annual providers: with
+    no explicit ``until`` the window ends at the latest ``period_start`` present in the
+    data (missing periods are never synthesised), and with no explicit ``since`` it
+    spans ``years`` (or ``default_years`` when ``years`` is unset or zero) back from
+    that end, anchored to January 1 of the resulting year. Only records already present
+    are kept - nothing is fabricated or interpolated. Pure over its inputs: no network,
+    no database.
+
+    :param records: The parsed source records to filter.
+    :param since: The inclusive lower bound, or ``None`` to derive it from the window
+        span ending at ``until``.
+    :param until: The inclusive upper bound, or ``None`` to use the latest
+        ``period_start`` present in ``records``.
+    :param years: The window span in years when ``since`` is ``None``; ``None`` or
+        zero falls back to ``default_years``.
+    :param default_years: The span used when neither ``since`` nor a positive ``years``
+        is supplied.
+    :returns: The subset whose ``period_start`` falls in ``[since, until]``, as a new
+        list; an empty input yields an empty list.
+    """
+    if not records:
+        return list(records)
+    window_end = until or max(record.period_start for record in records)
+    if since is not None:
+        window_start = since
+    else:
+        span = years or default_years
+        window_start = date(window_end.year - span, 1, 1)
+    return [record for record in records if window_start <= record.period_start <= window_end]
+
+
+def compute_competition_ranks(items: Sequence[tuple[str, float]]) -> dict[str, int]:
+    """Assign standard competition ranks (1, 2, 2, 4) over ``(id, value)`` pairs.
+
+    Ranks a single group (e.g. one period) by value in descending order, so the
+    highest value is rank 1. Equal values share a rank and the next distinct value
+    skips the tied positions, yielding the ``1, 2, 2, 4`` competition pattern. Ties are
+    broken by ascending id purely so the ordering is deterministic; tied items still
+    receive the same rank regardless of that order. Value equality is exact float
+    equality, matching the duplicated provider implementations. Pure over its inputs.
+
+    :param items: The ``(id, value)`` pairs to rank; ids should be unique within the
+        group (a repeated id keeps its last-seen rank).
+    :returns: A mapping of each id to its competition rank; empty for empty input.
+    """
+    ordered = sorted(items, key=lambda item: (-item[1], item[0]))
+    ranks: dict[str, int] = {}
+    current_rank = 0
+    previous_value: Optional[float] = None
+    for index, (identifier, value) in enumerate(ordered, start=1):
+        if previous_value is None or value != previous_value:
+            current_rank = index
+            previous_value = value
+        ranks[identifier] = current_rank
+    return ranks
+
+
+def validate_positive_ranks(
+    observations: Sequence[Observation],
+    report: ValidationReport,
+    *,
+    metric_id: Optional[str] = None,
+    code: str = "rank_positive",
+    severity: Severity = Severity.ERROR,
+    message: Optional[Callable[[Observation], str]] = None,
+) -> None:
+    """Flag observations whose ``rank`` is present but not strictly positive.
+
+    Appends one issue per offending observation to ``report``; a ``None`` rank is
+    never flagged (missing data stays missing). When ``metric_id`` is given only
+    observations carrying that exact metric are checked, otherwise every observation
+    is. The default message matches the wording shared by the rank-checking providers;
+    pass ``message`` to reproduce a provider's own phrasing verbatim.
+
+    :param observations: The observations to check.
+    :param report: The report to append issues to (mutated in place).
+    :param metric_id: When set, only observations with this metric id are checked.
+    :param code: The issue code recorded for each violation.
+    :param severity: The issue severity recorded for each violation.
+    :param message: Optional callable building the issue message from the offending
+        observation; defaults to ``"{language_id} rank must be positive"``.
+    :returns: ``None``; ``report`` is mutated in place.
+    """
+    for observation in observations:
+        if metric_id is not None and observation.metric_id != metric_id:
+            continue
+        if observation.rank is not None and observation.rank <= 0:
+            text = message(observation) if message is not None else f"{observation.language_id} rank must be positive"
+            report.add(severity, code, text)
+
+
+def validate_bounded_values(
+    observations: Sequence[Observation],
+    report: ValidationReport,
+    *,
+    code: str,
+    metric_id: Optional[str] = None,
+    min_value: float = 0.0,
+    max_value: float = 100.0,
+    severity: Severity = Severity.ERROR,
+    message: Optional[Callable[[Observation], str]] = None,
+) -> None:
+    """Flag observations whose ``value`` falls outside ``[min_value, max_value]``.
+
+    Appends one issue per offending observation to ``report``; a ``None`` value is
+    never flagged. When ``metric_id`` is given only observations carrying that exact
+    metric are checked, otherwise every observation is (some providers bound every
+    metric). The bound is inclusive on both ends. Pass ``message`` to reproduce a
+    provider's own phrasing verbatim.
+
+    :param observations: The observations to check.
+    :param report: The report to append issues to (mutated in place).
+    :param code: The issue code recorded for each violation.
+    :param metric_id: When set, only observations with this metric id are checked.
+    :param min_value: The inclusive lower bound.
+    :param max_value: The inclusive upper bound.
+    :param severity: The issue severity recorded for each violation.
+    :param message: Optional callable building the issue message from the offending
+        observation; defaults to
+        ``"{language_id} value outside {min}..{max} at {period_label}"``.
+    :returns: ``None``; ``report`` is mutated in place.
+    """
+    for observation in observations:
+        if metric_id is not None and observation.metric_id != metric_id:
+            continue
+        value = observation.value
+        if value is not None and not min_value <= value <= max_value:
+            if message is not None:
+                text = message(observation)
+            else:
+                text = f"{observation.language_id} value outside {min_value}..{max_value} at {observation.period_label}"
+            report.add(severity, code, text)
+
+
+def validate_unique_observations(
+    observations: Sequence[Observation],
+    report: ValidationReport,
+    *,
+    code: str = "duplicate_language_period",
+    severity: Severity = Severity.ERROR,
+    message: Optional[Callable[[Observation], str]] = None,
+) -> None:
+    """Flag repeated ``(language_id, period_start, metric_id)`` triples.
+
+    Appends one issue for each observation whose natural key has already been seen in
+    ``observations``; the first occurrence of a key is never flagged. This mirrors the
+    upsert natural key used by the store, so a duplicate here would collide on upsert.
+    Pass ``message`` to reproduce a provider's own phrasing verbatim.
+
+    :param observations: The observations to check.
+    :param report: The report to append issues to (mutated in place).
+    :param code: The issue code recorded for each violation.
+    :param severity: The issue severity recorded for each violation.
+    :param message: Optional callable building the issue message from the duplicate
+        observation; defaults to
+        ``"duplicate language/period metric for {language_id} {period_label}"``.
+    :returns: ``None``; ``report`` is mutated in place.
+    """
+    seen: set[tuple[str, date, str]] = set()
+    for observation in observations:
+        key = (observation.language_id, observation.period_start, observation.metric_id)
+        if key in seen:
+            if message is not None:
+                text = message(observation)
+            else:
+                text = f"duplicate language/period metric for {observation.language_id} {observation.period_label}"
+            report.add(severity, code, text)
+        seen.add(key)
 
 
 def build_observation(
