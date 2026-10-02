@@ -6,6 +6,7 @@ from datetime import date
 from pathlib import Path
 from typing import Optional
 
+from langrank.errors import ParseError
 from langrank.models import (
     FetchRequest,
     Granularity,
@@ -25,6 +26,8 @@ from langrank.providers.common import (
     validate_unique_observations,
 )
 
+RANK_DERIVATION_METHOD = "rank_by_worked_with_percent"
+
 
 class StackOverflowSurveyProvider(BaseRatingProvider):
     provider_id = "stackoverflow-survey"
@@ -42,7 +45,7 @@ class StackOverflowSurveyProvider(BaseRatingProvider):
             default_metric="worked_with_percent",
             native_granularity=Granularity.YEAR,
             caveats=["Yearly snapshots with schema-adapter lineage tracked in metadata."],
-            parser_version="stackoverflow-survey-v1",
+            parser_version="stackoverflow-survey-v2",
             metrics=[
                 MetricDefinition(
                     id="worked_with_percent",
@@ -86,76 +89,81 @@ class StackOverflowSurveyProvider(BaseRatingProvider):
         )
 
     def parse(self, raw: FetchPayload) -> list[SourceRecord]:
-        rows = csv.DictReader(raw.content.decode("utf-8").splitlines())
-        by_year: dict[int, list[dict[str, str]]] = {}
-        for row in rows:
-            by_year.setdefault(int(row["year"]), []).append(row)
+        self._capture_payload_timestamp(raw)
+        try:
+            rows = csv.DictReader(raw.content.decode("utf-8").splitlines())
+            by_year: dict[int, list[dict[str, str]]] = {}
+            for row in rows:
+                by_year.setdefault(int(row["year"]), []).append(row)
 
-        records: list[SourceRecord] = []
-        for year, rows_for_year in sorted(by_year.items()):
-            ranked = sorted(
-                rows_for_year,
-                key=lambda row: (-float(row["worked_with_percent"]), row["language"].lower()),
-            )
-            rank_map = {item["language"]: index for index, item in enumerate(ranked, start=1)}
-            for row in rows_for_year:
-                period_start = date(year, 1, 1)
-                period_end = date(year, 12, 31)
-                metadata = {
-                    "provenance": row.get("provenance") or "official",
-                    "schema_adapter": f"{year}-language-worked-with",
-                    "column": "LanguageWorkedWith" if year <= 2020 else "LanguageHaveWorkedWith",
-                    "delimiter": ";",
-                    "denominator_rule": "respondents answering language usage question",
-                    "sample_size": int(row["sample_size"]),
-                    "population": row["population"],
-                }
-                records.append(
-                    SourceRecord(
-                        rating_id=self.provider_id,
-                        metric_id="worked_with_percent",
-                        language=row["language"],
-                        period_start=period_start,
-                        period_end=period_end,
-                        period_label=str(year),
-                        granularity=Granularity.YEAR,
-                        rank=rank_map[row["language"]],
-                        value=float(row["worked_with_percent"]),
-                        unit="percent",
-                        source_url=row["source_url"],
-                        metadata=metadata,
-                    )
+            records: list[SourceRecord] = []
+            for year, rows_for_year in sorted(by_year.items()):
+                ranked = sorted(
+                    rows_for_year,
+                    key=lambda row: (-float(row["worked_with_percent"]), row["language"].lower()),
                 )
-                records.append(
-                    SourceRecord(
-                        rating_id=self.provider_id,
-                        metric_id="stackoverflow-survey-rank",
-                        language=row["language"],
-                        period_start=period_start,
-                        period_end=period_end,
-                        period_label=str(year),
-                        granularity=Granularity.YEAR,
-                        rank=rank_map[row["language"]],
-                        value=float(rank_map[row["language"]]),
-                        unit="rank",
-                        source_url=row["source_url"],
-                        metadata=metadata,
+                rank_map = {item["language"]: index for index, item in enumerate(ranked, start=1)}
+                for row in rows_for_year:
+                    period_start = date(year, 1, 1)
+                    period_end = date(year, 12, 31)
+                    metadata = {
+                        "provenance": row.get("provenance") or "official",
+                        "schema_adapter": f"{year}-language-worked-with",
+                        "column": "LanguageWorkedWith" if year <= 2020 else "LanguageHaveWorkedWith",
+                        "delimiter": ";",
+                        "denominator_rule": "respondents answering language usage question",
+                        "sample_size": int(row["sample_size"]),
+                        "population": row["population"],
+                    }
+                    records.append(
+                        SourceRecord(
+                            rating_id=self.provider_id,
+                            metric_id="worked_with_percent",
+                            language=row["language"],
+                            period_start=period_start,
+                            period_end=period_end,
+                            period_label=str(year),
+                            granularity=Granularity.YEAR,
+                            rank=rank_map[row["language"]],
+                            value=float(row["worked_with_percent"]),
+                            unit="percent",
+                            source_url=row["source_url"],
+                            metadata=metadata,
+                        )
                     )
-                )
-        return records
+                    records.append(
+                        SourceRecord(
+                            rating_id=self.provider_id,
+                            metric_id="stackoverflow-survey-rank",
+                            language=row["language"],
+                            period_start=period_start,
+                            period_end=period_end,
+                            period_label=str(year),
+                            granularity=Granularity.YEAR,
+                            rank=rank_map[row["language"]],
+                            value=float(rank_map[row["language"]]),
+                            unit="rank",
+                            source_url=row["source_url"],
+                            metadata=metadata,
+                        )
+                    )
+            return records
+        except (ValueError, KeyError, TypeError, csv.Error) as exc:
+            raise ParseError("stackoverflow-survey payload is malformed.") from exc
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
         parser_version = self.metadata().parser_version
         observations: list[Observation] = []
         for record in records:
+            is_rank = record.metric_id == "stackoverflow-survey-rank"
             observations.append(
                 build_observation(
                     record=record,
                     language_id=self._normalizer.resolve(record.language),
                     parser_version=parser_version,
                     retrieved_at=self._retrieved_at,
-                    is_derived=False,
-                    derivation_method=None,
+                    is_derived=is_rank,
+                    derivation_method=RANK_DERIVATION_METHOD if is_rank else None,
                     source_document_id=record.period_label,
                     source_published_at=None,
                     sample_size=record.metadata.get("sample_size"),
@@ -174,6 +182,14 @@ class StackOverflowSurveyProvider(BaseRatingProvider):
             message=lambda item: f"{item.language_id} worked_with_percent outside 0..100 at {item.period_label}",
         )
         for item in observations:
+            if item.metric_id == "stackoverflow-survey-rank" and (
+                not item.is_derived or item.derivation_method != RANK_DERIVATION_METHOD
+            ):
+                report.add(
+                    Severity.ERROR,
+                    "rank_not_derived",
+                    f"{item.language_id} survey rank must record its derivation at {item.period_label}",
+                )
             if item.sample_size is None or item.sample_size <= 0:
                 report.add(
                     Severity.ERROR,

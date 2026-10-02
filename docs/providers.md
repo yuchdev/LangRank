@@ -30,13 +30,14 @@ helpers so subclasses need only implement the five abstract pipeline methods (`m
 |---|---|---|
 | `_cache_dir` | `__init__` | Provider-owned cache subdirectory (`{root}/{provider_id}`). |
 | `_normalizer` | `__init__` | Shared `LanguageNormalizer` instance. |
-| `_retrieved_at` | `__init__` | Acquisition timestamp (UTC, set once per provider instance). |
+| `_retrieved_at` | `__init__` / `parse` | UTC acquisition timestamp; production parsers capture the payload artifact time, or local import/replay time when no artifact is supplied. |
 | `last_unmapped` | `__init__` | Ordered, deduplicated list of unresolved source labels. |
 | `_stash_request_window` | method | Records `since`/`until`/`years` from the `FetchRequest`. |
 | `_filter_window` | method | Trims parsed records to the stashed window via `filter_records_by_window`. |
 | `_record_unmapped` | method | Appends a label to `last_unmapped` if not already present. |
+| `_capture_payload_timestamp` | method | Captures the artifact's acquisition time for subsequent normalization. |
 | `_bundled_snapshot_payload` | hook | Override to supply a repo-bundled snapshot (default: `None`). |
-| `upstream_latest_period` | concrete | Returns the latest period from cache or bundled snapshot, no network. |
+| `upstream_latest_period` | concrete | Returns the latest period from cache or bundled snapshot, no network; probes an isolated copy without a prior request window. |
 
 The `RatingProvider` protocol is `@runtime_checkable`, so `isinstance(provider,
 RatingProvider)` works at runtime. Because every `BaseRatingProvider` subclass carries all six

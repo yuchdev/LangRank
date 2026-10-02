@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -28,6 +31,70 @@ _COMMIT_SHA = "054c7dbc527518fa2ecfd316efe2aa01f3986c39"
 #: Every metric id owned by each variant; the two sets must never overlap.
 _OCTOVERSE_METRICS = frozenset({METRIC_OCTOVERSE_RANK})
 _IG_METRICS = frozenset({METRIC_IG_PUSHERS, METRIC_IG_SHARE, METRIC_IG_RANK})
+
+
+@pytest.mark.parametrize("variant", ["innovation-graph", "octoverse"])
+def test_upstream_probe_recovers_cached_variant_and_sha(
+    tmp_path: Path, variant: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fresh provider probes its actual cache instead of silently using the bundle."""
+    provider = GitHubProvider(tmp_path)
+
+    def fail_network(*args: object, **kwargs: object) -> None:
+        raise AssertionError("upstream probe attempted network access")
+
+    monkeypatch.setattr(provider._http, "get_json", fail_network)
+    monkeypatch.setattr(provider._http, "get_capped_bytes", fail_network)
+    provider._cache_dir.mkdir(parents=True)
+    if variant == "innovation-graph":
+        content = (_FIXTURES / "innovation_graph_languages.csv").read_bytes()
+        expected = "2026-01"
+    else:
+        lines = (_FIXTURES / "octoverse.csv").read_text().splitlines()
+        content = ("\n".join([lines[0], *[line for line in lines[1:] if line.startswith("2024,")]]) + "\n").encode()
+        expected = "2024-01"
+    sha = hashlib.sha256(content).hexdigest()
+    (provider._cache_dir / f"github-{sha[:12]}.csv").write_bytes(content)
+    if variant == "innovation-graph":
+        (provider._cache_dir / f"github-{sha[:12]}.meta").write_text(
+            json.dumps({"csv_sha256": sha, "commit_sha": _COMMIT_SHA})
+        )
+    assert provider.upstream_latest_period() == expected
+    assert provider._source is None
+    assert provider._commit_sha is None
+
+
+@pytest.mark.parametrize("sidecar", [None, "bad-json", "wrong-hash", "wrong-sha"])
+def test_upstream_probe_rejects_invalid_ig_sidecar(tmp_path: Path, sidecar: str | None) -> None:
+    """Cache probing must retain the same SHA and integrity checks as offline fetch."""
+    provider = GitHubProvider(tmp_path)
+    provider._cache_dir.mkdir(parents=True)
+    content = (_FIXTURES / "innovation_graph_languages.csv").read_bytes()
+    sha = hashlib.sha256(content).hexdigest()
+    (provider._cache_dir / f"github-{sha[:12]}.csv").write_bytes(content)
+    if sidecar is not None:
+        metadata = {"csv_sha256": sha, "commit_sha": _COMMIT_SHA}
+        if sidecar == "wrong-hash":
+            metadata["csv_sha256"] = "0" * 64
+        if sidecar == "wrong-sha":
+            metadata["commit_sha"] = "invalid"
+        (provider._cache_dir / f"github-{sha[:12]}.meta").write_text(
+            "{broken" if sidecar == "bad-json" else json.dumps(metadata)
+        )
+    assert provider.upstream_latest_period() == "2025-01"
+    assert provider._source is None
+    assert provider._commit_sha is None
+
+
+def test_empty_normalize_clears_previous_unmapped(tmp_path: Path) -> None:
+    """An empty batch must not inherit warnings from a previous normalization."""
+    provider = _octoverse(tmp_path)
+    record = replace(provider.parse(_payload("octoverse.csv"))[0], language="DefinitelyUnmapped")
+    assert provider.normalize([record, record]) == []
+    assert provider.last_unmapped == ["DefinitelyUnmapped"]
+    assert provider.normalize([]) == []
+    assert provider.last_unmapped == []
+    assert not [issue for issue in provider.validate([]).issues if issue.code == "unmapped_language"]
 
 
 def _payload(name: str) -> FetchPayload:

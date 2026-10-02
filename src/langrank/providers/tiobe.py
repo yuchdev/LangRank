@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import csv
+from calendar import monthrange
 from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 from typing import Optional
 
+from langrank.errors import ParseError
 from langrank.models import (
     FetchRequest,
     Granularity,
@@ -42,7 +44,7 @@ class TiobeProvider(BaseRatingProvider):
             default_metric="tiobe-rating",
             native_granularity=Granularity.MONTH,
             caveats=["Historical imports may include documented fallback reconstruction."],
-            parser_version="tiobe-v1",
+            parser_version="tiobe-v2",
             metrics=[
                 MetricDefinition(
                     id="tiobe-rank",
@@ -88,45 +90,51 @@ class TiobeProvider(BaseRatingProvider):
         )
 
     def parse(self, raw: FetchPayload) -> list[SourceRecord]:
-        rows = csv.DictReader(raw.content.decode("utf-8").splitlines())
-        records: list[SourceRecord] = []
-        for row in rows:
-            period_start = date.fromisoformat(row["period"])
-            period_end = date(period_start.year, period_start.month, 28)
-            meta = {"provenance": row.get("provenance") or "official"}
-            records.append(
-                SourceRecord(
-                    rating_id=self.provider_id,
-                    metric_id="tiobe-rating",
-                    language=row["language"],
-                    period_start=period_start,
-                    period_end=period_end,
-                    period_label=period_start.strftime("%Y-%m"),
-                    granularity=Granularity.MONTH,
-                    rank=int(row["rank"]),
-                    value=float(row["rating"]),
-                    unit="percent",
-                    source_url=row["source_url"],
-                    metadata=meta,
+        self._capture_payload_timestamp(raw)
+        try:
+            rows = csv.DictReader(raw.content.decode("utf-8").splitlines())
+            records: list[SourceRecord] = []
+            for row in rows:
+                period_start = date.fromisoformat(row["period"])
+                period_end = date(
+                    period_start.year, period_start.month, monthrange(period_start.year, period_start.month)[1]
                 )
-            )
-            records.append(
-                SourceRecord(
-                    rating_id=self.provider_id,
-                    metric_id="tiobe-rank",
-                    language=row["language"],
-                    period_start=period_start,
-                    period_end=period_end,
-                    period_label=period_start.strftime("%Y-%m"),
-                    granularity=Granularity.MONTH,
-                    rank=int(row["rank"]),
-                    value=float(row["rank"]),
-                    unit="rank",
-                    source_url=row["source_url"],
-                    metadata=meta,
+                meta = {"provenance": row.get("provenance") or "official"}
+                records.append(
+                    SourceRecord(
+                        rating_id=self.provider_id,
+                        metric_id="tiobe-rating",
+                        language=row["language"],
+                        period_start=period_start,
+                        period_end=period_end,
+                        period_label=period_start.strftime("%Y-%m"),
+                        granularity=Granularity.MONTH,
+                        rank=int(row["rank"]),
+                        value=float(row["rating"]),
+                        unit="percent",
+                        source_url=row["source_url"],
+                        metadata=meta,
+                    )
                 )
-            )
-        return records
+                records.append(
+                    SourceRecord(
+                        rating_id=self.provider_id,
+                        metric_id="tiobe-rank",
+                        language=row["language"],
+                        period_start=period_start,
+                        period_end=period_end,
+                        period_label=period_start.strftime("%Y-%m"),
+                        granularity=Granularity.MONTH,
+                        rank=int(row["rank"]),
+                        value=float(row["rank"]),
+                        unit="rank",
+                        source_url=row["source_url"],
+                        metadata=meta,
+                    )
+                )
+            return records
+        except (ValueError, KeyError, TypeError, csv.Error) as exc:
+            raise ParseError("tiobe payload is malformed.") from exc
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
         notes = self.metadata().parser_version

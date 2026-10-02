@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import csv
+from calendar import monthrange
 from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 from typing import Optional
 
+from langrank.errors import ParseError
 from langrank.models import (
     FetchRequest,
     Granularity,
@@ -42,7 +44,7 @@ class PyplProvider(BaseRatingProvider):
             default_metric="pypl-share",
             native_granularity=Granularity.MONTH,
             caveats=["C/C++ is published as a combined category and remains combined."],
-            parser_version="pypl-v1",
+            parser_version="pypl-v2",
             metrics=[
                 MetricDefinition(
                     id="pypl-rank",
@@ -86,51 +88,57 @@ class PyplProvider(BaseRatingProvider):
         )
 
     def parse(self, raw: FetchPayload) -> list[SourceRecord]:
-        rows = csv.DictReader(raw.content.decode("utf-8").splitlines())
-        records: list[SourceRecord] = []
-        for row in rows:
-            period_start = date.fromisoformat(row["period"])
-            period_end = date(period_start.year, period_start.month, 28)
-            meta = {
-                "provenance": row.get("provenance") or "published",
-                "is_derived": row.get("is_derived") == "1",
-                "derivation_method": row.get("derivation_method") or None,
-            }
-            rank = int(row["rank"])
-            share = float(row["share"])
-            records.append(
-                SourceRecord(
-                    rating_id=self.provider_id,
-                    metric_id="pypl-share",
-                    language=row["language"],
-                    period_start=period_start,
-                    period_end=period_end,
-                    period_label=period_start.strftime("%Y-%m"),
-                    granularity=Granularity.MONTH,
-                    rank=rank,
-                    value=share,
-                    unit="percent",
-                    source_url=row["source_url"],
-                    metadata=meta,
+        self._capture_payload_timestamp(raw)
+        try:
+            rows = csv.DictReader(raw.content.decode("utf-8").splitlines())
+            records: list[SourceRecord] = []
+            for row in rows:
+                period_start = date.fromisoformat(row["period"])
+                period_end = date(
+                    period_start.year, period_start.month, monthrange(period_start.year, period_start.month)[1]
                 )
-            )
-            records.append(
-                SourceRecord(
-                    rating_id=self.provider_id,
-                    metric_id="pypl-rank",
-                    language=row["language"],
-                    period_start=period_start,
-                    period_end=period_end,
-                    period_label=period_start.strftime("%Y-%m"),
-                    granularity=Granularity.MONTH,
-                    rank=rank,
-                    value=float(rank),
-                    unit="rank",
-                    source_url=row["source_url"],
-                    metadata=meta,
+                meta = {
+                    "provenance": row.get("provenance") or "published",
+                    "is_derived": row.get("is_derived") == "1",
+                    "derivation_method": row.get("derivation_method") or None,
+                }
+                rank = int(row["rank"])
+                share = float(row["share"])
+                records.append(
+                    SourceRecord(
+                        rating_id=self.provider_id,
+                        metric_id="pypl-share",
+                        language=row["language"],
+                        period_start=period_start,
+                        period_end=period_end,
+                        period_label=period_start.strftime("%Y-%m"),
+                        granularity=Granularity.MONTH,
+                        rank=rank,
+                        value=share,
+                        unit="percent",
+                        source_url=row["source_url"],
+                        metadata=meta,
+                    )
                 )
-            )
-        return records
+                records.append(
+                    SourceRecord(
+                        rating_id=self.provider_id,
+                        metric_id="pypl-rank",
+                        language=row["language"],
+                        period_start=period_start,
+                        period_end=period_end,
+                        period_label=period_start.strftime("%Y-%m"),
+                        granularity=Granularity.MONTH,
+                        rank=rank,
+                        value=float(rank),
+                        unit="rank",
+                        source_url=row["source_url"],
+                        metadata=meta,
+                    )
+                )
+            return records
+        except (ValueError, KeyError, TypeError, csv.Error) as exc:
+            raise ParseError("pypl payload is malformed.") from exc
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
         parser_version = self.metadata().parser_version

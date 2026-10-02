@@ -13,12 +13,16 @@ from __future__ import annotations
 import re
 import socket
 import tempfile
+from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from langrank.models import Granularity
-from langrank.providers.base import BaseRatingProvider, RatingProvider
+from langrank.errors import ParseError
+from langrank.models import FetchRequest, Granularity, RawArtifact
+from langrank.providers.base import BaseRatingProvider, FetchPayload, RatingProvider
+from langrank.providers.github import GitHubSource
 from langrank.providers.registry import ProviderRegistry
 
 #: The providers milestone 0001 registers; pinned so a dropped/renamed provider
@@ -118,3 +122,110 @@ def test_upstream_latest_period_offline_matches_granularity(registry: ProviderRe
     granularity = provider.metadata().native_granularity
     pattern = _YEAR_RE if granularity is Granularity.YEAR else _MONTH_RE
     assert pattern.match(period) is not None, (provider_id, granularity, period)
+
+
+@pytest.mark.usefixtures("_no_network")
+@pytest.mark.parametrize("provider_id", ["github", "stackoverflow-tags"])
+def test_upstream_probe_preserves_pending_pipeline(registry: ProviderRegistry, provider_id: str) -> None:
+    """An offline status probe must not change a pending parse/normalize operation."""
+    provider = registry.get(provider_id)
+    fixtures = Path(__file__).parents[1] / "fixtures"
+    if provider_id == "github":
+        provider._source = GitHubSource.INNOVATION_GRAPH
+        provider._commit_sha = "054c7dbc527518fa2ecfd316efe2aa01f3986c39"
+        payload = FetchPayload(None, (fixtures / "github/innovation_graph_languages.csv").read_bytes())
+        before = provider.parse(payload)
+        state = (provider._source, provider._commit_sha)
+        provider.upstream_latest_period()
+        assert (provider._source, provider._commit_sha) == state
+        assert provider.parse(payload) == before
+    else:
+        content = (fixtures / "stackoverflow-tags/api_sample.json").read_bytes()
+        artifact = RawArtifact(
+            id="fixture",
+            rating_id=provider_id,
+            url="https://example.test",
+            retrieved_at=datetime(2024, 4, 1, tzinfo=UTC),
+            sha256="fixture",
+            mime_type="application/json",
+            local_path="unused",
+        )
+        records = provider.parse(FetchPayload(artifact, content))
+        before = provider.normalize(records)
+        provider._cache_dir.mkdir(parents=True)
+        (provider._cache_dir / f"{provider_id}-fixture.json").write_bytes(content)
+        assert provider.upstream_latest_period() == "2024-03"
+        assert provider.normalize(records) == before
+
+
+@pytest.mark.usefixtures("_no_network")
+@pytest.mark.parametrize(
+    ("provider_id", "expected"),
+    [
+        ("demo", "2026"),
+        ("tiobe", "2025-12"),
+        ("pypl", "2025-12"),
+        ("redmonk", "2025-06"),
+        ("stackoverflow-survey", "2025"),
+    ],
+)
+def test_corrupt_bootstrap_cache_falls_back_to_bundle(
+    registry: ProviderRegistry,
+    provider_id: str,
+    expected: str,
+) -> None:
+    """Malformed source cells become ParseError and do not abort the status probe."""
+    provider = registry.get(provider_id)
+    if provider_id == "demo":
+        corrupt = b"{broken"
+    else:
+        lines = provider._bundled_snapshot_payload().content.decode().splitlines()
+        cells = lines[1].split(",")
+        cells[0] = "invalid"
+        lines[1] = ",".join(cells)
+        corrupt = "\n".join(lines).encode()
+    provider._cache_dir.mkdir(parents=True)
+    (provider._cache_dir / f"{provider_id}-corrupt.bin").write_bytes(corrupt)
+    with pytest.raises(ParseError):
+        provider.parse(FetchPayload(None, corrupt))
+    assert provider.upstream_latest_period() == expected
+
+
+@pytest.mark.usefixtures("_no_network")
+@pytest.mark.parametrize(
+    ("provider_id", "variant"),
+    [(pid, None) for pid in ["tiobe", "pypl", "redmonk", "stackoverflow-survey", "ieee-spectrum", "jetbrains"]]
+    + [("github", "octoverse"), ("github", "innovation-graph")],
+)
+def test_normalization_uses_payload_acquisition_time(
+    registry: ProviderRegistry,
+    provider_id: str,
+    variant: str | None,
+) -> None:
+    """Every production parse path carries artifact acquisition time into observations."""
+    provider = registry.get(provider_id)
+    if variant == "innovation-graph":
+        provider._source = GitHubSource.INNOVATION_GRAPH
+        provider._commit_sha = "054c7dbc527518fa2ecfd316efe2aa01f3986c39"
+        content = (Path(__file__).parents[1] / "fixtures/github/innovation_graph_languages.csv").read_bytes()
+        payload = FetchPayload(
+            RawArtifact(
+                "fixture",
+                provider_id,
+                "https://example.test",
+                datetime(2024, 1, 1, tzinfo=UTC),
+                "fixture",
+                "text/csv",
+                "unused",
+            ),
+            content,
+        )
+    else:
+        payload = provider.fetch(FetchRequest(source=variant))
+    assert payload.artifact is not None
+    acquired = datetime(2024, 4, 1, tzinfo=UTC)
+    payload = replace(payload, artifact=replace(payload.artifact, retrieved_at=acquired))
+    provider._retrieved_at = datetime(2020, 1, 1, tzinfo=UTC)
+    observations = provider.normalize(provider.parse(payload))
+    assert observations
+    assert {o.retrieved_at for o in observations} == {acquired}

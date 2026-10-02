@@ -424,6 +424,7 @@ class JetBrainsProvider(BaseRatingProvider):
         :raises ParseError: On a decoding error, a missing required column, an unknown
             or unasked ``(year, metric)``, or a malformed / out-of-range cell.
         """
+        self._capture_payload_timestamp(raw)
         try:
             text = raw.content.decode("utf-8-sig")
         except UnicodeDecodeError as exc:
