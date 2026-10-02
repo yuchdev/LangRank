@@ -14,11 +14,12 @@ warning, and the raw record hash is deterministic.
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 from _golden import assert_matches_golden
 
-from langrank.models import Observation, Severity
+from langrank.models import FetchRequest, Observation, Severity
 from langrank.providers.base import FetchPayload
 from langrank.providers.ieee_spectrum import (
     PARSER_VERSION,
@@ -30,6 +31,17 @@ from langrank.providers.ieee_spectrum import (
 )
 
 _FIXTURES = Path(__file__).parents[1] / "fixtures" / "ieee-spectrum"
+
+
+def test_upstream_probe_ignores_previous_fetch_window(tmp_path: Path) -> None:
+    """A narrow fetch must not narrow the source's latest edition in a later probe."""
+    provider = IeeeSpectrumProvider(tmp_path)
+    payload = provider.fetch(FetchRequest(since=date(2024, 1, 1), until=date(2024, 12, 31), no_cache=True))
+    records = provider.parse(payload)
+    assert {record.period_start.year for record in records} == {2024}
+    assert provider.upstream_latest_period() == "2025"
+    assert provider.parse(payload) == records
+
 
 #: Every rank/score metric id owned by each profile; the three sets must be
 #: pairwise disjoint so a query for one profile can never return another's rows.

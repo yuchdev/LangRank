@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
+from langrank.errors import ParseError
 from langrank.models import (
     FetchRequest,
     Granularity,
@@ -87,26 +88,29 @@ class DemoProvider(BaseRatingProvider):
         return FetchPayload(artifact=artifact, content=content)
 
     def parse(self, raw: FetchPayload) -> list[SourceRecord]:
-        dataset = json.loads(raw.content.decode("utf-8"))
-        records: list[SourceRecord] = []
-        for entry in dataset["records"]:
-            records.append(
-                SourceRecord(
-                    rating_id=self.provider_id,
-                    metric_id=entry["metric_id"],
-                    language=entry["language"],
-                    period_start=date.fromisoformat(entry["period_start"]),
-                    period_end=date.fromisoformat(entry["period_end"]),
-                    period_label=entry["period_label"],
-                    granularity=Granularity(entry["granularity"]),
-                    rank=entry["rank"],
-                    value=entry["value"],
-                    unit=entry["unit"],
-                    source_url=entry["source_url"],
-                    metadata={"synthetic": True},
+        try:
+            dataset = json.loads(raw.content.decode("utf-8"))
+            records: list[SourceRecord] = []
+            for entry in dataset["records"]:
+                records.append(
+                    SourceRecord(
+                        rating_id=self.provider_id,
+                        metric_id=entry["metric_id"],
+                        language=entry["language"],
+                        period_start=date.fromisoformat(entry["period_start"]),
+                        period_end=date.fromisoformat(entry["period_end"]),
+                        period_label=entry["period_label"],
+                        granularity=Granularity(entry["granularity"]),
+                        rank=entry["rank"],
+                        value=entry["value"],
+                        unit=entry["unit"],
+                        source_url=entry["source_url"],
+                        metadata={"synthetic": True},
+                    )
                 )
-            )
-        return records
+            return records
+        except (ValueError, KeyError, TypeError) as exc:
+            raise ParseError("demo payload is malformed.") from exc
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
         observations: list[Observation] = []

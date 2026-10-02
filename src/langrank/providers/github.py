@@ -5,14 +5,14 @@ import hashlib
 import json
 import os
 import re
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any, Optional
 
-from langrank.errors import FetchError, ParseError, ProviderError
+from langrank.errors import FetchError, LangRankError, ParseError, ProviderError
 from langrank.models import (
     FetchRequest,
     Granularity,
@@ -564,6 +564,7 @@ class GitHubProvider(BaseRatingProvider):
         :raises ParseError: If the CSV is malformed, or the Innovation Graph commit
             SHA is unknown.
         """
+        self._capture_payload_timestamp(raw)
         if self._payload_variant(raw) is GitHubSource.OCTOVERSE:
             return _parse_octoverse(raw.content)
         commit_sha: Optional[str] = None
@@ -597,17 +598,39 @@ class GitHubProvider(BaseRatingProvider):
                     raise ParseError(f"github cached artifact has unknown variant {recorded!r}.") from None
         return self._source or GitHubSource.INNOVATION_GRAPH
 
+    def _local_snapshot_payloads(self) -> Iterator[FetchPayload]:
+        """Probe the newest cached variant, recovering and verifying its IG SHA.
+
+        Cache replay contains bytes only. The CSV header identifies the variant;
+        Innovation Graph reuses the integrity-checked sidecar replay path. This
+        hook runs on the isolated upstream probe, never the caller's provider.
+
+        :returns: Cached payload when usable, followed by the bundled Octoverse.
+        """
+        try:
+            cached = load_cached_payload(provider_id=self.provider_id, cache_dir=self._cache_dir)
+            header = next(csv.reader(cached.content.decode("utf-8-sig").splitlines()), [])
+            if "num_pushers" in header:
+                self._source = GitHubSource.INNOVATION_GRAPH
+                cached = self._replay_innovation_graph_cache()
+            elif "ranking_basis" in header:
+                self._source = GitHubSource.OCTOVERSE
+            else:
+                raise ParseError("github cached CSV has no recognized variant header.")
+            yield cached
+        except (LangRankError, UnicodeError, csv.Error):
+            pass
+        bundled = self._bundled_snapshot_payload()
+        if bundled is not None:
+            yield bundled
+
     def _bundled_snapshot_payload(self) -> Optional[FetchPayload]:
         """Return the repo-bundled Octoverse CSV for :meth:`upstream_latest_period`.
 
-        The Innovation Graph variant needs a network-resolved commit SHA to parse,
-        so it cannot back a no-network upstream probe; the manually curated Octoverse
-        rankings CSV (:attr:`_octoverse_data_path`) can. This routes the offline
-        upstream probe through the Octoverse parser by stashing the Octoverse variant
-        for :meth:`parse`. A cached Innovation Graph artifact, when present, is still
-        probed first by :meth:`_local_snapshot_payloads`; when it cannot be parsed
-        offline (no SHA) the probe falls through to this bundled snapshot instead of
-        crashing or reporting ``None``.
+        Innovation Graph can be probed from cache only with its verified commit-SHA
+        sidecar. If that cache is unavailable or invalid, the manually curated
+        Octoverse CSV (:attr:`_octoverse_data_path`) supplies the fallback. The
+        Octoverse variant is stashed on the isolated probe for :meth:`parse`.
 
         :returns: The bundled Octoverse CSV payload, or ``None`` when the curated
             file is absent.
@@ -645,6 +668,7 @@ class GitHubProvider(BaseRatingProvider):
         :raises ProviderError: If the records mix the Octoverse and Innovation Graph
             variants, which are never conflated.
         """
+        self.last_unmapped = []
         if not records:
             return []
         metric_ids = {record.metric_id for record in records}

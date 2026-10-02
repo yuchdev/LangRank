@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
+from copy import copy
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -123,6 +124,13 @@ class BaseRatingProvider(ABC):
         if label not in self.last_unmapped:
             self.last_unmapped.append(label)
 
+    def _capture_payload_timestamp(self, raw: FetchPayload) -> None:
+        """Use the artifact's acquisition time, or the current local-import time.
+
+        :param raw: Payload whose records will be normalized next.
+        """
+        self._retrieved_at = raw.artifact.retrieved_at if raw.artifact is not None else datetime.now(UTC)
+
     def _bundled_snapshot_payload(self) -> Optional[FetchPayload]:
         """Return a repo-bundled snapshot payload for :meth:`upstream_latest_period`.
 
@@ -171,11 +179,18 @@ class BaseRatingProvider(ABC):
         ``None`` when no local snapshot yields records; exceptions other than
         :class:`~langrank.errors.LangRankError` are not masked.
 
+        Parsing runs on a shallow copy with its request window cleared, so a
+        status probe neither inherits a previous fetch window nor changes the
+        original provider's pending parser state. Referenced acquisition clients
+        and normalizers are shared but are not used mutably by snapshot parsers.
+
         :returns: The latest local period label, or ``None`` when unavailable.
         """
-        for payload in self._local_snapshot_payloads():
+        probe = copy(self)
+        probe._stash_request_window(FetchRequest())
+        for payload in probe._local_snapshot_payloads():
             try:
-                records = self.parse(payload)
+                records = probe.parse(payload)
             except LangRankError:
                 continue
             if not records:

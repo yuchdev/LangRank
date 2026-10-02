@@ -6,6 +6,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Optional
 
+from langrank.errors import ParseError
 from langrank.models import (
     FetchRequest,
     Granularity,
@@ -77,31 +78,35 @@ class RedMonkProvider(BaseRatingProvider):
         )
 
     def parse(self, raw: FetchPayload) -> list[SourceRecord]:
-        rows = csv.DictReader(raw.content.decode("utf-8").splitlines())
-        records: list[SourceRecord] = []
-        for row in rows:
-            period_start = date.fromisoformat(row["period"])
-            period_end = period_start
-            records.append(
-                SourceRecord(
-                    rating_id=self.provider_id,
-                    metric_id="redmonk-rank",
-                    language=row["language"],
-                    period_start=period_start,
-                    period_end=period_end,
-                    period_label=period_start.strftime("%Y-%m"),
-                    granularity=Granularity.MONTH,
-                    rank=int(row["rank"]),
-                    value=float(row["rank"]),
-                    unit="rank",
-                    source_url=row["source_url"],
-                    metadata={
-                        "provenance": row.get("provenance") or "official",
-                        "publication_date": row["publication_date"],
-                    },
+        self._capture_payload_timestamp(raw)
+        try:
+            rows = csv.DictReader(raw.content.decode("utf-8").splitlines())
+            records: list[SourceRecord] = []
+            for row in rows:
+                period_start = date.fromisoformat(row["period"])
+                period_end = period_start
+                records.append(
+                    SourceRecord(
+                        rating_id=self.provider_id,
+                        metric_id="redmonk-rank",
+                        language=row["language"],
+                        period_start=period_start,
+                        period_end=period_end,
+                        period_label=period_start.strftime("%Y-%m"),
+                        granularity=Granularity.MONTH,
+                        rank=int(row["rank"]),
+                        value=float(row["rank"]),
+                        unit="rank",
+                        source_url=row["source_url"],
+                        metadata={
+                            "provenance": row.get("provenance") or "official",
+                            "publication_date": row["publication_date"],
+                        },
+                    )
                 )
-            )
-        return records
+            return records
+        except (ValueError, KeyError, TypeError, csv.Error) as exc:
+            raise ParseError("redmonk payload is malformed.") from exc
 
     def normalize(self, records: Sequence[SourceRecord]) -> list[Observation]:
         parser_version = self.metadata().parser_version
